@@ -14,10 +14,30 @@ export const userService = {
         return (data || []).map(mapProfile);
     },
 
-    create: async (user: User) => {
-        const { id: _unused, ...insertData } = user;
-        const { data, error } = await supabase.from('profiles').insert([insertData]).select().single();
+    create: async (user: User, password: string) => {
+        const { data: newId, error } = await supabase.rpc('create_user_with_role', {
+            new_email: user.email,
+            new_password: password,
+            new_role: user.role,
+            new_name: user.name,
+            new_sections: user.sections || []
+        });
         if (error) throw error;
+
+        if (user.avatar) {
+            const { error: avatarError } = await supabase
+                .from('profiles')
+                .update({ avatar: user.avatar })
+                .eq('id', newId);
+            if (avatarError) throw avatarError;
+        }
+
+        const { data, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', newId)
+            .single();
+        if (fetchError) throw fetchError;
         return mapProfile(data);
     },
 
@@ -40,7 +60,7 @@ export const userService = {
     },
 
     delete: async (id: string) => {
-        const { error } = await supabase.from('profiles').delete().eq('id', id);
+        const { error } = await supabase.rpc('delete_user_with_role', { p_user_id: id });
         if (error) throw error;
         return id;
     }

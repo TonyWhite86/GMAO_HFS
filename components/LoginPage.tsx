@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { User, UserRole } from '../types';
+import { User } from '../types';
 import { BRANDING } from '../branding';
 import { Lock, User as UserIcon, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { toast } from 'sonner';
-import { userIsInAlmacen } from '../utils/warehouseUtils';
 
 export const LoginPage: React.FC = () => {
-    const { login, users, isLoading: isStoreLoading, fetchInitialData } = useAppStore();
+    const { login, fetchInitialData, initializeSubscription } = useAppStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -20,86 +18,55 @@ export const LoginPage: React.FC = () => {
         setIsLoading(true);
 
         try {
-            // First check local state
-            let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+            const { supabase } = await import('../lib/supabase');
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
 
-            // Fallback: If not in local state, it might be a newly created user not yet synced
-            if (!user) {
-                const { supabase } = await import('../lib/supabase');
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('email', email)
-                    .single();
-
-                if (profile) {
-                    user = {
-                        id: profile.id,
-                        name: profile.name,
-                        email: profile.email,
-                        role: profile.role,
-                        sections: Array.isArray(profile.sections) ? profile.sections : [],
-                        active: profile.active,
-                        avatar: profile.avatar
-                    };
-                }
-            }
-
-            if (user) {
-                if (user.active) {
-                    login(user);
-                } else {
-                    setError('Esta cuenta ha sido desactivada. Contacta con el administrador.');
-                    setIsLoading(false);
-                }
-            } else {
-                setError('Email o contraseña incorrectos (o usuario no sincronizado)');
+            if (authError || !authData.user) {
+                setError('Email o contraseña incorrectos');
                 setIsLoading(false);
+                return;
             }
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', authData.user.id)
+                .single();
+
+            if (!profile) {
+                await supabase.auth.signOut();
+                setError('No se encontró el perfil de usuario. Contacta con el administrador.');
+                setIsLoading(false);
+                return;
+            }
+
+            const user: User = {
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role,
+                sections: Array.isArray(profile.sections) ? profile.sections : [],
+                active: profile.active,
+                avatar: profile.avatar
+            };
+
+            if (!user.active) {
+                await supabase.auth.signOut();
+                setError('Esta cuenta ha sido desactivada. Contacta con el administrador.');
+                setIsLoading(false);
+                return;
+            }
+
+            login(user);
+            fetchInitialData();
+            initializeSubscription();
         } catch (err: any) {
             console.error('Login error:', err);
             setError('Error técnico al iniciar sesión. Compruebe su conexión.');
             setIsLoading(false);
-        }
-    };
-
-    const handleDemoLogin = (type: 'admin' | 'manager' | 'technician' | 'warehouse_manager' | 'warehouse_technician' | 'observer_l1' | 'observer_l2') => {
-        let user;
-        const isWarehouse = (u: User) => userIsInAlmacen(u.sections);
-
-        switch (type) {
-            case 'admin':
-                user = users.find(u => u.role === UserRole.ADMIN);
-                break;
-            case 'manager':
-                user = users.find(u => u.role === UserRole.SECTION_MANAGER && !isWarehouse(u));
-                break;
-            case 'technician':
-                user = users.find(u => u.role === UserRole.TECHNICIAN && !isWarehouse(u));
-                break;
-            case 'warehouse_manager':
-                user = users.find(u => u.role === UserRole.SECTION_MANAGER && isWarehouse(u));
-                break;
-            case 'warehouse_technician':
-                user = users.find(u => u.role === UserRole.TECHNICIAN && isWarehouse(u));
-                break;
-            case 'observer_l1':
-                user = users.find(u => u.role === UserRole.OBSERVER_L1);
-                break;
-            case 'observer_l2':
-                user = users.find(u => u.role === UserRole.OBSERVER_L2);
-                break;
-        }
-
-        if (user) {
-            login(user);
-        } else {
-            if (isStoreLoading) {
-                toast.loading('Sincronizando usuarios para la demo...', { duration: 2000 });
-            } else {
-                toast.error('No se han podido cargar los usuarios para la demo. Reintentando...');
-                fetchInitialData();
-            }
         }
     };
 
@@ -152,7 +119,7 @@ export const LoginPage: React.FC = () => {
                                     autoComplete="email"
                                     required
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={e => setEmail(e.target.value)}
                                     className="appearance-none block w-full pl-10 px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700/50 placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
                                     placeholder="usuario@healthy-foodsolutions.com"
                                 />
@@ -174,7 +141,7 @@ export const LoginPage: React.FC = () => {
                                     autoComplete="current-password"
                                     required
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={e => setPassword(e.target.value)}
                                     className="appearance-none block w-full pl-10 pr-10 px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700/50 placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
                                     placeholder="••••••••"
                                 />
@@ -213,39 +180,6 @@ export const LoginPage: React.FC = () => {
                             </button>
                         </div>
                     </form>
-
-                    <div className="mt-8">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200 dark:border-slate-700" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                    Accesos Directos (Demo)
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {[
-                                { id: 'admin', label: 'Admin', color: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200' },
-                                { id: 'manager', label: 'Jefe Manto.', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' },
-                                { id: 'technician', label: 'Técnico Manto.', color: 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' },
-                                { id: 'warehouse_manager', label: 'Jefe Almacén', color: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' },
-                                { id: 'warehouse_technician', label: 'Téc. Almacén', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' },
-                                { id: 'observer_l1', label: 'Observador N1', color: 'bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200' },
-                                { id: 'observer_l2', label: 'Observador N2', color: 'bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200' }
-                            ].map((role) => (
-                                <button
-                                    key={role.id}
-                                    onClick={() => handleDemoLogin(role.id as any)}
-                                    className={`flex justify-center items-center px-3 py-2 border rounded-xl shadow-sm text-xs font-bold ${role.color} transition-colors backdrop-blur-sm bg-opacity-80 whitespace-nowrap`}
-                                >
-                                    {role.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

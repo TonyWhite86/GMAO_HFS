@@ -63,6 +63,7 @@ export const UsersModule: React.FC = () => {
         sections: []
     });
     const [copyFromUserId, setCopyFromUserId] = useState('');
+    const [formPassword, setFormPassword] = useState('');
 
     // Form State for Section
     const [sectionName, setSectionName] = useState('');
@@ -99,10 +100,10 @@ export const UsersModule: React.FC = () => {
                 sections: isNowAdmin ? [] : (formData.sections || []),
                 avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || '')}&background=random`
             };
-            await onAddUser(newUser);
-            if (copyFromUserId) {
+            const created = await onAddUser(newUser, formPassword);
+            if (copyFromUserId && created) {
                 try {
-                    await copyPermissionsFromUser(copyFromUserId, newUser.id);
+                    await copyPermissionsFromUser(copyFromUserId, created.id);
                 } catch (err) {
                     console.error('Error copying permissions:', err);
                 }
@@ -111,6 +112,7 @@ export const UsersModule: React.FC = () => {
         setShowUserModal(false);
         setEditingUser(null);
         setCopyFromUserId('');
+        setFormPassword('');
         setFormData({ name: '', email: '', role: UserRole.TECHNICIAN, active: true, sections: [] });
     };
 
@@ -597,6 +599,24 @@ export const UsersModule: React.FC = () => {
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
                             </div>
+
+                            {!editingUser && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Contraseña inicial</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        autoComplete="new-password"
+                                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formPassword}
+                                        onChange={e => setFormPassword(e.target.value)}
+                                        placeholder="Mínimo 6 caracteres"
+                                    />
+                                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                                        Comunícasela al usuario. Podrá cambiarla en el futuro.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>

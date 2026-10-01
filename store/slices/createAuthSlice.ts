@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { User } from '../../types';
 import { userService } from '../../services/userService';
+import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 
 export interface AuthSlice {
@@ -9,7 +10,7 @@ export interface AuthSlice {
     logout: () => void;
     users: User[];
     setUsers: (users: User[]) => void;
-    addUser: (user: User) => Promise<void>;
+    addUser: (user: User, password: string) => Promise<User>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
 }
@@ -18,16 +19,20 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
     currentUser: null,
     users: [],
     login: (user) => set({ currentUser: user }),
-    logout: () => set({ currentUser: null }),
+    logout: () => {
+        supabase.auth.signOut();
+        set({ currentUser: null });
+    },
     setUsers: (users) => set({ users }),
-    addUser: async (user) => {
+    addUser: async (user, password) => {
         try {
-            const created = await userService.create(user);
+            const created = await userService.create(user, password);
             toast.success('Usuario creado con éxito');
             set((state) => {
                 if (state.users.find(u => u.id === created.id)) return state;
                 return { users: [...state.users, created] };
             });
+            return created;
         } catch (error) {
             toast.error('Error al crear usuario');
             throw error;

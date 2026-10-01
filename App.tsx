@@ -12,6 +12,7 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { WOStatus, WOPriority } from './types';
 import { useAppStore } from './store/useAppStore';
+import { mapProfile } from './utils/mappers';
 
 // Lazy loaded modules
 const Maintenance = lazy(() => import('./modules/Maintenance').then(module => ({ default: module.Maintenance })));
@@ -32,6 +33,7 @@ const App: React.FC = () => {
     setActiveModule,
     fetchInitialData,
     initializeSubscription,
+    login,
     isLoading,
     error
   } = useAppStore();
@@ -90,11 +92,49 @@ const App: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  // Fetch data on mount
+  // Restore Supabase Auth session and load user data
   useEffect(() => {
-    fetchInitialData();
-    initializeSubscription();
-  }, [fetchInitialData, initializeSubscription]);
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | undefined;
+
+    const loadUserFromSession = async (userId: string) => {
+      const { supabase } = await import('./lib/supabase');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (cancelled) return;
+
+      if (!profile || !profile.active) {
+        await supabase.auth.signOut();
+        return;
+      }
+
+      login(mapProfile(profile));
+      fetchInitialData();
+      initializeSubscription();
+    };
+
+    import('./lib/supabase').then(({ supabase }) => {
+      if (cancelled) return;
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (cancelled) return;
+        if (event === 'INITIAL_SESSION' && session?.user) {
+          setTimeout(() => loadUserFromSession(session.user.id), 0);
+        } else if (event === 'SIGNED_OUT') {
+          useAppStore.setState({ currentUser: null });
+        }
+      });
+      subscription = data.subscription;
+    });
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
+  }, [login, fetchInitialData, initializeSubscription]);
 
   // Auto-retry when network comes back online
   useEffect(() => {
