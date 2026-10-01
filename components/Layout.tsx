@@ -147,13 +147,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </button>
 
         {/* Logo Section */}
-        <div className={`flex items-center ${isCollapsed ? 'justify-center p-4' : 'justify-between p-6'} mb-2`}>
-          <div className="flex items-center space-x-3 group">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-between p-6'} mb-2`}>
+          <div className="flex items-center group min-w-0">
             {BRANDING.logo ? (
               <>
-                <img src={BRANDING.logo} alt="Logo" className={`${isCollapsed ? 'h-5' : 'h-9'} w-auto max-w-full object-contain object-left dark:hidden`} />
+                <img src={BRANDING.logo} alt="Logo" className={`${isCollapsed ? 'w-16' : 'w-40'} max-w-full h-auto object-contain dark:hidden`} />
                 {BRANDING.logoDark && (
-                  <img src={BRANDING.logoDark} alt="Logo" className={`${isCollapsed ? 'h-5' : 'h-9'} w-auto max-w-full object-contain object-left hidden dark:block`} />
+                  <img src={BRANDING.logoDark} alt="Logo" className={`${isCollapsed ? 'w-16' : 'w-40'} max-w-full h-auto object-contain hidden dark:block`} />
                 )}
               </>
             ) : (
