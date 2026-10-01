@@ -161,11 +161,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Wrench size={20} />
               </div>
             )}
-            {!isCollapsed && (
-              <div className="animate-fade-in whitespace-nowrap overflow-hidden">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{BRANDING.appName}</h1>
-              </div>
-            )}
           </div>
           <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={20} />
