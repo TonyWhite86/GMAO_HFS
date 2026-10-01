@@ -1,5 +1,5 @@
 -- ============================================================================
--- MaintPro — Full Database Schema (Single Source of Truth)
+-- GMAO HFS (Healthy Food Solutions) — Full Database Schema
 --
 -- This file is the authoritative schema definition. All migrations in
 -- database/ and database/migrations/ have been incorporated here.
@@ -106,6 +106,20 @@ CREATE TABLE public.inventory (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Planes Preventivos
+CREATE TABLE public.preventive_plans (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  equipment_id UUID REFERENCES public.equipment(id) ON DELETE CASCADE,
+  frequency_days INTEGER NOT NULL,
+  description TEXT,
+  tasks JSONB DEFAULT '[]',
+  section TEXT,
+  last_run TIMESTAMP WITH TIME ZONE,
+  next_run TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Órdenes de Trabajo
 CREATE TABLE public.work_orders (
   id TEXT PRIMARY KEY,
@@ -165,21 +179,6 @@ CREATE TABLE public.subtasks (
   assigned_user_ids UUID[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
--- Planes Preventivos
-CREATE TABLE public.preventive_plans (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  equipment_id UUID REFERENCES public.equipment(id) ON DELETE CASCADE,
-  frequency_days INTEGER NOT NULL,
-  description TEXT,
-  tasks JSONB DEFAULT '[]',
-  section TEXT,
-  last_run TIMESTAMP WITH TIME ZONE,
-  next_run TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
 -- ============================================================================
 -- 2. TABLAS DE MIGRACIONES
 -- ============================================================================
