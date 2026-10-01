@@ -1,0 +1,1308 @@
+{
+    "tables": [
+        {
+            "columns": [
+                {
+                    "data_type": "integer",
+                    "column_name": "year",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "last_val",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "incident_sequences"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "user_id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "skill_id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "level",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "date",
+                    "column_name": "validation_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "user_skills"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "description",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "category",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "skills"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "equipment_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "frequency_days",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "last_run",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "next_run",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "description",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "tasks",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "section",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "preventive_plans"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "work_order_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "user_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "added_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "work_order_collaborators"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "number",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "supplier",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "requested_by",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "requested_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "order_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "expected_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "received_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "notes",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "numeric",
+                    "column_name": "total_amount",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "purchase_orders"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "order_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "part_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "quantity",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "numeric",
+                    "column_name": "unit_price",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "received_quantity",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "equipment_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "purchase_order_items"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "integer",
+                    "column_name": "year",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "last_val",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "work_order_sequences"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "parent_id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "parent_type",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "url",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "type",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "attachments"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "work_order_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "description",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "boolean",
+                    "column_name": "completed",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "assigned_user_ids",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "subtasks"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "item_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "type",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "quantity",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "reason",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "user_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "inventory_movements"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "email",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "role",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "sections",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "boolean",
+                    "column_name": "active",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "avatar",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "profiles"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "manufacturer",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "serial_number",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "location",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "sections",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "parent_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "photo_url",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "qr_code",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "code",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "equipment"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "sku",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "quantity",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "min_stock",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "category",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "location",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "numeric",
+                    "column_name": "price",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "supplier",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "qr_code",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "critic",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "image",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "linked_equipment_ids",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "manufacturer",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "inventory"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "text",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "title",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "description",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "type",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "priority",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "equipment_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "assigned_user_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "collaborators",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "section",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "created_by",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "scheduled_date",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "closed_at",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "integer",
+                    "column_name": "time_spent_minutes",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "pending_reason",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "audio_note_url",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "status_history",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "ARRAY",
+                    "column_name": "collaborating_sections",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "used_parts",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "related_plan_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "related_incident_id",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "work_orders"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "work_order_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "user_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "user_name",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "text",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "boolean",
+                    "column_name": "is_system",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "attachments",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "comments"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "name",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "boolean",
+                    "column_name": "is_special",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                }
+            ],
+            "table_name": "sections"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "incident_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "user_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "user_name",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "text",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "boolean",
+                    "column_name": "is_system",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "attachments",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "incident_comments"
+        },
+        {
+            "columns": [
+                {
+                    "data_type": "uuid",
+                    "column_name": "id",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "title",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "description",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "priority",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "status",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "created_by",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "section",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "uuid",
+                    "column_name": "equipment_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "work_order_id",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "timestamp with time zone",
+                    "column_name": "created_at",
+                    "is_nullable": "NO"
+                },
+                {
+                    "data_type": "jsonb",
+                    "column_name": "attachments",
+                    "is_nullable": "YES"
+                },
+                {
+                    "data_type": "text",
+                    "column_name": "display_id",
+                    "is_nullable": "YES"
+                }
+            ],
+            "table_name": "incidents"
+        }
+    ],
+    "policies": [
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "profiles",
+            "policy_name": "Read Profiles",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "sections",
+            "policy_name": "Read Sections",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "equipment",
+            "policy_name": "Read Equipment",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "inventory",
+            "policy_name": "Read Inventory",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "work_orders",
+            "policy_name": "Read Work Orders",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "comments",
+            "policy_name": "Read Comments",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "attachments",
+            "policy_name": "Read Attachments",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "subtasks",
+            "policy_name": "Read Subtasks",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "preventive_plans",
+            "policy_name": "Read Plans",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "profiles",
+            "policy_name": "Manage Profiles",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "sections",
+            "policy_name": "Manage Sections",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "equipment",
+            "policy_name": "Manage Equipment",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "work_orders",
+            "policy_name": "Manage Work Orders",
+            "using_expression": "is_staff()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "inventory",
+            "policy_name": "Manage Inventory",
+            "using_expression": "is_staff()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "preventive_plans",
+            "policy_name": "Manage Plans",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "comments",
+            "policy_name": "Open Comments",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "attachments",
+            "policy_name": "Open Attachments",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "subtasks",
+            "policy_name": "Open Subtasks",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "work_order_collaborators",
+            "policy_name": "Everyone can read collaborators",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "INSERT",
+            "table_name": "work_order_collaborators",
+            "policy_name": "Users can add collaborators",
+            "using_expression": null,
+            "with_check_expression": "(auth.role() = 'authenticated'::text)"
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "UPDATE",
+            "table_name": "work_order_collaborators",
+            "policy_name": "Collaborators can update own status",
+            "using_expression": "(auth.uid() = user_id)",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "DELETE",
+            "table_name": "work_order_collaborators",
+            "policy_name": "Users can remove collaborators",
+            "using_expression": "(auth.role() = 'authenticated'::text)",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "incident_sequences",
+            "policy_name": "Read Sequences",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "incident_sequences",
+            "policy_name": "Update Sequences",
+            "using_expression": "is_staff()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "incidents",
+            "policy_name": "Acceso total incidencias",
+            "using_expression": "true",
+            "with_check_expression": "true"
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "incident_comments",
+            "policy_name": "Acceso total comentarios",
+            "using_expression": "true",
+            "with_check_expression": "true"
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "work_order_sequences",
+            "policy_name": "Read Sequences",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "work_order_sequences",
+            "policy_name": "Update Sequences",
+            "using_expression": "is_staff()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "purchase_orders",
+            "policy_name": "Allow all access to purchase_orders",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "purchase_order_items",
+            "policy_name": "Allow all access to purchase_order_items",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "inventory_movements",
+            "policy_name": "Enable read access for all users",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "INSERT",
+            "table_name": "inventory_movements",
+            "policy_name": "Enable insert access for authenticated users",
+            "using_expression": null,
+            "with_check_expression": "(auth.role() = 'authenticated'::text)"
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "skills",
+            "policy_name": "Enable read access for all users",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "skills",
+            "policy_name": "Manage Skills",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "SELECT",
+            "table_name": "user_skills",
+            "policy_name": "Enable read access for all users",
+            "using_expression": "true",
+            "with_check_expression": null
+        },
+        {
+            "roles": [
+                "public"
+            ],
+            "action": "ALL",
+            "table_name": "user_skills",
+            "policy_name": "Manage User Skills",
+            "using_expression": "is_admin()",
+            "with_check_expression": null
+        }
+    ],
+    "triggers": [
+        {
+            "event": "INSERT",
+            "action": "EXECUTE FUNCTION generate_work_order_id()",
+            "timing": "BEFORE",
+            "table_name": "work_orders",
+            "trigger_name": "set_work_order_id"
+        },
+        {
+            "event": "INSERT",
+            "action": "EXECUTE FUNCTION generate_incident_id()",
+            "timing": "BEFORE",
+            "table_name": "incidents",
+            "trigger_name": "set_incident_display_id"
+        }
+    ],
+    "functions": [
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.generate_work_order_id()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    current_year INTEGER;\n    next_val INTEGER;\nBEGIN\n    -- Solo generar si el ID no viene pre-definido o está vacío\n    IF NEW.id IS NULL OR NEW.id = '' THEN\n        \n        -- Obtener año actual\n        current_year := date_part('year', now())::INTEGER;\n\n        -- Insertar el año si no existe (inicio de año nuevo), con valor inicial 0\n        INSERT INTO public.work_order_sequences (year, last_val)\n        VALUES (current_year, 0)\n        ON CONFLICT (year) DO NOTHING;\n\n        -- Incrementar el contador para el año actual y obtener el valor\n        UPDATE public.work_order_sequences\n        SET last_val = last_val + 1\n        WHERE year = current_year\n        RETURNING last_val INTO next_val;\n\n        -- Formatear: OT-YYYY-XXXXXX (ej: OT-2025-000001)\n        NEW.id := 'OT-' || current_year::TEXT || '-' || lpad(next_val::TEXT, 6, '0');\n    END IF;\n    RETURN NEW;\nEND;\n$function$\n",
+            "function_name": "generate_work_order_id"
+        },
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.create_user_with_role(new_email text, new_password text, new_role text, new_name text, new_sections text[])\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  new_user_id UUID;\nBEGIN\n  INSERT INTO auth.users (\n    instance_id, id, aud, role, email, encrypted_password,\n    email_confirmed_at, raw_app_meta_data, raw_user_meta_data,\n    created_at, updated_at\n  )\n  VALUES (\n    '00000000-0000-0000-0000-000000000000', gen_random_uuid(),\n    'authenticated', 'authenticated', new_email,\n    crypt(new_password, gen_salt('bf')), now(),\n    '{\"provider\":\"email\",\"providers\":[\"email\"]}',\n    jsonb_build_object('name', new_name), now(), now()\n  )\n  RETURNING id INTO new_user_id;\n\n  INSERT INTO public.profiles (id, name, email, role, sections, active)\n  VALUES (new_user_id, new_name, new_email, new_role, new_sections, true)\n  ON CONFLICT (id) DO UPDATE SET\n    role = EXCLUDED.role, sections = EXCLUDED.sections, name = EXCLUDED.name;\n\n  RETURN new_user_id;\nEND;\n$function$\n",
+            "function_name": "create_user_with_role"
+        },
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.generate_incident_id()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    current_year INTEGER;\n    next_val INTEGER;\nBEGIN\n    -- Solo generar si display_id no viene pre-definido o está vacío\n    IF NEW.display_id IS NULL OR NEW.display_id = '' THEN\n        \n        -- Obtener año actual\n        current_year := date_part('year', now())::INTEGER;\n\n        -- Insertar el año si no existe, con valor inicial 0\n        INSERT INTO public.incident_sequences (year, last_val)\n        VALUES (current_year, 0)\n        ON CONFLICT (year) DO NOTHING;\n\n        -- Incrementar el contador para el año actual y obtener el valor\n        UPDATE public.incident_sequences\n        SET last_val = last_val + 1\n        WHERE year = current_year\n        RETURNING last_val INTO next_val;\n\n        -- Formatear: INC-YYYY-XXXXXX (ej: INC-2025-000001)\n        NEW.display_id := 'INC-' || current_year::TEXT || '-' || lpad(next_val::TEXT, 6, '0');\n    END IF;\n    RETURN NEW;\nEND;\n$function$\n",
+            "function_name": "generate_incident_id"
+        },
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n  INSERT INTO public.profiles (id, name, email)\n  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email);\n  RETURN new;\nEND;\n$function$\n",
+            "function_name": "handle_new_user"
+        },
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n  -- En modo DEMO/DESARROLLO: Permitimos todo\n  RETURN true;\nEND;\n$function$\n",
+            "function_name": "is_admin"
+        },
+        {
+            "definition": "CREATE OR REPLACE FUNCTION public.is_staff()\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n  -- En modo DEMO/DESARROLLO: Permitimos todo\n  RETURN true;\nEND;\n$function$\n",
+            "function_name": "is_staff"
+        }
+    ]
+}
