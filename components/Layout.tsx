@@ -149,8 +149,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Logo Section */}
         <div className={`flex items-center ${isCollapsed ? 'justify-center p-4' : 'justify-between p-6'} mb-2`}>
           <div className="flex items-center space-x-3 group">
-            {BRANDING.icon ? (
-              <img src={BRANDING.icon} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+            {BRANDING.logo ? (
+              <>
+                <img src={BRANDING.logo} alt="Logo" className={`${isCollapsed ? 'h-5' : 'h-9'} w-auto max-w-full object-contain object-left dark:hidden`} />
+                {BRANDING.logoDark && (
+                  <img src={BRANDING.logoDark} alt="Logo" className={`${isCollapsed ? 'h-5' : 'h-9'} w-auto max-w-full object-contain object-left hidden dark:block`} />
+                )}
+              </>
             ) : (
               <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/30 transition-shadow">
                 <Wrench size={20} />
@@ -159,9 +164,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {!isCollapsed && (
               <div className="animate-fade-in whitespace-nowrap overflow-hidden">
                 <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{BRANDING.appName}</h1>
-                {BRANDING.appSubtitle && (
-                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{BRANDING.appSubtitle}</span>
-                )}
               </div>
             )}
           </div>

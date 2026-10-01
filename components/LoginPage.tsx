@@ -82,9 +82,9 @@ export const LoginPage: React.FC = () => {
                 <div className="flex justify-center mb-6">
                     {BRANDING.logo ? (
                         <>
-                            <img src={BRANDING.logo} alt="Logo" className="h-16 w-auto object-contain drop-shadow-lg dark:hidden" />
+                            <img src={BRANDING.logo} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg dark:hidden" />
                             {BRANDING.logoDark && (
-                                <img src={BRANDING.logoDark} alt="Logo" className="h-16 w-auto object-contain drop-shadow-lg hidden dark:block" />
+                                <img src={BRANDING.logoDark} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg hidden dark:block" />
                             )}
                         </>
                     ) : (
@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
                         </div>
                     )}
                 </div>
-                <h2 className="mt-2 text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <h2 className="mt-2 text-center text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {BRANDING.loginTitle}
                 </h2>
                 <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
