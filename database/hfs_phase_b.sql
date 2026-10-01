@@ -5,6 +5,7 @@
 -- 2. Endurece las políticas abiertas a "solo usuarios autenticados"
 -- 3. Protege los RPC (solo admin crea/borra usuarios; staff mueve inventario)
 -- 4. Añade delete_user_with_role (baja de usuario en auth.users + profiles)
+-- 5. Triggers de IDs como SECURITY DEFINER y lecturas solo autenticadas
 --
 -- IMPORTANTE: ejecutar DESPUÉS de crear el usuario admin con
 -- create_user_with_role (este script protege esa función).
@@ -216,3 +217,89 @@ DECLARE
     RETURN keep_id;
 END;
 $$;
+
+-- 4. Triggers de IDs como SECURITY DEFINER ---------------------------------
+-- (el trigger de incidencias debe poder escribir incident_sequences aunque
+-- quien cree la incidencia sea un Observador)
+
+CREATE OR REPLACE FUNCTION public.generate_work_order_id()
+RETURNS TRIGGER AS $$
+DECLARE
+    current_year INTEGER;
+    next_val INTEGER;
+BEGIN
+    IF NEW.id IS NULL OR NEW.id = '' THEN
+        current_year := date_part('year', now())::INTEGER;
+        INSERT INTO public.work_order_sequences (year, last_val)
+        VALUES (current_year, 0)
+        ON CONFLICT (year) DO NOTHING;
+        UPDATE public.work_order_sequences
+        SET last_val = last_val + 1
+        WHERE year = current_year
+        RETURNING last_val INTO next_val;
+        NEW.id := 'OT-' || current_year::TEXT || '-' || lpad(next_val::TEXT, 6, '0');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.generate_incident_id()
+RETURNS TRIGGER AS $$
+DECLARE
+    current_year INTEGER;
+    next_val INTEGER;
+BEGIN
+    IF NEW.display_id IS NULL OR NEW.display_id = '' THEN
+        current_year := date_part('year', now())::INTEGER;
+        INSERT INTO public.incident_sequences (year, last_val)
+        VALUES (current_year, 0)
+        ON CONFLICT (year) DO NOTHING;
+        UPDATE public.incident_sequences
+        SET last_val = last_val + 1
+        WHERE year = current_year
+        RETURNING last_val INTO next_val;
+        NEW.display_id := 'INC-' || current_year::TEXT || '-' || lpad(next_val::TEXT, 6, '0');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+DROP POLICY IF EXISTS "Read Profiles" ON public.profiles;
+CREATE POLICY "Read Profiles" ON public.profiles FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Sections" ON public.sections;
+CREATE POLICY "Read Sections" ON public.sections FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Permissions" ON public.user_permissions;
+CREATE POLICY "Read Permissions" ON public.user_permissions FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Equipment" ON public.equipment;
+CREATE POLICY "Read Equipment" ON public.equipment FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Inventory" ON public.inventory;
+CREATE POLICY "Read Inventory" ON public.inventory FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Work Orders" ON public.work_orders;
+CREATE POLICY "Read Work Orders" ON public.work_orders FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Plans" ON public.preventive_plans;
+CREATE POLICY "Read Plans" ON public.preventive_plans FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Movements" ON public.inventory_movements;
+CREATE POLICY "Read Movements" ON public.inventory_movements FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Skills" ON public.skills;
+CREATE POLICY "Read Skills" ON public.skills FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read User Skills" ON public.user_skills;
+CREATE POLICY "Read User Skills" ON public.user_skills FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Collaborators" ON public.work_order_collaborators;
+CREATE POLICY "Read Collaborators" ON public.work_order_collaborators FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read WO Sequences" ON public.work_order_sequences;
+CREATE POLICY "Read WO Sequences" ON public.work_order_sequences FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Read Incident Sequences" ON public.incident_sequences;
+CREATE POLICY "Read Incident Sequences" ON public.incident_sequences FOR SELECT USING (auth.role() = 'authenticated');
