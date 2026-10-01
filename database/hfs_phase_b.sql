@@ -30,30 +30,37 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 2. Políticas: todo pasa por sesión autenticada -------------------------------
 
 DROP POLICY IF EXISTS "Open Comments" ON public.comments;
+DROP POLICY IF EXISTS "Comments require login" ON public.comments;
 CREATE POLICY "Comments require login" ON public.comments
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Open Attachments" ON public.attachments;
+DROP POLICY IF EXISTS "Attachments require login" ON public.attachments;
 CREATE POLICY "Attachments require login" ON public.attachments
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Open Subtasks" ON public.subtasks;
+DROP POLICY IF EXISTS "Subtasks require login" ON public.subtasks;
 CREATE POLICY "Subtasks require login" ON public.subtasks
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Acceso total incidencias" ON public.incidents;
+DROP POLICY IF EXISTS "Incidents require login" ON public.incidents;
 CREATE POLICY "Incidents require login" ON public.incidents
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Acceso total comentarios" ON public.incident_comments;
+DROP POLICY IF EXISTS "Incident Comments require login" ON public.incident_comments;
 CREATE POLICY "Incident Comments require login" ON public.incident_comments
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Full Access Orders" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Orders require login" ON public.purchase_orders;
 CREATE POLICY "Orders require login" ON public.purchase_orders
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Full Access Order Items" ON public.purchase_order_items;
+DROP POLICY IF EXISTS "Order Items require login" ON public.purchase_order_items;
 CREATE POLICY "Order Items require login" ON public.purchase_order_items
   FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
