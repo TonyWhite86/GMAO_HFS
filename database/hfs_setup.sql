@@ -770,25 +770,8 @@ END;
 $$;
 
 -- ============================================================================
--- 14. MODO APP SIN SESIÓN SUPABASE AUTH (comportamiento 1:1 de la BD original)
--- La app gestiona el usuario en estado local sin sesión Supabase Auth real, por
--- lo que estas funciones devuelven true para que las políticas RLS permitan el
--- trabajo normal con la anon key. En la Fase B (login real) se restaurarán las
--- versiones que leen el JWT (ver database/migrations/005_rls_jwt_role_claims.sql).
+-- NOTA: las funciones is_admin() / is_staff() ya están definidas en la sección 3
+-- y leen el rol del JWT. En el pasado había aquí un bloque "MODO APP SIN SESIÓN
+-- SUPABASE AUTH" que las sobreescribía con RETURN true (modo demo: cualquiera era
+-- Admin). Se ha eliminado por ser un pie forzado de seguridad.
 -- ============================================================================
-
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean AS $$
-BEGIN
-  -- En modo DEMO/DESARROLLO: Permitimos todo
-  RETURN true;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION public.is_staff()
-RETURNS boolean AS $$
-BEGIN
-  -- En modo DEMO/DESARROLLO: Permitimos todo
-  RETURN true;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
