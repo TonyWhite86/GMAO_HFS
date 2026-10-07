@@ -23,6 +23,7 @@ const Dashboard = lazy(() => import('./modules/Dashboard').then(module => ({ def
 const ReportsModule = lazy(() => import('./modules/Reports').then(module => ({ default: module.ReportsModule })));
 const UsersModule = lazy(() => import('./modules/Users').then(module => ({ default: module.UsersModule })));
 const IncidentsModule = lazy(() => import('./modules/Incidents').then(module => ({ default: module.IncidentsModule })));
+const StoppagesModule = lazy(() => import('./modules/Stoppages').then(module => ({ default: module.Stoppages })));
 
 const App: React.FC = () => {
   // Global Store State
@@ -198,6 +199,8 @@ const App: React.FC = () => {
         return <ReportsModule />;
       case 'incidents':
         return <IncidentsModule />;
+      case 'stoppages':
+        return <StoppagesModule />;
       default:
         return <div className="dark:text-white">Módulo no encontrado</div>;
     }

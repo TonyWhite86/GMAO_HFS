@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { Incident, IncidentStatus, UserRole } from '../../types';
+import { Incident, IncidentStatus, Section } from '../../types';
 import { Plus, Search, Filter } from 'lucide-react';
 import { IncidentList } from './components/IncidentList';
 import { IncidentDetail } from './components/IncidentDetail';
 import { CreateIncidentModal } from './components/CreateIncidentModal';
-import { useRestrictedItems } from '../../hooks/useFilteredData';
 import { useSearchFilter } from '../../hooks/useSearchFilter';
+import { useVisibleCategories } from '../../hooks/useVisibleCategories';
+import { canSeeIncident } from '../../utils/incidentVisibility';
 import { PageHeader } from '../../components/ui/PageHeader';
 
 
@@ -16,12 +17,18 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 
 export const IncidentsModule: React.FC = () => {
-    const { incidents, currentUser } = useAppStore();
+    const { incidents, incidentCategories, currentUser, sections } = useAppStore();
+    const visibleCategories = useVisibleCategories(currentUser);
     const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // 1. Security Filtering
-    const searchableIncidents = useRestrictedItems(incidents, currentUser);
+    // 1. Security Filtering (espejo de incident_visible_to_me en RLS:
+    //    sección de la incidencia + visibilidad de categoría + comodín/observador)
+    const searchableIncidents = React.useMemo(() => {
+        return incidents.filter(inc =>
+            canSeeIncident(inc, currentUser, incidentCategories, sections as Section[])
+        );
+    }, [incidents, currentUser, incidentCategories, sections]);
 
     // 2. Functional Filtering (Search & Status)
     const {
@@ -36,14 +43,24 @@ export const IncidentsModule: React.FC = () => {
     });
 
     const statusFilter = filters.status || 'ALL';
+    const categoryFilter = filters.categoryId || 'ALL';
 
-    const selectedIncident = incidents.find(i => i.id === selectedIncidentId) || null;
+    // Solo se puede abrir el detalle de una incidencia visible para el usuario
+    const selectedIncident = searchableIncidents.find(i => i.id === selectedIncidentId) || null;
 
     const statusOptions = [
         { value: 'ALL', label: 'Todas las incidencias' },
         ...Object.values(IncidentStatus).map(status => ({
             value: status,
             label: status
+        }))
+    ];
+
+    const categoryOptions = [
+        { value: 'ALL', label: 'Todas las categorías' },
+        ...visibleCategories.filter(c => c.isActive).map(c => ({
+            value: c.id,
+            label: c.name
         }))
     ];
 
@@ -83,7 +100,17 @@ export const IncidentsModule: React.FC = () => {
                         <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
                     </div>
                     
-                    <div className="w-full sm:w-64">
+                    <div className="w-full sm:w-56">
+                        <CustomSelect
+                            value={categoryFilter}
+                            onChange={(value) => setFilter('categoryId', value)}
+                            options={categoryOptions}
+                            placeholder="Filtrar por categoría"
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-56">
                         <CustomSelect
                             value={statusFilter}
                             onChange={(value) => setFilter('status', value)}
@@ -105,10 +132,12 @@ export const IncidentsModule: React.FC = () => {
             </div>
 
             {/* Modals */}
-            <CreateIncidentModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-            />
+            {isCreateModalOpen && (
+                <CreateIncidentModal
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                />
+            )}
 
             {selectedIncidentId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">

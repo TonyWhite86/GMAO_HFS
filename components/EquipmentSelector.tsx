@@ -14,6 +14,7 @@ interface EquipmentSelectorProps {
     placeholder?: string;
     color?: 'blue' | 'purple' | 'green' | 'orange';
     error?: boolean;
+    disabled?: boolean;
 }
 
 export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
@@ -25,6 +26,7 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
     placeholder = 'Buscar equipo...',
     color = 'blue',
     error = false,
+    disabled = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -140,10 +142,12 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                 <div className="relative flex-1">
                     <div
                         className={`
-              w-full p-3 pl-9 pr-14 border rounded-xl cursor-pointer bg-white dark:bg-slate-700 text-slate-900 dark:text-white flex items-center
+              w-full p-3 pl-9 pr-14 border rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white flex items-center
+              ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
               ${isOpen ? `ring-2 ${c.ring} border-transparent` : error ? 'border-red-500 ring-1 ring-red-500 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700'}
             `}
                         onClick={() => {
+                            if (disabled) return;
                             setIsOpen(!isOpen);
                         }}
                     >
@@ -171,11 +175,13 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                     {/* QR Button */}
                     <button
                         type="button"
+                        disabled={disabled}
                         onClick={(e) => {
                             e.stopPropagation();
+                            if (disabled) return;
                             setIsQRModalOpen(true);
                         }}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                        className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
                         title="Escanear QR"
                     >
                         <QrCode size={16} />

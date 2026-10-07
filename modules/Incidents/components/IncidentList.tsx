@@ -47,9 +47,16 @@ export const IncidentList: React.FC<IncidentListProps> = ({ incidents, selectedI
                         {/* Desktop Row */}
                         <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center">
                             <div className="col-span-2">
-                                <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                                    {incident.displayId || incident.id.split('-')[0]}
-                                </span>
+                                <div className="flex flex-col items-start gap-1">
+                                    <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                        {incident.displayId || incident.id.split('-')[0]}
+                                    </span>
+                                    {incident.categoryName && (
+                                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                            {incident.categoryName}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <div className="col-span-4">
                                 <div className="flex flex-col">
@@ -91,9 +98,16 @@ export const IncidentList: React.FC<IncidentListProps> = ({ incidents, selectedI
                         {/* Mobile Card */}
                         <div className="md:hidden p-4">
                             <div className="flex justify-between items-start gap-3 mb-2">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${PRIORITY_CONFIG[incident.priority]?.bgClass}`}>
-                                    {incident.priority}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${PRIORITY_CONFIG[incident.priority]?.bgClass}`}>
+                                        {incident.priority}
+                                    </span>
+                                    {incident.categoryName && (
+                                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full">
+                                            {incident.categoryName}
+                                        </span>
+                                    )}
+                                </div>
                                 <StatusBadge status={incident.status} type="incident" />
                             </div>
 

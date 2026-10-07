@@ -3,8 +3,9 @@ import { Incident, IncidentStatus, UserRole, WOPriority, Attachment } from '../.
 import { useAppStore } from '../../../store/useAppStore';
 import {
     X, AlertCircle, Clock, CheckCircle2, XCircle, FileText,
-    Calendar, MapPin, Wrench, ChevronRight
+    Calendar, MapPin, Wrench, ChevronRight, Save
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ConvertIncidentModal } from './ConvertIncidentModal';
 import { CommentTimeline, SharedComment } from '../../../components/common/CommentTimeline';
@@ -19,10 +20,18 @@ interface IncidentDetailProps {
 
 
 export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClose, onNavigateToWorkOrder }) => {
-    const { currentUser, addIncidentComment, workOrders } = useAppStore();
+    const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, updateIncident, stoppages } = useAppStore();
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
     const [viewMedia, setViewMedia] = useState<{ type: 'image' | 'video' | 'pdf' | 'file'; url: string; name: string } | null>(null);
+    const [reasonText, setReasonText] = useState('');
+    const [solutionText, setSolutionText] = useState('');
+    const [isSavingTransition, setIsSavingTransition] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        setReasonText(incident?.reason || '');
+        setSolutionText(incident?.solution || '');
+    }, [incident?.id, incident?.reason, incident?.solution]);
 
     if (!incident) {
         return (
@@ -59,6 +68,47 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
 
     const isManagerOrAdmin = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SECTION_MANAGER;
     const linkedWO = incident.workOrderId ? workOrders.find(wo => wo.id === incident.workOrderId) : null;
+    const canManageStatus = isManagerOrAdmin
+        && incident.status !== IncidentStatus.RESOLVED
+        && incident.status !== IncidentStatus.CANCELLED;
+    const incidentStoppage = stoppages.find(st => st.incidentId === incident.id);
+    const isDirty = reasonText !== (incident.reason || '')
+        || solutionText !== (incident.solution || '');
+
+    const handleTransition = async (status: IncidentStatus) => {
+        if (isSavingTransition) return;
+        setIsSavingTransition(true);
+        try {
+            await transitionIncidentStatus(incident.id, status, reasonText, solutionText);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
+
+    const handleSaveReasonSolution = async () => {
+        if (isSavingTransition) return;
+        setIsSavingTransition(true);
+        try {
+            await updateIncident(incident.id, {
+                reason: reasonText.trim() || null,
+                solution: solutionText.trim() || null
+            });
+            await addIncidentComment({
+                incidentId: incident.id,
+                userId: currentUser?.id,
+                userName: 'Sistema',
+                text: 'Motivo y solución actualizados',
+                isSystem: true
+            });
+            toast.success('Motivo y solución actualizados');
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
 
     return (
         <div className="flex-1 flex flex-col h-full bg-white dark:bg-slate-700 transition-colors">
@@ -93,8 +143,23 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                 </div>
 
                 <div className="space-y-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <StatusBadge status={incident.status} type="incident" className="text-sm px-3 py-1.5" />
+                        {incident.categoryName && (
+                            <span className="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-800/50">
+                                {incident.categoryName}
+                            </span>
+                        )}
+                        {incidentStoppage && (
+                            <span
+                                className={`text-xs font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5 ${incidentStoppage.endAt
+                                    ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                                    : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800'}`}
+                                title={`Parada del equipo desde el ${new Date(incidentStoppage.startAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`}
+                            >
+                                {incidentStoppage.endAt ? '⏸ Equipo parado' : '⏸ Equipo parado (en curso)'}
+                            </span>
+                        )}
                         <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                             {incident.displayId || incident.id.split('-')[0]}
                         </span>
@@ -139,6 +204,95 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Descripción de la Incidencia</h3>
                     <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 leading-relaxed">
                         {incident.description}
+                    </div>
+                </section>
+
+                {/* Reason & Solution tracking */}
+                <section>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Motivo y Solución</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Motivo</label>
+                            {canManageStatus ? (
+                                <textarea
+                                    value={reasonText}
+                                    onChange={(e) => setReasonText(e.target.value)}
+                                    rows={2}
+                                    placeholder="¿Por qué se ha producido la incidencia?"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                />
+                            ) : (
+                                <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm min-h-[44px]">
+                                    {incident.reason || <span className="text-slate-400 italic">Sin motivo registrado</span>}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Solución</label>
+                            {canManageStatus ? (
+                                <textarea
+                                    value={solutionText}
+                                    onChange={(e) => setSolutionText(e.target.value)}
+                                    rows={2}
+                                    placeholder="¿Qué se ha hecho para resolverla?"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                />
+                            ) : (
+                                <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm min-h-[44px]">
+                                    {incident.solution || <span className="text-slate-400 italic">Sin solución registrada</span>}
+                                </div>
+                            )}
+                        </div>
+
+                        {incident.status === IncidentStatus.RESOLVED && (incident.resolvedByName || incident.resolvedAt) && (
+                            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 size={14} />
+                                Resuelta
+                                {incident.resolvedByName ? ` por ${incident.resolvedByName}` : ''}
+                                {incident.resolvedAt ? ` el ${new Date(incident.resolvedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''}
+                            </div>
+                        )}
+
+                        {canManageStatus && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {isDirty && (
+                                    <button
+                                        onClick={handleSaveReasonSolution}
+                                        disabled={isSavingTransition}
+                                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                                    >
+                                        <Save size={16} />
+                                        Guardar
+                                    </button>
+                                )}
+                                {incident.status === IncidentStatus.OPEN && (
+                                    <button
+                                        onClick={() => handleTransition(IncidentStatus.IN_REVIEW)}
+                                        disabled={isSavingTransition}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+                                    >
+                                        <Clock size={16} />
+                                        Pasar a En Revisión
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleTransition(IncidentStatus.RESOLVED)}
+                                    disabled={isSavingTransition}
+                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                                >
+                                    <CheckCircle2 size={16} />
+                                    Marcar Resuelta
+                                </button>
+                                <button
+                                    onClick={() => handleTransition(IncidentStatus.CANCELLED)}
+                                    disabled={isSavingTransition}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-500 hover:bg-slate-600 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                                >
+                                    <XCircle size={16} />
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -206,11 +360,13 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
             </div>
 
             {/* Modals */}
-            <ConvertIncidentModal
-                isOpen={isConvertModalOpen}
-                onClose={() => setIsConvertModalOpen(false)}
-                incident={incident}
-            />
+            {isConvertModalOpen && (
+                <ConvertIncidentModal
+                    isOpen={isConvertModalOpen}
+                    onClose={() => setIsConvertModalOpen(false)}
+                    incident={incident}
+                />
+            )}
 
             {/* Media Preview Modal */}
             {viewMedia && (

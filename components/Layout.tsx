@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { BRANDING } from '../branding';
-import { Menu, X, ClipboardList, Calendar, Box, Users, Wrench, LogOut, Sun, Moon, LayoutDashboard, ChevronLeft, ChevronRight, BarChart3, Plus, AlertCircle } from 'lucide-react';
+import { Menu, X, ClipboardList, Calendar, Box, Users, Wrench, LogOut, Sun, Moon, LayoutDashboard, ChevronLeft, ChevronRight, BarChart3, Plus, AlertCircle, CalendarClock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../store/useAppStore';
 import { UserRole, WOStatus, IncidentStatus } from '../types';
 import { useRestrictedItems } from '../hooks/useFilteredData';
+import { canSeeIncident } from '../utils/incidentVisibility';
+import { usePermissions } from '../hooks/usePermissions';
 import { useMemo } from 'react';
 
 interface LayoutProps {
@@ -26,6 +28,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const workOrders = useAppStore(s => s.workOrders);
   const inventory = useAppStore(s => s.inventory);
   const incidents = useAppStore(s => s.incidents);
+  const incidentCategories = useAppStore(s => s.incidentCategories);
+  const catalogSections = useAppStore(s => s.sections);
 
   const canAccessInventory = useMemo(() => {
     if (!currentUser) return false;
@@ -34,6 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (perm?.level ?? 'sin_acceso') !== 'sin_acceso';
   }, [userPermissions, currentUser?.id, currentUser?.role]);
 
+  const { canViewStoppages } = usePermissions(currentUser);
+
   // Notification badges (scoped to what the current user can actually see)
   const visibleWorkOrders = useRestrictedItems(
     workOrders,
@@ -41,7 +47,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     (wo) => [wo.section, ...(wo.collaboratingSections || [])],
     (wo, user) => wo.assignedUserId === user.id || (wo.collaborators || []).includes(user.id)
   );
-  const visibleIncidents = useRestrictedItems(incidents, currentUser);
+  const visibleIncidents = useMemo(
+    () => incidents.filter(inc => canSeeIncident(inc, currentUser, incidentCategories, catalogSections)),
+    [incidents, currentUser, incidentCategories, catalogSections]
+  );
 
   const unassignedCount = useMemo(
     () => visibleWorkOrders.filter(wo => !wo.assignedUserId && wo.status !== WOStatus.COMPLETED).length,
@@ -93,6 +102,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       label: 'Programador',
       icon: Calendar,
       restricted: currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
+    },
+    {
+      id: 'stoppages',
+      label: 'Paradas',
+      icon: CalendarClock,
+      restricted: !canViewStoppages
     },
     {
       id: 'equipment',

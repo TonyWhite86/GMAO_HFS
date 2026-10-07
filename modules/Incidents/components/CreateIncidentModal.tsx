@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { Camera, Check, Loader2, AlertCircle, FileText, X, Plus } from 'lucide-react';
-import { IncidentStatus, WOPriority, Attachment } from '../../../types';
+import { IncidentStatus, WOPriority, Attachment, UserRole } from '../../../types';
 import { EquipmentSelector } from '../../../components/EquipmentSelector';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { FormInput } from '../../../components/ui/FormInput';
 import { FormTextarea } from '../../../components/ui/FormTextarea';
 import { useFileUpload } from '../../../hooks/useFileUpload';
+import { useVisibleCategories } from '../../../hooks/useVisibleCategories';
 import { VoiceInputButton } from '../../../components/ui/VoiceInputButton';
 
 interface CreateIncidentModalProps {
@@ -17,15 +18,59 @@ interface CreateIncidentModalProps {
 }
 
 export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen, onClose }) => {
-    const { currentUser, sections, equipment, addIncident } = useAppStore();
+    const { currentUser, sections, equipment, addIncidentWithStoppage } = useAppStore();
+
+    const visibleCategories = useVisibleCategories(currentUser);
+    const activeCategories = React.useMemo(
+        () => visibleCategories.filter(c => c.isActive),
+        [visibleCategories]
+    );
+    const defaultCategoryId = React.useMemo(
+        () => activeCategories.find(c => c.isDefault)?.id || activeCategories[0]?.id || '',
+        [activeCategories]
+    );
+
+    // Ámbito: vacío por defecto = la incidencia la ve todo el mundo. Si se
+    // acota, solo se puede elegir entre las secciones propias del usuario
+    // (el Admin puede elegir cualquiera).
+    const sectionOptions = React.useMemo(() => {
+        const names = currentUser?.role === UserRole.ADMIN
+            ? sections.map(s => s.name)
+            : (currentUser?.sections || []);
+        return [
+            { value: '', label: 'Sin sección — la ve todo el mundo' },
+            ...names.map(n => ({ value: n, label: n }))
+        ];
+    }, [currentUser, sections]);
 
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         priority: WOPriority.MEDIUM,
-        section: currentUser?.sections.length === 1 ? currentUser.sections[0] : '',
+        categoryId: defaultCategoryId,
+        section: '',
         equipmentId: ''
     });
+
+    // Las categorías cargan de forma asíncrona o cambian de visibilidad: si la
+    // seleccionada ya no es válida, volvemos a la categoría por defecto.
+    useEffect(() => {
+        if (activeCategories.length === 0) return;
+        const stillValid = activeCategories.some(c => c.id === formData.categoryId);
+        if (!stillValid) {
+            setFormData(prev => ({ ...prev, categoryId: defaultCategoryId }));
+        }
+    }, [activeCategories, formData.categoryId, defaultCategoryId]);
+
+    // Parada de equipo opcional: se puede registrar a la vez que la incidencia.
+    // La duración se desconoce al crearla (end_at queda NULL).
+    const [withStoppage, setWithStoppage] = useState(false);
+    const [stoppageStartAt, setStoppageStartAt] = useState<string>(() => {
+        const d = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    });
+    const [stoppageDescription, setStoppageDescription] = useState('');
 
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const { uploadFiles, removeFile, isUploading } = useFileUpload();
@@ -65,18 +110,27 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.title.trim() || !formData.description.trim() || isSubmitting) {
+        if (!formData.title.trim() || !formData.description.trim() || !formData.categoryId || !formData.equipmentId || isSubmitting) {
             toast.error('Por favor, completa los campos obligatorios');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            await addIncident({
-                ...formData,
-                createdBy: currentUser?.id,
-                status: IncidentStatus.OPEN,
-                attachments: attachments
+            // created_by lo asigna la BD (DEFAULT auth.uid()); el RLS lo exige.
+            // Si se pide parada, se crea en la MISMA transacción (RPC).
+            await addIncidentWithStoppage({
+                title: formData.title,
+                description: formData.description,
+                priority: formData.priority,
+                categoryId: formData.categoryId,
+                section: formData.section || null,
+                equipmentId: formData.equipmentId || null,
+                attachments,
+                withStoppage: withStoppage && !!formData.equipmentId,
+                stoppageTitle: formData.title,
+                stoppageStartAt: stoppageStartAt ? new Date(stoppageStartAt).toISOString() : null,
+                stoppageDescription: stoppageDescription || null
             });
 
             onClose();
@@ -85,9 +139,12 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                 title: '',
                 description: '',
                 priority: WOPriority.MEDIUM,
-                section: currentUser?.sections.length === 1 ? currentUser.sections[0] : '',
+                categoryId: defaultCategoryId,
+                section: '',
                 equipmentId: ''
             });
+            setWithStoppage(false);
+            setStoppageDescription('');
             setAttachments([]);
         } catch (error) {
             console.error(error);
@@ -107,18 +164,26 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
             <Modal.Body>
                 <form id="create-incident-form" onSubmit={handleSubmit} className="space-y-6">
-                    {/* Section & Priority Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Category, Section & Priority Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <CustomSelect
-                                label="Tu Sección (Opcional)"
+                                label="Categoría *"
+                                value={formData.categoryId}
+                                onChange={(val) => setFormData({ ...formData, categoryId: val })}
+                                options={activeCategories.map(c => ({ value: c.id, label: c.name }))}
+                            />
+                        </div>
+                        <div>
+                            <CustomSelect
+                                label="Ámbito"
                                 value={formData.section}
                                 onChange={(val) => setFormData({ ...formData, section: val })}
-                                options={[
-                                    { value: '', label: 'No asignar (Solo Admin)' },
-                                    ...sections.map(s => ({ value: s.name, label: s.name }))
-                                ]}
+                                options={sectionOptions}
                             />
+                            <p className="text-[11px] text-slate-400 mt-1">
+                                Vacío = la ve todo el mundo. Al acotarla, solo la ve esa sección.
+                            </p>
                         </div>
                         <div>
                             <CustomSelect
@@ -143,7 +208,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
                     {/* Equipment Selector (Optional) */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Equipo Relacionado (Opcional)</label>
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Equipo Relacionado *</label>
                         <EquipmentSelector
                             equipment={equipment}
                             selectedId={formData.equipmentId}
@@ -168,6 +233,57 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                             required
                         />
                     </div>
+
+                    {/* Parada de equipo (opcional) */}
+                    {(
+                        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-900/10 p-4 space-y-4">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={withStoppage}
+                                    onChange={(e) => setWithStoppage(e.target.checked)}
+                                    className="mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                                />
+                                <span>
+                                    <span className="block text-sm font-bold text-amber-900 dark:text-amber-200">
+                                        Este equipo está parado ahora mismo
+                                    </span>
+                                    <span className="block text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                                        Registra la parada junto a la incidencia. La duración se apuntará
+                                        cuando el equipo vuelva a estar operativo.
+                                    </span>
+                                </span>
+                            </label>
+
+                            {withStoppage && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Inicio de la parada *</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={stoppageStartAt}
+                                            onChange={(e) => setStoppageStartAt(e.target.value)}
+                                            className="w-full px-4 py-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 pb-2">
+                                            El motivo de la parada es el de la categoría de la incidencia.
+                                        </p>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <FormTextarea
+                                            label="Detalles de la parada"
+                                            rows={2}
+                                            value={stoppageDescription}
+                                            onChange={(e) => setStoppageDescription(e.target.value)}
+                                            placeholder="Qué se ha parado, parte de la máquina afectada, materiales previstos..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Attachments */}
                     <div>
