@@ -27,12 +27,27 @@ CREATE POLICY "Read Own Profile Email" ON public.profile_emails
 CREATE POLICY "Manage Profile Emails" ON public.profile_emails
   FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
--- Migrar los emails existentes (idempotente)
-INSERT INTO public.profile_emails (profile_id, email)
-SELECT id, lower(trim(email))
-FROM public.profiles
-WHERE email IS NOT NULL AND trim(email) <> ''
-ON CONFLICT (profile_id) DO NOTHING;
+-- Migrar los emails existentes. Sólo si la columna aún existe: en una
+-- re-ejecución profiles.email ya se borró y este INSERT fallaría. Por eso va
+-- en un DO con EXECUTE (SQL dinámico, no se analiza si la rama no se ejecuta).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'email'
+  ) THEN
+    EXECUTE $q$
+      INSERT INTO public.profile_emails (profile_id, email)
+      SELECT id, lower(trim(email))
+      FROM public.profiles
+      WHERE email IS NOT NULL AND trim(email) <> ''
+      ON CONFLICT (profile_id) DO NOTHING
+    $q$;
+    RAISE NOTICE 'Emails migrados de profiles a profile_emails';
+  ELSE
+    RAISE NOTICE 'profiles.email ya no existe: migración omitida';
+  END IF;
+END $$;
 
 -- Y profiles deja de tener la columna
 ALTER TABLE public.profiles DROP COLUMN IF EXISTS email;

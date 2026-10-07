@@ -5,6 +5,19 @@ repo: los scripts se ejecutan a mano en el **SQL Editor** de Supabase.
 
 ---
 
+## TL;DR — un solo archivo
+
+**`hfs_all.sql`** concatena toda la cadena (b → c → d → e → f → f2 →
+`work_order_events` → `incident_stoppage` → g → g2) en un script único,
+**idempotente** y con diagnóstico al final. Es lo que hay que ejecutar cuando
+se duda de qué está aplicado: borra las sobrecargas de RPCs (evita `PGRST203`)
+y re-crea todo lo que falte.
+
+**No incluye `hfs_setup.sql`** porque ése hace `DROP TABLE ... CASCADE` y borra
+todos los datos. Sólo se ejecuta al levantar una BD nueva.
+
+---
+
 ## Cómo levantar una BD desde cero
 
 Ejecuta estos 11 scripts **en este orden** (son idempotentes):
