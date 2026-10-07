@@ -34,6 +34,37 @@ END $$;
 -- una sobrecarga y PostgREST deja de saber cuál llamar (error PGRST203).
 -- Borramos TODAS las versiones de cada RPC antes de recrearlas.
 
+-- 1a. Barrido de políticas que dependen de esas funciones ----------------------
+-- DROP FUNCTION rechaza soltar una función de la que depende una política
+-- (error 2BP01). Las políticas de estas tablas las recrean los scripts de las
+-- fases b–e, así que se pueden soltar sin miedo. NO incluimos storage.objects:
+-- esas políticas sólo las crea hfs_setup.sql y no se re-crean aquí.
+
+DO $$
+DECLARE
+  r RECORD;
+  n INT := 0;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN (
+        'incidents','incident_comments','incident_categories',
+        'work_orders','comments','subtasks','attachments','work_order_collaborators',
+        'equipment','inventory','inventory_movements',
+        'purchase_orders','purchase_order_items',
+        'preventive_plans','equipment_stoppages',
+        'skills','user_skills','user_permissions',
+        'profiles','sections','work_order_sequences','incident_sequences'
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+    n := n + 1;
+  END LOOP;
+  RAISE NOTICE 'Políticas eliminadas antes de recrear las funciones: %', n;
+END $$;
+
 DO $$
 DECLARE
   r RECORD;
@@ -56,7 +87,7 @@ BEGIN
         'log_wo_event', 'wo_active_seconds_from_history'
       )
   LOOP
-    EXECUTE 'DROP FUNCTION IF EXISTS ' || r.sig;
+    EXECUTE 'DROP FUNCTION IF EXISTS ' || r.sig || ' CASCADE';
     n := n + 1;
     RAISE NOTICE 'Eliminada sobrecarga: %', r.sig;
   END LOOP;
