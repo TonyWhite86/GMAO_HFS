@@ -14,6 +14,28 @@
 --   · Al convertir la incidencia a OT, la parada queda vinculada a esa OT
 -- ============================================================================
 
+-- 0. Limpieza de sobrecargas ---------------------------------------------------
+-- CREATE OR REPLACE sólo sustituye a una función con los MISMOS tipos de
+-- argumento. Si una versión anterior tenía otra firma (p.ej. con
+-- p_stoppage_reason_type), al re-ejecutar se crea una sobrecarga y PostgREST
+-- deja de saber cuál llamar (error PGRST203). Borramos todas antes de crear.
+
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('create_incident_with_stoppage', 'complete_stoppage')
+  LOOP
+    EXECUTE 'DROP FUNCTION IF EXISTS ' || r.sig;
+    RAISE NOTICE 'Eliminada sobrecarga: %', r.sig;
+  END LOOP;
+END $$;
+
 -- 1. Esquema ------------------------------------------------------------------
 
 -- El motivo de una parada nacida de una incidencia YA lo dice la categoría de

@@ -98,8 +98,12 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
                 set({ stoppages });
             }
             return result;
-        } catch (error) {
-            toast.error('Error al reportar la incidencia');
+        } catch (error: any) {
+            // Se muestra el mensaje REAL de la BD: el genérico no servía para
+            // depurar (PGRST203, RLS, constraints… todos salían igual).
+            console.error('Error al reportar la incidencia:', error);
+            const detail = error?.message || error?.error?.message || error?.hint || '';
+            toast.error(detail ? `Error al reportar la incidencia: ${detail}` : 'Error al reportar la incidencia');
             throw error;
         }
     },

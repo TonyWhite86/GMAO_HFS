@@ -157,7 +157,10 @@ export const incidentService = {
             p_stoppage_start_at: payload.stoppageStartAt ?? null,
             p_stoppage_description: payload.stoppageDescription ?? null
         });
-        if (error) throw error;
+        if (error) {
+            console.error('create_incident_with_stoppage:', error);
+            throw error;
+        }
         return {
             incidentId: (data as any)?.incident_id as string,
             stoppageId: ((data as any)?.stoppage_id ?? null) as string | null
