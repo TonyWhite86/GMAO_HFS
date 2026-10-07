@@ -30,7 +30,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
         [activeCategories]
     );
 
-    // Ámbito: vacío por defecto = la incidencia la ve todo el mundo. Si se
+    // Sección: vacía por defecto = la incidencia la ve todo el mundo. Si se
     // acota, solo se puede elegir entre las secciones propias del usuario
     // (el Admin puede elegir cualquiera).
     const sectionOptions = React.useMemo(() => {
@@ -176,13 +176,13 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                         </div>
                         <div>
                             <CustomSelect
-                                label="Ámbito"
+                                label="Sección"
                                 value={formData.section}
                                 onChange={(val) => setFormData({ ...formData, section: val })}
                                 options={sectionOptions}
                             />
                             <p className="text-[11px] text-slate-400 mt-1">
-                                Vacío = la ve todo el mundo. Al acotarla, solo la ve esa sección.
+                                Sin sección = la ve todo el mundo. Al elegir una, solo la ve esa sección.
                             </p>
                         </div>
                         <div>
