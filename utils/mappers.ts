@@ -1,8 +1,9 @@
 import {
     WorkOrder, Equipment, InventoryItem, PreventivePlan,
     PurchaseOrder, Incident, User, Section, Attachment,
-    Comment, SubTask, IncidentComment, IncidentStatus,
-    Skill, UserSkill, InventoryMovement, UserPermission
+    Comment, SubTask, IncidentComment, IncidentStatus, WorkOrderEvent,
+    Skill, UserSkill, InventoryMovement, UserPermission,
+    IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -22,10 +23,12 @@ export const mapUserSkill = (us: any): UserSkill => ({
     createdAt: us.created_at
 });
 
-export const mapProfile = (u: any): User => ({
+export const mapProfile = (u: any, existing?: User): User => ({
     id: u.id,
     name: u.name,
-    email: u.email,
+    // El email vive en profile_emails (RLS sólo-Admin). Los joins y el realtime
+    // no lo traen: se conserva el que ya tuviéramos en el store.
+    email: u.email ?? u.emails?.[0]?.email ?? existing?.email ?? null,
     role: u.role,
     sections: Array.isArray(u.sections) ? u.sections : [],
     active: u.active,
@@ -36,6 +39,7 @@ export const mapSection = (s: any): Section => ({
     id: s.id,
     name: s.name,
     isSpecial: s.is_special,
+    isWildcard: s.is_wildcard ?? false,
     createdAt: s.created_at
 });
 
@@ -76,6 +80,50 @@ const mapAttachments = (wo: any, allAttachments: any[] = [], existing?: WorkOrde
     return mapped.length > 0 ? mapped : (existing?.attachments || []);
 };
 
+// `postgres_changes` (realtime) y los `.select()` sin join no traen las filas
+// embebidas: `wo.subtasks` / `wo.comments` son `undefined`. En ese caso caemos
+// back a lo que ya teníamos en el store, para no borrar tareas ni comentarios
+// con cada UPDATE de la OT. Un array vacío real (`[]`) sí se respeta.
+const mapJoinedComments = (wo: any, existing?: WorkOrder): Comment[] => {
+    if (!Array.isArray(wo.comments)) return existing?.comments || [];
+    return wo.comments.map((c: any) => ({
+        id: c.id,
+        userId: c.user_id,
+        userName: c.user_name,
+        text: c.text,
+        isSystem: c.is_system,
+        status: c.status,
+        createdAt: c.created_at,
+        attachments: c.attachments || []
+    }));
+};
+
+export const mapWorkOrderEvent = (e: any): WorkOrderEvent => ({
+    id: e.id,
+    workOrderId: e.work_order_id,
+    kind: e.kind,
+    status: e.status,
+    note: e.note,
+    actorId: e.actor_id,
+    actorName: e.actor_name,
+    createdAt: e.created_at
+});
+
+const mapJoinedEvents = (wo: any, existing?: WorkOrder): WorkOrderEvent[] => {
+    if (!Array.isArray(wo.events)) return existing?.events || [];
+    return wo.events.map(mapWorkOrderEvent);
+};
+
+const mapJoinedSubtasks = (wo: any, existing?: WorkOrder): SubTask[] => {
+    if (!Array.isArray(wo.subtasks)) return existing?.subtasks || [];
+    return wo.subtasks.map((st: any) => ({
+        id: st.id,
+        description: st.description,
+        completed: st.completed,
+        assignedUserIds: st.assigned_user_ids
+    }));
+};
+
 export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: WorkOrder): WorkOrder => ({
     id: wo.id,
     title: wo.title,
@@ -92,6 +140,9 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     scheduledDate: wo.scheduled_date,
     closedAt: wo.closed_at,
     timeSpentMinutes: wo.time_spent_minutes,
+    timeSource: wo.time_source ?? null,
+    timeRecordedBy: wo.time_recorded_by ?? null,
+    timeRecordedAt: wo.time_recorded_at ?? null,
     pendingReason: wo.pending_reason,
     audioNoteUrl: wo.audio_note_url,
     statusHistory: wo.status_history,
@@ -100,22 +151,9 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     relatedPlanId: wo.related_plan_id,
     relatedIncidentId: wo.related_incident_id,
     attachments: mapAttachments(wo, allAttachments, existing),
-    comments: (wo.comments || []).map((c: any) => ({
-        id: c.id,
-        userId: c.user_id,
-        userName: c.user_name,
-        text: c.text,
-        isSystem: c.is_system,
-        status: c.status,
-        createdAt: c.created_at,
-        attachments: c.attachments || []
-    })),
-    subtasks: (wo.subtasks || []).map((st: any) => ({
-        id: st.id,
-        description: st.description,
-        completed: st.completed,
-        assignedUserIds: st.assigned_user_ids
-    }))
+    comments: mapJoinedComments(wo, existing),
+    subtasks: mapJoinedSubtasks(wo, existing),
+    events: mapJoinedEvents(wo, existing)
 });
 
 export const mapInventoryItem = (i: any): InventoryItem => ({
@@ -178,6 +216,13 @@ export const mapIncident = (inc: any): Incident => ({
     description: inc.description,
     priority: inc.priority,
     status: inc.status as IncidentStatus,
+    categoryId: inc.category_id,
+    categoryName: inc.category?.name,
+    reason: inc.reason,
+    solution: inc.solution,
+    resolvedAt: inc.resolved_at,
+    resolvedBy: inc.resolved_by,
+    resolvedByName: inc.resolver?.name,
     createdBy: inc.created_by,
     creatorName: inc.creator?.name || inc.creator_name,
     createdAt: inc.created_at,
@@ -218,6 +263,36 @@ export const mapIncidentComment = (c: any): IncidentComment => ({
     isSystem: c.is_system,
     createdAt: c.created_at,
     attachments: c.attachments || []
+});
+
+export const mapIncidentCategory = (c: any): IncidentCategory => ({
+    id: c.id,
+    name: c.name,
+    isActive: c.is_active,
+    isDefault: c.is_default ?? false,
+    sortOrder: c.sort_order,
+    visibleSections: c.visible_sections || [],
+    visibleRoles: c.visible_roles || [],
+    createdAt: c.created_at
+});
+
+export const mapEquipmentStoppage = (s: any): EquipmentStoppage => ({
+    id: s.id,
+    equipmentId: s.equipment_id,
+    equipmentName: s.equipment?.name,
+    incidentId: s.incident_id ?? null,
+    title: s.title,
+    description: s.description,
+    reasonType: (s.reason_type ?? null) as StoppageReasonType | null,
+    reasonLabel: s.incident?.category?.name || s.reason_type || null,
+    startAt: s.start_at,
+    endAt: s.end_at ?? null,
+    status: s.status as StoppageStatus,
+    requestedBy: s.requested_by,
+    requestedByName: s.requester?.name,
+    workOrderId: s.work_order_id,
+    createdBy: s.created_by,
+    createdAt: s.created_at
 });
 
 export const mapSubtask = (st: any): SubTask => ({

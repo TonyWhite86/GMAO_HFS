@@ -16,6 +16,10 @@ const setInventoryPermission = (userId: string, level: PermissionLevel) => {
     useAppStore.setState({ userPermissions: [{ id: 'p-inv', userId, module: 'inventory', level }] });
 };
 
+const setModulePermission = (userId: string, module: string, level: PermissionLevel) => {
+    useAppStore.setState({ userPermissions: [{ id: `p-${module}`, userId, module, level }] });
+};
+
 // usePermissions is a React hook (it subscribes to the store), so it must be
 // invoked inside a rendered component. Mounting a probe component with a live
 // root (flushSync) reads the current store state, unlike renderToString which
@@ -111,6 +115,84 @@ describe('usePermissions', () => {
         it('los permisos de otros usuarios no aplican', () => {
             setInventoryPermission(manager.id, 'total');
             expect(run(technician).canManageInventory).toBe(false);
+        });
+    });
+
+    describe('permisos de actuaciones', () => {
+        it('Admin tiene total', () => {
+            const r = run(admin);
+            expect(r.actuacionesPermission).toBe('total');
+            expect(r.canViewActuaciones).toBe(true);
+            expect(r.canCreateActuaciones).toBe(true);
+        });
+
+        it('por defecto técnico y responsable tienen total (compatibilidad)', () => {
+            expect(run(technician).actuacionesPermission).toBe('total');
+            expect(run(manager).actuacionesPermission).toBe('total');
+            expect(run(technician).canCreateActuaciones).toBe(true);
+        });
+
+        it('observadores no tienen acceso', () => {
+            expect(run(observerN1).actuacionesPermission).toBe('sin_acceso');
+            expect(run(observerN2).canViewActuaciones).toBe(false);
+            expect(run(observerN2).canCreateActuaciones).toBe(false);
+        });
+
+        it('un permiso explícito restringe el acceso', () => {
+            setModulePermission(technician.id, 'actuaciones', 'consulta');
+            const r = run(technician);
+            expect(r.actuacionesPermission).toBe('consulta');
+            expect(r.canViewActuaciones).toBe(true);
+            expect(r.canCreateActuaciones).toBe(false);
+        });
+
+        it('un permiso explícito sin_acceso bloquea la vista', () => {
+            setModulePermission(technician.id, 'actuaciones', 'sin_acceso');
+            expect(run(technician).canViewActuaciones).toBe(false);
+        });
+    });
+
+    describe('permisos de paradas', () => {
+        it('Admin tiene total', () => {
+            const r = run(admin);
+            expect(r.paradasPermission).toBe('total');
+            expect(r.canViewStoppages).toBe(true);
+            expect(r.canManageStoppages).toBe(true);
+        });
+
+        it('por defecto técnico y responsable tienen consulta (ven el calendario)', () => {
+            const t = run(technician);
+            expect(t.paradasPermission).toBe('consulta');
+            expect(t.canViewStoppages).toBe(true);
+            expect(t.canManageStoppages).toBe(false);
+            const m = run(manager);
+            expect(m.paradasPermission).toBe('consulta');
+            expect(m.canViewStoppages).toBe(true);
+            expect(m.canManageStoppages).toBe(false);
+        });
+
+        it('observadores no tienen acceso', () => {
+            expect(run(observerN1).paradasPermission).toBe('sin_acceso');
+            expect(run(observerN2).canViewStoppages).toBe(false);
+            expect(run(observerN2).canManageStoppages).toBe(false);
+        });
+
+        it('permiso total permite gestionar', () => {
+            setModulePermission(technician.id, 'paradas', 'total');
+            const r = run(technician);
+            expect(r.canViewStoppages).toBe(true);
+            expect(r.canManageStoppages).toBe(true);
+        });
+
+        it('permiso sin_acceso bloquea la vista', () => {
+            setModulePermission(technician.id, 'paradas', 'sin_acceso');
+            expect(run(technician).canViewStoppages).toBe(false);
+            expect(run(technician).canManageStoppages).toBe(false);
+        });
+
+        it('los permisos de otros usuarios no aplican', () => {
+            setModulePermission(manager.id, 'paradas', 'total');
+            expect(run(technician).canManageStoppages).toBe(false);
         });
     });
 

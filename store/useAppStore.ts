@@ -9,6 +9,7 @@ import { createPreventivePlanSlice } from './slices/createPreventivePlanSlice';
 import { createPurchaseOrderSlice } from './slices/createPurchaseOrderSlice';
 import { createUISlice } from './slices/createUISlice';
 import { createIncidentSlice } from './slices/createIncidentSlice';
+import { createStoppageSlice } from './slices/createStoppageSlice';
 import { createDataSlice } from './slices/createDataSlice';
 import { createPermissionSlice } from './slices/createPermissionSlice';
 
@@ -22,6 +23,7 @@ export const useAppStore = create<AppState>((...a) => ({
     ...createPurchaseOrderSlice(...a),
     ...createUISlice(...a),
     ...createIncidentSlice(...a),
+    ...createStoppageSlice(...a),
     ...createDataSlice(...a),
     ...createPermissionSlice(...a),
 }));

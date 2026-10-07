@@ -7,6 +7,7 @@ import type { PreventivePlanSlice } from './slices/createPreventivePlanSlice';
 import type { PurchaseOrderSlice } from './slices/createPurchaseOrderSlice';
 import type { UISlice } from './slices/createUISlice';
 import type { IncidentSlice } from './slices/createIncidentSlice';
+import type { StoppageSlice } from './slices/createStoppageSlice';
 import type { DataSlice } from './slices/createDataSlice';
 import type { PermissionSlice } from './slices/createPermissionSlice';
 
@@ -20,5 +21,6 @@ export type AppState =
     PurchaseOrderSlice &
     UISlice &
     IncidentSlice &
+    StoppageSlice &
     DataSlice &
     PermissionSlice;

@@ -6,7 +6,7 @@ export const workOrderService = {
     getAll: async (pagination?: PaginationParams) => {
         let query = supabase
             .from('work_orders')
-            .select('*, comments(*), subtasks(*)')
+            .select('*, comments(*), subtasks(*), events:work_order_events(*)')
             .order('created_at', { ascending: false });
         if (pagination) {
             const from = (pagination.page - 1) * pagination.pageSize;
@@ -49,7 +49,7 @@ export const workOrderService = {
             assigned_user_id: wo.assignedUserId || null,
             collaborators: wo.collaborators || [],
             section: wo.section,
-            created_by: wo.createdBy || null,
+            // created_by lo pone la BD (DEFAULT auth.uid()); el RLS lo exige
             created_at: wo.createdAt,
             scheduled_date: wo.scheduledDate || null,
             closed_at: wo.closedAt || null,
@@ -103,24 +103,25 @@ export const workOrderService = {
     },
 
     update: async (wo: WorkOrder) => {
+        // status_history / time_spent_minutes / closed_at NO se envían: son
+        // propiedad de transition_work_order (RPC) y del trigger
+        // enforce_work_order_transition. Escribirlos desde aquí permitiría
+        // reescribir el histórico de horas o reabrir una OT completada.
+        // Tampoco se envía `status`: los cambios de estado pasan SIEMPRE por
+        // transition_work_order / assign_work_order. Mandarlo aquí provocaba la
+        // carrera "La orden ya está completada" que dejaba el tiempo a 0.
         const woToUpdate = {
             title: wo.title,
             description: wo.description,
             type: wo.type,
-            status: wo.status,
             priority: wo.priority,
             equipment_id: wo.equipmentId || null,
             assigned_user_id: wo.assignedUserId || null,
             collaborators: wo.collaborators || [],
             section: wo.section,
-            // created_by: wo.createdBy, // Usually distinct, keep original
-            created_at: wo.createdAt,
             scheduled_date: wo.scheduledDate || null,
-            closed_at: wo.closedAt || null,
-            time_spent_minutes: wo.timeSpentMinutes || 0,
             pending_reason: wo.pendingReason || null,
             audio_note_url: wo.audioNoteUrl || null,
-            status_history: wo.statusHistory || [],
             collaborating_sections: wo.collaboratingSections || [],
             used_parts: wo.usedParts || [],
             related_plan_id: wo.relatedPlanId || null,
@@ -192,10 +193,10 @@ export const workOrderService = {
     },
 
     addComment: async (comment: Comment, workOrderId: string) => {
+        // user_id y user_name los pone la BD (DEFAULT auth.uid() + trigger
+        // fill_user_name); is_system conserva el nombre 'Sistema'.
         const { data, error } = await supabase.from('comments').insert([{
             work_order_id: workOrderId,
-            user_id: comment.userId === 'system' ? null : comment.userId,
-            user_name: comment.userName,
             text: comment.text,
             is_system: comment.isSystem,
             status: comment.status,
@@ -204,6 +205,43 @@ export const workOrderService = {
         }]).select().single();
 
         if (error) throw error;
-        return { ...comment, id: data.id, attachments: data.attachments || [] };
+        return {
+            ...comment,
+            id: data.id,
+            userId: data.user_id,
+            userName: data.user_name,
+            attachments: data.attachments || []
+        };
+    },
+
+    /** Transición de estado atómica (start | pause | resume | complete). */
+    transition: async (id: string, action: 'start' | 'pause' | 'resume' | 'complete', note?: string | null, manualMinutes?: number | null) => {
+        const { error } = await supabase.rpc('transition_work_order', {
+            p_id: id,
+            p_action: action,
+            p_note: note ?? null,
+            p_manual_minutes: manualMinutes ?? null
+        });
+        if (error) throw error;
+    },
+
+    /** Asignación valida que el técnico pertenezca a la sección de la OT. */
+    assign: async (id: string, userId: string, scheduledDate?: string | null, subtaskIds?: string[] | null, assignMain = true) => {
+        const { error } = await supabase.rpc('assign_work_order', {
+            p_wo_id: id,
+            p_user_id: userId,
+            p_scheduled_date: scheduledDate ?? null,
+            p_subtask_ids: subtaskIds ?? null,
+            p_assign_main: assignMain
+        });
+        if (error) throw error;
+    },
+
+    unassign: async (id: string, userId?: string | null) => {
+        const { error } = await supabase.rpc('unassign_work_order', {
+            p_wo_id: id,
+            p_user_id: userId ?? null
+        });
+        if (error) throw error;
     }
 };

@@ -5,13 +5,14 @@ import { toast } from 'sonner';
 import {
     WorkOrder, Equipment, User, Section, InventoryItem,
     PreventivePlan, PurchaseOrder, Incident, Comment,
-    SubTask, Attachment, IncidentComment
+    SubTask, Attachment, IncidentComment,
+    IncidentCategory, EquipmentStoppage
 } from '../../types';
 import {
     mapWorkOrder, mapEquipment, mapProfile, mapSection,
     mapInventoryItem, mapPreventivePlan, mapPurchaseOrder,
     mapIncident, mapComment, mapIncidentComment, mapSubtask, mapAttachment,
-    mapUserPermission
+    mapUserPermission, mapIncidentCategory, mapEquipmentStoppage, mapWorkOrderEvent
 } from '../../utils/mappers';
 
 // Import services
@@ -23,6 +24,8 @@ import { inventoryService } from '../../services/inventoryService';
 import { preventivePlanService } from '../../services/preventivePlanService';
 import { purchaseOrderService } from '../../services/purchaseOrderService';
 import { incidentService } from '../../services/incidentService';
+import { incidentCategoryService } from '../../services/incidentCategoryService';
+import { stoppageService } from '../../services/stoppageService';
 import { permissionService } from '../../services/permissionService';
 
 export interface DataSlice {
@@ -49,6 +52,8 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
             { key: 'preventivePlans' as const, exec: () => preventivePlanService.getAll(), label: 'planes preventivos' },
             { key: 'purchaseOrders' as const, exec: () => purchaseOrderService.getAll(), label: 'órdenes de compra' },
             { key: 'incidents' as const, exec: () => incidentService.getAll(), label: 'incidencias' },
+            { key: 'incidentCategories' as const, exec: () => incidentCategoryService.getAll(), label: 'categorías de incidencias' },
+            { key: 'stoppages' as const, exec: () => stoppageService.getAll(), label: 'paradas programadas' },
             { key: 'userPermissions' as const, exec: () => permissionService.getAll(), label: 'permisos' },
         ] as const;
 
@@ -88,15 +93,18 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
 
         const channel = supabase.channel('db-changes');
 
-        type MapperFn = (raw: any) => any;
+        type MapperFn = (raw: any, existing?: any) => any;
         const subscribeEntity = (table: string, stateKey: string, mapper: MapperFn, prepend = false) => {
             channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
                 set((state: any) => {
                     const raw = payload.new as any;
                     const oldId = (payload.old as any)?.id;
                     if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                        const mapped = mapper(raw);
-                        const exists = state[stateKey].find((item: any) => item.id === mapped.id);
+                        // `exists` se pasa al mapper para que campos que el payload
+                        // no trae (joins, emails, subtasks…) no se pierdan.
+                        const rowId = raw.id ?? oldId;
+                        const exists = state[stateKey].find((item: any) => item.id === rowId);
+                        const mapped = mapper(raw, exists);
                         return {
                             [stateKey]: exists
                                 ? state[stateKey].map((item: any) => item.id === mapped.id ? mapped : item)
@@ -115,9 +123,16 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
                 const oldWoId = (payload.old as any)?.id;
 
                 if (payload.eventType === 'INSERT') {
-                    if (!state.workOrders.find((w: any) => w.id === rawNew.id)) {
+                    const existing = state.workOrders.find((w: any) => w.id === rawNew.id);
+                    if (!existing) {
                         return { workOrders: [mapWorkOrder(rawNew), ...state.workOrders] };
                     }
+                    // Ya está en el store (creación optimista): fusionamos sin
+                    // perder subtasks/comments que el payload no trae.
+                    return {
+                        workOrders: state.workOrders.map((wo: any) =>
+                            wo.id === rawNew.id ? mapWorkOrder(rawNew, [], wo) : wo)
+                    };
                 }
                 if (payload.eventType === 'UPDATE') {
                     const existing = state.workOrders.find((wo: any) => wo.id === rawNew.id);
@@ -138,6 +153,24 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
         subscribeEntity('inventory', 'inventory', mapInventoryItem, true);
         subscribeEntity('preventive_plans', 'preventivePlans', mapPreventivePlan);
         subscribeEntity('user_permissions', 'userPermissions', mapUserPermission);
+        subscribeEntity('incident_categories', 'incidentCategories', mapIncidentCategory);
+        subscribeEntity('equipment_stoppages', 'stoppages', mapEquipmentStoppage);
+
+        // El histórico de la OT es un log append-only: basta con añadir el
+        // evento a la OT correspondiente para que la Actividad se vea en vivo.
+        channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'work_order_events' }, (payload) => {
+            const raw = payload.new as any;
+            set((state: any) => {
+                const wo = state.workOrders.find((w: any) => w.id === raw.work_order_id);
+                if (!wo) return state;
+                if ((wo.events || []).some((e: any) => e.id === raw.id)) return state;
+                return {
+                    workOrders: state.workOrders.map((w: any) => w.id === raw.work_order_id
+                        ? { ...w, events: [...(w.events || []), mapWorkOrderEvent(raw)] }
+                        : w)
+                };
+            });
+        });
 
         channel
             .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {

@@ -1,8 +1,8 @@
-import { WOStatus, WOPriority, WOType, IncidentStatus } from './types';
+import { WOStatus, WOPriority, WOType, IncidentStatus, StoppageReasonType, StoppageStatus } from './types';
 import {
     AlertCircle, Clock, CheckCircle2, XCircle, FileText,
     AlertTriangle, PlayCircle, PauseCircle, Calendar,
-    ArrowRight, Info
+    ArrowRight, Info, Wrench, Building2
 } from 'lucide-react';
 
 export const WO_STATUS_CONFIG = {
@@ -98,13 +98,15 @@ export const PRIORITY_CONFIG = {
 
 export const PERMISSION_MODULES = [
     { id: 'inventory', label: 'Inventario' },
+    { id: 'actuaciones', label: 'Actuaciones' },
+    { id: 'paradas', label: 'Paradas' },
 ] as const;
 
 export const PERMISSION_LEVELS = [
     { id: 'sin_acceso' as const, label: 'Sin Acceso', description: 'No puede ver nada' },
-    { id: 'consulta' as const, label: 'Consulta', description: 'Solo ver SKU, nombre, stock, ubicación' },
-    { id: 'parcial' as const, label: 'Parcial', description: 'Ver precios, alta, movimientos, pedidos' },
-    { id: 'total' as const, label: 'Total', description: 'Control completo: editar y fusionar artículos' },
+    { id: 'consulta' as const, label: 'Consulta', description: 'Solo ver' },
+    { id: 'parcial' as const, label: 'Parcial', description: 'Ver y realizar acciones básicas' },
+    { id: 'total' as const, label: 'Total', description: 'Control completo: crear, editar y eliminar' },
 ];
 
 export const WAREHOUSE_KEYWORDS = ['almacen', 'logistica'];
@@ -124,5 +126,59 @@ export const WO_TYPE_CONFIG = {
     [WOType.PLANNED]: {
         label: 'Actuación',
         bgClass: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+    }
+};
+
+// Estilo neutro para paradas cuyo motivo no viene de StoppageReasonType
+// (p.ej. una parada nacida de una incidencia con categoría a medida).
+export const STOPPAGE_REASON_FALLBACK = {
+    label: 'Otro',
+    icon: Wrench,
+    bgClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+};
+
+export const STOPPAGE_REASON_CONFIG = {
+    [StoppageReasonType.IMPROVEMENT]: {
+        label: 'Mejora',
+        icon: Wrench,
+        bgClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+    },
+    [StoppageReasonType.MAINTENANCE]: {
+        label: 'Mantenimiento',
+        icon: Wrench,
+        bgClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+    },
+    [StoppageReasonType.THIRD_PARTY]: {
+        label: 'Intervención de terceros',
+        icon: Building2,
+        bgClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+    },
+    [StoppageReasonType.OTHER]: {
+        label: 'Otro',
+        icon: Info,
+        bgClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300'
+    }
+};
+
+export const STOPPAGE_STATUS_CONFIG = {
+    [StoppageStatus.SCHEDULED]: {
+        label: 'Programada',
+        icon: Calendar,
+        bgClass: 'bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/50'
+    },
+    [StoppageStatus.IN_PROGRESS]: {
+        label: 'En curso',
+        icon: PlayCircle,
+        bgClass: 'bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/50'
+    },
+    [StoppageStatus.COMPLETED]: {
+        label: 'Completada',
+        icon: CheckCircle2,
+        bgClass: 'bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/50'
+    },
+    [StoppageStatus.CANCELLED]: {
+        label: 'Cancelada',
+        icon: XCircle,
+        bgClass: 'bg-slate-100/50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400 border-slate-700/50'
     }
 };

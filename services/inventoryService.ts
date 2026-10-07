@@ -4,8 +4,9 @@ import { mapInventoryItem, mapInventoryMovement } from '../utils/mappers';
 
 export const inventoryService = {
     getAll: async (pagination?: PaginationParams) => {
+        // inventory_browse enmascara price/supplier por debajo del nivel 'parcial'
         let query = supabase
-            .from('inventory')
+            .from('inventory_browse')
             .select('*')
             .order('created_at', { ascending: false });
         if (pagination) {
@@ -20,7 +21,7 @@ export const inventoryService = {
 
     getById: async (id: string) => {
         const { data, error } = await supabase
-            .from('inventory')
+            .from('inventory_browse')
             .select('*')
             .eq('id', id)
             .single();
@@ -52,13 +53,14 @@ export const inventoryService = {
     },
 
     update: async (item: InventoryItem) => {
+        // quantity NO se envía: el stock solo se mueve por register_inventory_movement
+        // (trigger trg_inventory_protect_quantity lo rechaza de otro modo).
         const { data, error } = await supabase
             .from('inventory')
             .update({
                 name: item.name,
                 sku: item.sku,
                 manufacturer: item.manufacturer,
-                quantity: item.quantity,
                 min_stock: item.minStock,
                 category: item.category,
                 location: item.location,

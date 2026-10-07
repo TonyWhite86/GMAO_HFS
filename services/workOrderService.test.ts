@@ -73,6 +73,64 @@ describe('workOrderService', () => {
             expect(mockFrom).toHaveBeenCalledWith('work_orders');
             expect(mockFrom).toHaveBeenCalledWith('subtasks');
         });
+
+        it('NO manda created_by: lo pone la BD (DEFAULT auth.uid())', async () => {
+            const woChain = buildChain({ id: 'wo-uid' });
+            mockFrom
+                .mockReturnValueOnce(woChain)
+                .mockReturnValueOnce(buildChain(null));
+
+            await workOrderService.create({
+                id: '', title: 'T', description: '', type: 'Correctivo' as any,
+                status: 'Pendiente' as any, priority: 'Alta' as any,
+                equipmentId: 'e1', section: 'Planta', createdBy: 'spoofed-id',
+                createdAt: '2026-07-15', comments: [], attachments: [],
+                subtasks: [{ id: '', description: 'S', completed: false }],
+                usedParts: [], collaborators: []
+            });
+
+            const payload = woChain.insert.mock.calls[0][0][0];
+            expect(payload).not.toHaveProperty('created_by');
+        });
+    });
+
+    describe('update', () => {
+        it('NO manda status_history/time_spent_minutes/closed_at: los posee la BD', async () => {
+            const chain = buildChain({ id: 'wo1' });
+            mockFrom.mockReturnValueOnce(chain);
+
+            await workOrderService.update({
+                id: 'wo1', title: 'T', description: '', type: 'Correctivo' as any,
+                status: 'En Progreso' as any, priority: 'Alta' as any,
+                equipmentId: 'e1', section: 'Planta', createdBy: 'u1',
+                createdAt: '2026-07-15', attachments: [], usedParts: [],
+                collaborators: [], subtasks: [], comments: [],
+                statusHistory: [{ status: 'En Progreso', timestamp: 'x' }],
+                timeSpentMinutes: 999, closedAt: '2026-07-15'
+            } as any);
+
+            const payload = chain.update.mock.calls[0][0];
+            expect(payload).not.toHaveProperty('status_history');
+            expect(payload).not.toHaveProperty('time_spent_minutes');
+            expect(payload).not.toHaveProperty('closed_at');
+            expect(payload).not.toHaveProperty('created_at');
+        });
+
+        it('NO manda status: los cambios de estado pasan por transition_work_order', async () => {
+            const chain = buildChain({ id: 'wo1' });
+            mockFrom.mockReturnValueOnce(chain);
+
+            await workOrderService.update({
+                id: 'wo1', title: 'T', description: '', type: 'Correctivo' as any,
+                status: 'Completada' as any, priority: 'Alta' as any,
+                equipmentId: 'e1', section: 'Planta', createdBy: 'u1',
+                createdAt: '2026-07-15', attachments: [], usedParts: [],
+                collaborators: [], subtasks: [], comments: []
+            } as any);
+
+            const payload = chain.update.mock.calls[0][0];
+            expect(payload).not.toHaveProperty('status');
+        });
     });
 
     describe('toggleSubtask', () => {
@@ -92,6 +150,22 @@ describe('workOrderService', () => {
             mockFrom.mockReturnValueOnce(buildChain({ id: 'c-new', attachments: [] }));
             const result = await workOrderService.addComment(comment, 'wo1');
             expect(result.id).toBe('c-new');
+        });
+
+        it('NO manda user_id/user_name: los pone la BD (DEFAULT + trigger)', async () => {
+            const chain = buildChain({ id: 'c-uid', user_id: 'auth-uid', user_name: 'Ana', attachments: [] });
+            mockFrom.mockReturnValueOnce(chain);
+
+            await workOrderService.addComment({
+                id: '', userId: 'spoofed', userName: 'Falso', text: 'hola',
+                createdAt: '2026-07-15', attachments: []
+            }, 'wo1');
+
+            const payload = chain.insert.mock.calls[0][0][0];
+            expect(payload).not.toHaveProperty('user_id');
+            expect(payload).not.toHaveProperty('user_name');
+            // y el retorno usa los valores reales de la BD
+            expect(payload.text).toBe('hola');
         });
     });
 });

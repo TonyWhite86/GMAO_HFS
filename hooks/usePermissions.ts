@@ -20,6 +20,27 @@ export const usePermissions = (currentUser: User | null) => {
         return perm?.level ?? 'sin_acceso';
     }, [userPermissions, userId, isAdmin]);
 
+    // Actuaciones: por defecto acceso total (compatibilidad); el permiso restringe
+    const actuacionesPermission: PermissionLevel = useMemo(() => {
+        if (isAdmin) return 'total';
+        if (!userId || isObserver) return 'sin_acceso';
+        const perm = userPermissions.find(p => p.userId === userId && p.module === 'actuaciones');
+        return perm?.level ?? 'total';
+    }, [userPermissions, userId, isAdmin, isObserver]);
+
+    // Paradas: por defecto consulta (todos ven el calendario); 'total' permite gestionar
+    const paradasPermission: PermissionLevel = useMemo(() => {
+        if (isAdmin) return 'total';
+        if (!userId || isObserver) return 'sin_acceso';
+        const perm = userPermissions.find(p => p.userId === userId && p.module === 'paradas');
+        return perm?.level ?? 'consulta';
+    }, [userPermissions, userId, isAdmin, isObserver]);
+
+    const canViewActuaciones = actuacionesPermission !== 'sin_acceso';
+    const canCreateActuaciones = actuacionesPermission === 'total';
+    const canViewStoppages = paradasPermission !== 'sin_acceso';
+    const canManageStoppages = paradasPermission === 'total';
+
     const canManageUsers = isAdmin;
     const canManageSections = isAdmin;
     const canManagePreventivePlans = isAdmin || isSectionManager;
@@ -55,6 +76,12 @@ export const usePermissions = (currentUser: User | null) => {
         isObserver,
 
         inventoryPermission,
+        actuacionesPermission,
+        paradasPermission,
+        canViewActuaciones,
+        canCreateActuaciones,
+        canViewStoppages,
+        canManageStoppages,
         canManageUsers,
         canManageSections,
         canManagePreventivePlans,

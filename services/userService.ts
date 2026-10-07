@@ -4,14 +4,15 @@ import { mapProfile } from '../utils/mappers';
 
 export const userService = {
     getAll: async (pagination?: PaginationParams) => {
-        let query = supabase.from('profiles').select('*');
+        // profile_emails sólo es legible por Admin (RLS): los demás reciben NULL.
+        let query = supabase.from('profiles').select('*, emails:profile_emails(email)');
         if (pagination) {
             const from = (pagination.page - 1) * pagination.pageSize;
             query = query.range(from, from + pagination.pageSize - 1);
         }
         const { data, error } = await query;
         if (error) throw error;
-        return (data || []).map(mapProfile);
+        return (data || []).map((d: any) => mapProfile(d));
     },
 
     create: async (user: User, password: string) => {
@@ -46,16 +47,22 @@ export const userService = {
             .from('profiles')
             .update({
                 name: user.name,
-                email: user.email,
                 role: user.role,
                 sections: user.sections,
                 active: user.active,
                 avatar: user.avatar
             })
             .eq('id', user.id)
-            .select()
+            .select('*, emails:profile_emails(email)')
             .single();
         if (error) throw error;
+
+        // El email vive en su propia tabla (RLS sólo-Admin)
+        if (user.email) {
+            await supabase
+                .from('profile_emails')
+                .upsert({ profile_id: user.id, email: user.email.toLowerCase().trim() });
+        }
         return mapProfile(data);
     },
 

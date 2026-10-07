@@ -7,7 +7,7 @@
  * @param str The string to normalize
  * @returns The normalized string
  */
-export const normalizeForSearch = (str: string): string => {
+export const normalizeForSearch = (str: string | null | undefined): string => {
     if (!str) return '';
     return str
         .toLowerCase()

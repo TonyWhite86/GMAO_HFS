@@ -3,7 +3,8 @@ import {
     mapProfile, mapSection, mapEquipment, mapWorkOrder,
     mapInventoryItem, mapPreventivePlan, mapPurchaseOrder,
     mapIncident, mapComment, mapIncidentComment, mapSubtask,
-    mapAttachment, mapInventoryMovement
+    mapAttachment, mapInventoryMovement, mapIncidentCategory,
+    mapEquipmentStoppage
 } from './mappers';
 
 describe('mapProfile', () => {
@@ -26,12 +27,35 @@ describe('mapProfile', () => {
     });
 });
 
+describe('mapProfile (email en profile_emails)', () => {
+    it('lee el email del join emails:profile_emails', () => {
+        const r = mapProfile({ id: 'u1', name: 'Ana', role: 'Admin', emails: [{ email: 'ana@x.com' }] });
+        expect(r.email).toBe('ana@x.com');
+    });
+
+    it('conserva el email del store cuando el payload no lo trae (realtime)', () => {
+        const existing = { id: 'u1', name: 'Ana', email: 'ana@x.com', role: 'Admin', sections: [], active: true } as any;
+        const r = mapProfile({ id: 'u1', name: 'Ana', role: 'Admin' }, existing);
+        expect(r.email).toBe('ana@x.com');
+    });
+
+    it('sin email y sin existing queda null (no-admin enmascarado)', () => {
+        expect(mapProfile({ id: 'u1', name: 'Ana' }).email).toBeNull();
+    });
+});
+
 describe('mapSection', () => {
     it('convierte is_special y created_at', () => {
         const raw = { id: 's1', name: 'Planta', is_special: true, created_at: '2026-01-01' };
         const result = mapSection(raw);
         expect(result.isSpecial).toBe(true);
         expect(result.createdAt).toBe('2026-01-01');
+    });
+
+    it('convierte is_wildcard y usa false por defecto', () => {
+        expect(mapSection({ id: 's1', name: 'Mantenimiento', is_wildcard: true }).isWildcard).toBe(true);
+        expect(mapSection({ id: 's2', name: 'Calidad', is_wildcard: false }).isWildcard).toBe(false);
+        expect(mapSection({ id: 's3', name: 'Legacy' }).isWildcard).toBe(false);
     });
 });
 
@@ -109,6 +133,54 @@ describe('mapWorkOrder', () => {
         const result = mapWorkOrder(raw);
         expect(result.subtasks).toHaveLength(1);
         expect(result.subtasks![0].assignedUserIds).toEqual(['u1']);
+    });
+
+    it('mapea time_source / time_recorded_by / time_recorded_at', () => {
+        const raw = {
+            id: 'wo1', title: 'X', time_spent_minutes: 12, time_source: 'manual',
+            time_recorded_by: 'u9', time_recorded_at: '2026-10-02T18:20:00Z'
+        };
+        const r = mapWorkOrder(raw);
+        expect(r.timeSource).toBe('manual');
+        expect(r.timeRecordedBy).toBe('u9');
+        expect(r.timeRecordedAt).toBe('2026-10-02T18:20:00Z');
+    });
+
+    it('time_source es null cuando no viene', () => {
+        expect(mapWorkOrder({ id: 'wo1' }).timeSource).toBeNull();
+    });
+
+    it('conserva subtasks del store cuando el payload no las trae (realtime)', () => {
+        const existing = {
+            id: 'wo1',
+            subtasks: [{ id: 'st1', description: 'Fijar bridas', completed: false, assignedUserIds: [] }],
+            comments: [{ id: 'c1', userId: 'u1', userName: 'Ana', text: 'hola', createdAt: 'x' }],
+            attachments: []
+        } as any;
+        // postgres_changes manda solo las columnas de work_orders: sin joins
+        const raw = { id: 'wo1', title: 'Reparar bomba', status: 'En Progreso' };
+        const result = mapWorkOrder(raw, [], existing);
+        expect(result.subtasks).toHaveLength(1);
+        expect(result.subtasks![0].description).toBe('Fijar bridas');
+        expect(result.comments).toHaveLength(1);
+    });
+
+    it('respeta un array vacío real de subtasks (borrado legítimo)', () => {
+        const existing = {
+            id: 'wo1',
+            subtasks: [{ id: 'st1', description: 'Fijar bridas', completed: false, assignedUserIds: [] }],
+            comments: [],
+            attachments: []
+        } as any;
+        const raw = { id: 'wo1', title: 'Reparar bomba', subtasks: [] };
+        const result = mapWorkOrder(raw, [], existing);
+        expect(result.subtasks).toHaveLength(0);
+    });
+
+    it('sin existing y sin joins, subtasks y comments quedan vacías', () => {
+        const result = mapWorkOrder({ id: 'wo1', title: 'X' });
+        expect(result.subtasks).toEqual([]);
+        expect(result.comments).toEqual([]);
     });
 
     it('filtra attachments por parent_id y parent_type work_order', () => {
@@ -226,6 +298,26 @@ describe('mapIncident', () => {
         expect(result.comments).toHaveLength(1);
         expect(result.comments![0].incidentId).toBe('inc1');
     });
+
+    it('mapea categoría, motivo, solución y resolución', () => {
+        const raw = {
+            id: 'inc1',
+            category_id: 'cat1',
+            category: { name: 'Calidad' },
+            reason: 'Falta de material',
+            solution: 'Reposición de stock',
+            resolved_at: '2026-07-20',
+            resolved_by: 'u2',
+            resolver: { name: 'Ana' }
+        };
+        const result = mapIncident(raw);
+        expect(result.categoryId).toBe('cat1');
+        expect(result.categoryName).toBe('Calidad');
+        expect(result.reason).toBe('Falta de material');
+        expect(result.solution).toBe('Reposición de stock');
+        expect(result.resolvedAt).toBe('2026-07-20');
+        expect(result.resolvedByName).toBe('Ana');
+    });
 });
 
 describe('mapComment', () => {
@@ -250,6 +342,91 @@ describe('mapIncidentComment', () => {
         const result = mapIncidentComment(raw);
         expect(result.incidentId).toBe('inc1');
         expect(result.attachments).toEqual([]);
+    });
+});
+
+describe('mapIncidentCategory', () => {
+    it('mapea categoría con visibilidad', () => {
+        const raw = {
+            id: 'cat1', name: 'Material', is_active: true, sort_order: 2,
+            visible_sections: ['Almacén y Logística'], visible_roles: ['Admin'],
+            created_at: '2026-07-15'
+        };
+        const result = mapIncidentCategory(raw);
+        expect(result.name).toBe('Material');
+        expect(result.visibleSections).toEqual(['Almacén y Logística']);
+        expect(result.visibleRoles).toEqual(['Admin']);
+    });
+
+    it('usa arrays vacíos por defecto', () => {
+        const result = mapIncidentCategory({ id: 'c', name: 'X', is_active: true, sort_order: 0 });
+        expect(result.visibleSections).toEqual([]);
+        expect(result.visibleRoles).toEqual([]);
+    });
+
+    it('convierte is_default y usa false por defecto', () => {
+        expect(mapIncidentCategory({ id: 'c', name: 'Avería', is_default: true }).isDefault).toBe(true);
+        expect(mapIncidentCategory({ id: 'c', name: 'X', is_default: false }).isDefault).toBe(false);
+        expect(mapIncidentCategory({ id: 'c', name: 'Legacy' }).isDefault).toBe(false);
+    });
+});
+
+describe('mapEquipmentStoppage', () => {
+    it('mapea todos los campos con joins', () => {
+        const raw = {
+            id: 's1', equipment_id: 'e1', equipment: { name: 'Torno' },
+            title: 'Mejora variador', description: 'Cambio',
+            reason_type: 'Mejora', start_at: '2026-08-01T08:00:00Z',
+            end_at: '2026-08-01T14:00:00Z', status: 'Programada',
+            requested_by: 'u1', requester: { name: 'Luis' },
+            work_order_id: null, created_by: 'u1', created_at: '2026-07-15'
+        };
+        const result = mapEquipmentStoppage(raw);
+        expect(result.equipmentName).toBe('Torno');
+        expect(result.reasonType).toBe('Mejora');
+        expect(result.requestedByName).toBe('Luis');
+        expect(result.status).toBe('Programada');
+    });
+});
+
+describe('mapEquipmentStoppage (paradas abiertas)', () => {
+    it('mapea incident_id y permite end_at null (parada abierta)', () => {
+        const r = mapEquipmentStoppage({
+            id: 'st1', equipment_id: 'eq1', incident_id: 'inc1',
+            title: 'Parada', reason_type: 'Mantenimiento',
+            start_at: '2026-10-02T14:30:00Z', end_at: null,
+            status: 'En curso', created_at: '2026-10-02T14:30:00Z'
+        });
+        expect(r.incidentId).toBe('inc1');
+        expect(r.endAt).toBeNull();
+    });
+
+    it('reasonLabel sale de la categoría de la incidencia cuando la hay', () => {
+        const r = mapEquipmentStoppage({
+            id: 'st1', equipment_id: 'eq1', incident_id: 'inc1',
+            reason_type: null,
+            incident: { category: { name: 'Avería' } },
+            start_at: '2026-10-02T14:30:00Z', end_at: null, status: 'En curso'
+        });
+        expect(r.reasonLabel).toBe('Avería');
+        expect(r.reasonType).toBeNull();
+    });
+
+    it('reasonLabel cae a reason_type en paradas planificadas', () => {
+        const r = mapEquipmentStoppage({
+            id: 'st1', equipment_id: 'eq1', incident_id: null,
+            reason_type: 'Mantenimiento', start_at: '2026-10-02T14:30:00Z', status: 'Programada'
+        });
+        expect(r.reasonLabel).toBe('Mantenimiento');
+        expect(r.reasonType).toBe('Mantenimiento');
+    });
+
+    it('endAt sigue mapeándose cuando hay fin', () => {
+        const r = mapEquipmentStoppage({
+            id: 'st1', equipment_id: 'eq1', end_at: '2026-10-02T16:00:00Z', status: 'Completada'
+        });
+        expect(r.endAt).toBe('2026-10-02T16:00:00Z');
+        expect(r.incidentId).toBeNull();
     });
 });
 

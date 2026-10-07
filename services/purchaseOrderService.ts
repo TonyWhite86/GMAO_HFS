@@ -19,38 +19,27 @@ export const purchaseOrderService = {
     },
 
     async create(order: Partial<PurchaseOrder>, items: any[]) {
-        const { data: newOrder, error: orderError } = await supabase
+        // RPC atómica: número por secuencia (REQ-YYYY-######) y total calculado
+        // en BD. Un único INSERT transaccional en vez de order + N items.
+        const id = await purchaseOrderService.createAtomic({
+            notes: order.notes ?? null,
+            status: (order.status as string) ?? 'Solicitado',
+            expectedDate: order.expectedDate ?? null,
+            items: (items || []).map((i: any) => ({
+                partId: i.partId,
+                quantity: i.quantity,
+                unitPrice: i.unitPrice || 0,
+                equipmentId: i.equipmentId || null
+            }))
+        });
+
+        const { data: newOrder, error } = await supabase
             .from('purchase_orders')
-            .insert({
-                number: order.number,
-                supplier: order.supplier,
-                status: order.status,
-                requested_by: order.requestedBy,
-                requested_date: order.requestedDate,
-                notes: order.notes,
-                total_amount: order.totalAmount
-            })
-            .select()
+            .select('*, items:purchase_order_items(*)')
+            .eq('id', id)
             .single();
-
-        if (orderError) throw orderError;
-
-        const itemsToInsert = items.map(item => ({
-            order_id: newOrder.id,
-            part_id: item.partId,
-            quantity: item.quantity,
-            unit_price: item.unitPrice || 0,
-            equipment_id: item.equipmentId
-        }));
-
-        const { data: newItems, error: itemsError } = await supabase
-            .from('purchase_order_items')
-            .insert(itemsToInsert)
-            .select();
-
-        if (itemsError) throw itemsError;
-
-        return mapPurchaseOrder({ ...newOrder, items: newItems });
+        if (error) throw error;
+        return mapPurchaseOrder(newOrder);
     },
 
     async update(order: PurchaseOrder) {
@@ -80,5 +69,36 @@ export const purchaseOrderService = {
             .eq('id', id);
         if (error) throw error;
         return id;
+    },
+
+    /** Creación atómica con número por secuencia y total calculado en BD. */
+    createAtomic: async (payload: {
+        notes?: string | null;
+        status?: string;
+        expectedDate?: string | null;
+        items: { partId: string; quantity: number; unitPrice?: number; equipmentId?: string | null }[];
+    }) => {
+        const { data, error } = await supabase.rpc('create_purchase_order', {
+            p_notes: payload.notes ?? null,
+            p_status: payload.status ?? 'Solicitado',
+            p_expected_date: payload.expectedDate ?? null,
+            p_items: payload.items.map(i => ({
+                part_id: i.partId,
+                quantity: i.quantity,
+                unit_price: i.unitPrice ?? 0,
+                equipment_id: i.equipmentId ?? null
+            }))
+        });
+        if (error) throw error;
+        return data as string;
+    },
+
+    /** Recepción atómica: acumula cantidades, decide estado y descuenta stock. */
+    receive: async (orderId: string, items: { itemId: string; quantity: number }[]) => {
+        const { error } = await supabase.rpc('receive_purchase_order', {
+            p_order_id: orderId,
+            p_items: items.map(i => ({ item_id: i.itemId, quantity: i.quantity }))
+        });
+        if (error) throw error;
     }
 };

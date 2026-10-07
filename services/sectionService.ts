@@ -18,7 +18,8 @@ export const sectionService = {
     create: async (section: Partial<Section>) => {
         const { data, error } = await supabase.from('sections').insert([{
             name: section.name,
-            is_special: section.isSpecial
+            is_special: section.isSpecial,
+            is_wildcard: section.isWildcard ?? false
         }]).select().single();
 
         if (error) throw error;
@@ -30,7 +31,8 @@ export const sectionService = {
             .from('sections')
             .update({
                 name: section.name,
-                is_special: section.isSpecial
+                is_special: section.isSpecial,
+                is_wildcard: section.isWildcard
             })
             .eq('id', section.id)
             .select()

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { User, UserRole, Equipment, WorkOrder } from '../types';
+import { User, UserRole, Equipment, WorkOrder, Section } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { isWildcardUser } from '../utils/incidentVisibility';
 
 /**
  * Generic hook to filter a list of items based on user role and section.
@@ -14,6 +15,10 @@ export const useRestrictedItems = <T>(
     sectionExtractor: (item: T) => string | string[] = (item: any) => item.section,
     explicitAccessCheck?: (item: T, user: User) => boolean
 ) => {
+    // Secciones del catálogo (para detectar comodines). Suscrito para que el
+    // memo se recalcule si cambia el flag is_wildcard.
+    const catalogSections = useAppStore(s => s.sections) as Section[];
+
     return useMemo(() => {
         // Defensive: Check for null items array
         if (!items || !Array.isArray(items)) return [];
@@ -21,12 +26,13 @@ export const useRestrictedItems = <T>(
         // Defensive: Check for null user
         if (!currentUser) return [];
 
-        // Admin and Observers see everything
-        if (
-            currentUser.role === UserRole.ADMIN ||
-            currentUser.role === UserRole.OBSERVER_L1 ||
-            currentUser.role === UserRole.OBSERVER_L2
-        ) return items;
+        // Admin ve todo. Los observadores NO: son los más limitados y solo ven
+        // lo de sus secciones (o lo de todos si se les asignan todas).
+        if (currentUser.role === UserRole.ADMIN) return items;
+
+        // Secciones comodín (Mantenimiento / Ingeniería): ven todo para poder
+        // gestionarlo. Nunca aplican a observadores.
+        if (isWildcardUser(currentUser, catalogSections)) return items;
 
         // Defensive: Check if user has sections defined
         if (!currentUser.sections || !Array.isArray(currentUser.sections)) {
@@ -63,7 +69,7 @@ export const useRestrictedItems = <T>(
 
             return validItemSections.some(s => currentUser.sections.includes(s));
         });
-    }, [items, currentUser]);
+    }, [items, currentUser, catalogSections]);
 };
 
 /**
@@ -76,16 +82,22 @@ export const useRestrictedEquipment = (
     equipmentList: Equipment[],
     currentUser: User | null
 ) => {
+    // Suscrito (no getState) para que el memo se recalcule si cambian permisos o flags
+    const userPermissions = useAppStore(s => s.userPermissions);
+    const catalogSections = useAppStore(s => s.sections) as Section[];
+
     // Memoized restricted list
     return useMemo(() => {
         if (!currentUser) return [];
         if (currentUser.role === UserRole.ADMIN) return equipmentList;
 
+        // Secciones comodín (Mantenimiento/Ingeniería) ven todo el parque
+        if (isWildcardUser(currentUser, catalogSections)) return equipmentList;
+
         const userSections = Array.isArray(currentUser.sections) ? currentUser.sections : [];
 
         // 0. Bypass for users with inventory access: They need to see everything to link parts
-        const perms = useAppStore.getState().userPermissions;
-        const invLevel = perms.find(p => p.userId === currentUser.id && p.module === 'inventory')?.level ?? 'sin_acceso';
+        const invLevel = userPermissions.find(p => p.userId === currentUser.id && p.module === 'inventory')?.level ?? 'sin_acceso';
         const canViewAll = invLevel === 'parcial' || invLevel === 'total';
 
         if (canViewAll) return equipmentList;
@@ -108,5 +120,5 @@ export const useRestrictedEquipment = (
             }
             return eq;
         });
-    }, [equipmentList, currentUser]);
+    }, [equipmentList, currentUser, userPermissions, catalogSections]);
 };

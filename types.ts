@@ -44,13 +44,16 @@ export interface Section {
   id: string;
   name: string;
   isSpecial: boolean;
+  /** Sección comodín: sus usuarios ven y gestionan todas las incidencias. */
+  isWildcard: boolean;
   createdAt?: string;
 }
 
 export interface User {
   id: string;
   name: string;
-  email: string;
+  /** Vive en `profile_emails` (RLS sólo-Admin): null para no-admins. */
+  email: string | null;
   role: UserRole;
   sections: string[];
   active: boolean;
@@ -149,6 +152,31 @@ export interface SubTask {
   completed: boolean;
 }
 
+/** Tipos de evento del histórico de una OT (log append-only `work_order_events`). */
+export enum WorkOrderEventKind {
+  CREATE = 'create',
+  STATUS = 'status',
+  PAUSE = 'pause',
+  RESUME = 'resume',
+  COMPLETE = 'complete',
+  ASSIGN = 'assign',
+  UNASSIGN = 'unassign',
+  PRIORITY = 'priority',
+  PARTS = 'parts',
+  CONVERT = 'convert',
+}
+
+export interface WorkOrderEvent {
+  id: string;
+  workOrderId: string;
+  kind: WorkOrderEventKind | string;
+  status?: string | null;
+  note?: string | null;
+  actorId?: string | null;
+  actorName?: string | null;
+  createdAt: string;
+}
+
 export interface WorkOrder {
   id: string; // Keep as required, but I'll fix the modals to provide empty string
   title: string;
@@ -157,6 +185,8 @@ export interface WorkOrder {
   status: WOStatus;
   priority: WOPriority;
   statusHistory?: { status: WOStatus; timestamp: string; }[];
+  /** Log completo del histórico. Fuente única: `work_order_events`. */
+  events?: WorkOrderEvent[];
   collaboratingSections?: string[];
   equipmentId: string;
   assignedUserId?: string; // Main responsible
@@ -167,6 +197,10 @@ export interface WorkOrder {
   scheduledDate?: string;
   closedAt?: string;
   timeSpentMinutes?: number;
+  /** Origen del tiempo registrado: 'sesion' (medido del historial) | 'manual' (escrito a mano). */
+  timeSource?: 'sesion' | 'manual' | null;
+  timeRecordedBy?: string | null;
+  timeRecordedAt?: string | null;
   section: string;
   audioNoteUrl?: string;
   attachments: Attachment[];
@@ -252,6 +286,13 @@ export interface Incident {
   description: string;
   priority: WOPriority;
   status: IncidentStatus;
+  categoryId?: string | null;
+  categoryName?: string;
+  reason?: string | null;
+  solution?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  resolvedByName?: string | null;
   createdBy: string; // User ID
   creatorName?: string; // Loaded via join
   createdAt: string;
@@ -260,6 +301,55 @@ export interface Incident {
   workOrderId?: string | null; // Linked WO if converted
   attachments?: Attachment[];
   comments?: IncidentComment[];
+}
+
+export interface IncidentCategory {
+  id: string;
+  name: string;
+  isActive: boolean;
+  /** Categoría preseleccionada al crear una incidencia. */
+  isDefault: boolean;
+  sortOrder: number;
+  visibleSections: string[];
+  visibleRoles: string[];
+  createdAt?: string;
+}
+
+export enum StoppageReasonType {
+  IMPROVEMENT = 'Mejora',
+  MAINTENANCE = 'Mantenimiento',
+  THIRD_PARTY = 'Intervención de terceros',
+  OTHER = 'Otro',
+}
+
+export enum StoppageStatus {
+  SCHEDULED = 'Programada',
+  IN_PROGRESS = 'En curso',
+  COMPLETED = 'Completada',
+  CANCELLED = 'Cancelada',
+}
+
+export interface EquipmentStoppage {
+  id: string;
+  equipmentId: string;
+  equipmentName?: string;
+  /** Incidencia que originó la parada (1:1). NULL para paradas planificadas. */
+  incidentId?: string | null;
+  title: string;
+  description?: string | null;
+  /** Solo para paradas planificadas. Si hay `incidentId`, el motivo es su categoría (`reasonLabel`). */
+  reasonType?: StoppageReasonType | null;
+  /** Motivo efectivo: categoría de la incidencia si la hay, si no `reasonType`. */
+  reasonLabel?: string | null;
+  startAt: string;
+  /** NULL = parada abierta (duración desconocida). */
+  endAt?: string | null;
+  status: StoppageStatus;
+  requestedBy?: string | null;
+  requestedByName?: string | null;
+  workOrderId?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
 }
 
 export interface Skill {
