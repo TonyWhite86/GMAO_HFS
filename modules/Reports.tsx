@@ -242,6 +242,31 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
 };
 
 const MachineDetails = ({ machine, workOrders, inventory }: { machine: Equipment, workOrders: WorkOrder[], inventory: InventoryItem[] }) => {
+    // KPIs desde report_equipment_stats (BD); si la vista no responde se cae
+    // al cálculo local con lo que haya en el store.
+    const [view, setView] = useState<{
+        correctiveCount: number; partsCost: number; laborCost: number; totalWOs: number;
+    } | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        reportService.getEquipmentStats()
+            .then(rows => {
+                if (cancelled) return;
+                const row = rows.find(r => r.equipmentId === machine.id);
+                if (row) {
+                    setView({
+                        correctiveCount: row.correctiveCount,
+                        partsCost: row.partsCost,
+                        laborCost: (row.totalMinutes / 60) * 30,
+                        totalWOs: row.totalCount
+                    });
+                }
+            })
+            .catch(err => console.warn('No se pudo cargar report_equipment_stats:', err));
+        return () => { cancelled = true; };
+    }, [machine.id]);
+
     const stats = useMemo(() => {
         const relatedWOs = workOrders.filter(wo => wo.equipmentId === machine.id);
         const failures = relatedWOs.filter(wo => wo.type === WOType.CORRECTIVE).length;
@@ -260,8 +285,14 @@ const MachineDetails = ({ machine, workOrders, inventory }: { machine: Equipment
         const laborHours = relatedWOs.reduce((acc, wo) => acc + getDuration(wo), 0) / 60;
         const laborCost = laborHours * 30;
 
-        return { failures, materialCost, laborCost, totalWOs: relatedWOs.length, history: relatedWOs };
-    }, [machine, workOrders, inventory]);
+        return {
+            failures: view?.correctiveCount ?? failures,
+            materialCost: view?.partsCost ?? materialCost,
+            laborCost: view?.laborCost ?? laborCost,
+            totalWOs: view?.totalWOs ?? relatedWOs.length,
+            history: relatedWOs
+        };
+    }, [machine, workOrders, inventory, view]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -334,6 +365,20 @@ const MachineDetails = ({ machine, workOrders, inventory }: { machine: Equipment
 };
 
 const InventoryDetails = ({ item, workOrders, inventory }: { item: InventoryItem, workOrders: WorkOrder[], inventory: InventoryItem[] }) => {
+    const [rotation, setRotation] = useState<{ usageCount: number; totalUsedQty: number } | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        reportService.getPartRotation()
+            .then(rows => {
+                if (cancelled) return;
+                const row = rows.find(r => r.itemId === item.id);
+                if (row) setRotation({ usageCount: row.workOrdersCount, totalUsedQty: Number(row.totalUsed) });
+            })
+            .catch(err => console.warn('No se pudo cargar report_part_rotation:', err));
+        return () => { cancelled = true; };
+    }, [item.id]);
+
     const stats = useMemo(() => {
         // Usage Count (how many WOs have used this part)
         const usageCount = workOrders.filter(wo => wo.usedParts?.some(p => p.partId === item.id)).length;
@@ -342,8 +387,12 @@ const InventoryDetails = ({ item, workOrders, inventory }: { item: InventoryItem
             return acc + (part ? part.quantity : 0);
         }, 0);
 
-        return { usageCount, totalUsedQty, totalValue: item.quantity * item.price };
-    }, [item, workOrders]);
+        return {
+            usageCount: rotation?.usageCount ?? usageCount,
+            totalUsedQty: rotation?.totalUsedQty ?? totalUsedQty,
+            totalValue: item.quantity * item.price
+        };
+    }, [item, workOrders, rotation]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -443,7 +492,38 @@ const DistributionBars = ({ title, data }: { title: string, data: { value: strin
 };
 
 const IncidentDetails = ({ category, incidents, categoryName }: { category: IncidentCategory | null, incidents: Incident[], categoryName: string }) => {
-    const stats = computeIncidentStats(incidents);
+    // Los 10 KPIs salen de la vista de reporting (BD). El resto —evolución
+    // mensual, distribuciones y el listado de resueltas— sigue saliendo del
+    // conjunto ya filtrado, porque son consultas sobre el detalle.
+    const [viewStats, setViewStats] = useState<ReturnType<typeof computeIncidentStats> | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = category
+            ? reportService.getIncidentStatsByCategory().then(rows => rows.find(r => r.categoryId === category.id) || null)
+            : reportService.getIncidentStats();
+        load
+            .then(row => {
+                if (cancelled || !row) return;
+                setViewStats({
+                    total: row.total,
+                    open: row.openCount,
+                    inReview: row.inReviewCount,
+                    resolved: row.resolvedCount,
+                    cancelled: row.cancelledCount,
+                    converted: row.convertedCount,
+                    resolutionRate: row.resolutionRate,
+                    avgResolutionDays: row.avgResolutionDays,
+                    reasonsFilled: row.reasonsFilled,
+                    solutionsFilled: row.solutionsFilled
+                } as ReturnType<typeof computeIncidentStats>);
+            })
+            .catch(err => console.warn('No se pudo cargar las vistas de incidencias:', err));
+        return () => { cancelled = true; };
+    }, [category?.id]);
+
+    const localStats = computeIncidentStats(incidents);
+    const stats = viewStats ?? localStats;
     const monthly = computeMonthlySeries(incidents);
     const maxMonthly = Math.max(...monthly.map(m => m.count), 0);
     const byStatus = computeDistribution(incidents, inc => inc.status);

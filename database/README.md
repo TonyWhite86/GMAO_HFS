@@ -7,7 +7,7 @@ repo: los scripts se ejecutan a mano en el **SQL Editor** de Supabase.
 
 ## Cómo levantar una BD desde cero
 
-Ejecuta estos 10 scripts **en este orden** (son idempotentes):
+Ejecuta estos 11 scripts **en este orden** (son idempotentes):
 
 | # | Script | Qué hace |
 |---|---|---|
@@ -21,6 +21,7 @@ Ejecuta estos 10 scripts **en este orden** (son idempotentes):
 | 8 | `hfs_work_order_events.sql` | **`work_order_events`** — log append-only del histórico de la OT. `work_orders.status_history` pasa a ser una proyección derivada por trigger. Es la versión **definitiva** de `transition_work_order` |
 | 9 | `hfs_incident_stoppage.sql` | Paradas abiertas (`equipment_stoppages.end_at` nullable), vínculo 1:1 `incidents ↔ equipment_stoppages`, RPCs `create_incident_with_stoppage` / `complete_stoppage`, auto-cierre al resolver la incidencia, `incidents.equipment_id NOT NULL` |
 | 10 | `hfs_phase_g.sql` | `profile_emails` (email fuera de `profiles`, RLS sólo-Admin), motor de planes preventivos (`launch_due_preventive_plans` + cron diario a las 06:30) y vistas de reporting (`report_worker_stats`, `report_equipment_stats`, `report_part_rotation`, `report_incident_stats`) |
+| 11 | `hfs_phase_g2.sql` | Ajustes a las vistas de reporting: `report_equipment_stats` gana `total_count` y se añade `report_incident_stats_by_category` para la pestaña de Incidencias |
 
 > **Regla de orden**: cada script puede supersedir a un anterior. En concreto
 > `hfs_work_order_events.sql` reemplaza `transition_work_order` de `hfs_phase_f2.sql`,

@@ -18,6 +18,7 @@ export interface WorkerStatRow {
 export interface EquipmentStatRow {
     equipmentId: string;
     equipmentName: string;
+    totalCount: number;
     correctiveCount: number;
     totalMinutes: number;
     partsCost: number;
@@ -69,6 +70,7 @@ export const reportService = {
         return (data || []).map((r: any) => ({
             equipmentId: r.equipment_id,
             equipmentName: r.equipment_name,
+            totalCount: Number(r.total_count) || 0,
             correctiveCount: Number(r.corrective_count) || 0,
             totalMinutes: Number(r.total_minutes) || 0,
             partsCost: Number(r.parts_cost) || 0
@@ -85,6 +87,25 @@ export const reportService = {
             sku: r.sku,
             totalUsed: Number(r.total_used) || 0,
             workOrdersCount: Number(r.work_orders_count) || 0
+        }));
+    },
+
+    /** Estadísticas de incidencias agrupadas por categoría. */
+    getIncidentStatsByCategory: async (): Promise<(IncidentStatRow & { categoryId: string | null })[]> => {
+        const { data, error } = await supabase.from('report_incident_stats_by_category').select('*');
+        if (error) throw error;
+        return (data || []).map((r: any) => ({
+            categoryId: r.category_id ?? null,
+            total: Number(r.total) || 0,
+            openCount: Number(r.open_count) || 0,
+            inReviewCount: Number(r.in_review_count) || 0,
+            resolvedCount: Number(r.resolved_count) || 0,
+            cancelledCount: Number(r.cancelled_count) || 0,
+            convertedCount: Number(r.converted_count) || 0,
+            reasonsFilled: Number(r.reasons_filled) || 0,
+            solutionsFilled: Number(r.solutions_filled) || 0,
+            resolutionRate: Number(r.resolution_rate) || 0,
+            avgResolutionDays: r.avg_resolution_days === null ? null : Number(r.avg_resolution_days)
         }));
     },
 

@@ -68,4 +68,27 @@ describe('reportService', () => {
         expect(mockFrom).toHaveBeenCalledWith('report_incident_stats');
         expect(row?.resolutionRate).toBe(60);
     });
+
+    it('getIncidentStatsByCategory agrupa por categoría', async () => {
+        const c = chain([
+            { category_id: 'cat1', total: 3, open_count: 1, resolved_count: 2, resolution_rate: 66.7 },
+            { category_id: null, total: 1, open_count: 1, resolved_count: 0, resolution_rate: 0 }
+        ]);
+        mockFrom.mockReturnValueOnce(c);
+        const rows = await reportService.getIncidentStatsByCategory();
+        expect(mockFrom).toHaveBeenCalledWith('report_incident_stats_by_category');
+        expect(rows).toHaveLength(2);
+        expect(rows[0].categoryId).toBe('cat1');
+        expect(rows[0].resolutionRate).toBe(66.7);
+    });
+
+    it('getEquipmentStats expone totalCount', async () => {
+        const c = chain([{
+            equipment_id: 'e1', equipment_name: 'Torno', total_count: 7,
+            corrective_count: 2, total_minutes: 120, parts_cost: 45.5
+        }]);
+        mockFrom.mockReturnValueOnce(c);
+        const rows = await reportService.getEquipmentStats();
+        expect(rows[0].totalCount).toBe(7);
+    });
 });
