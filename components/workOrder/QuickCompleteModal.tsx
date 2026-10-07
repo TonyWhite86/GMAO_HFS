@@ -54,14 +54,27 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
         }));
     };
 
-    const handleFinalConfirm = () => {
-        const timestamp = new Date().toISOString();
-        const historyEntry = { status: WOStatus.COMPLETED, timestamp };
-        const newHistory = [...(workOrder.statusHistory || []), historyEntry];
-
+    const handleFinalConfirm = async () => {
         const safeHours = isNaN(hours) ? 0 : hours;
         const safeMinutes = isNaN(minutes) ? 0 : minutes;
         const finalTime = safeHours * 60 + safeMinutes;
+        try {
+            // La BD sella closed_at, append de 'Completada' al historial,
+            // recalcula el tiempo y dispara la siguiente OT del plan preventivo.
+            await useAppStore.getState().transitionWorkOrder(
+                workOrder.id,
+                'complete',
+                null,
+                finalTime
+            );
+        } catch (e) {
+            console.error('Error completando la OT:', e);
+            return;
+        }
+
+        const timestamp = new Date().toISOString();
+        const historyEntry = { status: WOStatus.COMPLETED, timestamp };
+        const newHistory = [...(workOrder.statusHistory || []), historyEntry];
 
         // Generate system comment
         const finalHoursReported = isNaN(hours) ? 0 : hours;
@@ -85,10 +98,8 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
             comments: [...(workOrder.comments || []), sysComment]
         };
 
+        // Solo estado local: la persistencia ya la hizo transition_work_order.
         onConfirm(finalWO);
-
-        // Persist comment to DB
-        useAppStore.getState().addComment(sysComment, workOrder.id);
     };
 
     return (

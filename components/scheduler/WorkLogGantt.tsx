@@ -4,7 +4,7 @@ import { WO_TYPE_CONFIG } from '../../constants';
 import { extractTimeSessions, getDayOverlap, formatDuration } from '../../utils/timeTracking';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
-interface WorkSession {
+export interface WorkSession {
   woId: string;
   woTitle: string;
   woType: string;
@@ -12,6 +12,8 @@ interface WorkSession {
   start: Date;
   end: Date;
   isActive: boolean;
+  /** Tiempo escrito a mano (no medido por sesiones de status_history). */
+  isManual?: boolean;
 }
 
 interface Props {
@@ -24,15 +26,44 @@ interface Props {
   onSelectWO: (wo: WorkOrder) => void;
 }
 
-const extractSessions = (wo: WorkOrder): WorkSession[] => {
+export const extractSessions = (wo: WorkOrder): WorkSession[] => {
   const base = extractTimeSessions(wo.statusHistory);
-  if (base.length === 0) return [];
 
   const userIds = new Set<string>();
   if (wo.assignedUserId) userIds.add(wo.assignedUserId);
   (wo.collaborators || []).forEach(id => userIds.add(id));
+  // Una OT sin asignar (p.ej. un preventivo recién lanzado) no tendría a quién
+  // atribuirle el bloque y no aparecería en el parte. Usamos quien registró el
+  // tiempo como responsable del trabajo.
+  if (userIds.size === 0 && wo.timeRecordedBy) userIds.add(wo.timeRecordedBy);
 
   const sessions: WorkSession[] = [];
+
+  // Tiempo MANUAL: una OT completada sin "Iniciar" no tiene sesiones en
+  // status_history, así que el Gantt se quedaba vacío aunque el usuario hubiera
+  // indicado minutos. Sintetizamos un bloque del tamaño del tiempo registrado,
+  // terminando en el cierre (o en el momento en que se apuntó).
+  if (wo.timeSource === 'manual' && (wo.timeSpentMinutes || 0) > 0) {
+    const minutes = wo.timeSpentMinutes as number;
+    const end = new Date(wo.closedAt || wo.timeRecordedAt || wo.scheduledDate || wo.createdAt);
+    const start = new Date(end.getTime() - minutes * 60000);
+    userIds.forEach(uid => {
+      sessions.push({
+        woId: wo.id,
+        woTitle: wo.title,
+        woType: wo.type,
+        userId: uid,
+        start,
+        end,
+        isActive: false,
+        isManual: true,
+      });
+    });
+    return sessions;
+  }
+
+  if (base.length === 0) return [];
+
   base.forEach(b => {
     userIds.forEach(uid => {
       sessions.push({
@@ -43,6 +74,7 @@ const extractSessions = (wo: WorkOrder): WorkSession[] => {
         start: b.start,
         end: b.end,
         isActive: b.isActive,
+        isManual: false,
       });
     });
   });
@@ -255,6 +287,11 @@ export const WorkLogGantt: React.FC<Props> = ({
                                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> En curso
                                 </span>
                               )}
+                              {session.isManual && (
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                  ⚠ Manual
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
@@ -350,12 +387,12 @@ export const WorkLogGantt: React.FC<Props> = ({
                             const wo = workOrders.find(w => w.id === session.woId);
                             if (wo) onSelectWO(wo);
                           }}
-                          className={`absolute top-1 h-6 rounded-sm ${colorClass} bg-opacity-80 border cursor-pointer hover:opacity-90 transition-opacity shadow-sm min-w-[3px] z-10`}
+                          className={`absolute top-1 h-6 rounded-sm ${colorClass} bg-opacity-80 border cursor-pointer hover:opacity-90 transition-opacity shadow-sm min-w-[3px] z-10 ${session.isManual ? 'border-dashed border-2 border-amber-400 opacity-80' : ''}`}
                           style={{
                             left: style.left,
                             width: style.width,
                           }}
-                          title={`${session.woTitle} (${formatDuration(durationMin)})`}
+                          title={`${session.woTitle} (${formatDuration(durationMin)})${session.isManual ? ' · tiempo registrado a mano' : ''}`}
                         >
                           <div className="flex items-center gap-1 px-1 h-full overflow-hidden">
                             {parseFloat(style.width as string) > 5 && (
@@ -436,6 +473,9 @@ export const WorkLogGantt: React.FC<Props> = ({
                                 <span className="text-slate-700 dark:text-slate-200 font-bold">{formatDuration(totalMin)}</span>
                                 {isActive && (
                                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                )}
+                                {sessions.some(s => s.isManual) && (
+                                  <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400">⚠ manual</span>
                                 )}
                               </div>
                             </div>

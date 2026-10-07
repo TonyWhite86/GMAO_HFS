@@ -18,6 +18,7 @@ import { PurchaseOrdersTable } from '../components/PurchaseOrdersTable';
 import { InventoryMovementsTable } from '../components/InventoryMovementsTable';
 import { POStatus, PurchaseOrder } from '../types';
 import { inventoryService } from '../services/inventoryService';
+import { purchaseOrderService } from '../services/purchaseOrderService';
 import { ReadOnlyInventoryView } from './Inventory/components/ReadOnlyInventoryView';
 
 export interface InventoryProps {
@@ -639,41 +640,24 @@ export const InventoryModule: React.FC<InventoryProps> = ({
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
           onUpdate={async (updated, receivedList) => {
-            // Update order status/received quantities
-            await updatePurchaseOrder(updated);
-
-            const results = await Promise.allSettled(
-              receivedList.map(async (rec) => {
-                const part = items.find(p => p.id === rec.partId);
-                if (!part) return;
-
-                await inventoryService.registerMovement({
-                  itemId: part.id,
-                  type: 'IN',
-                  quantity: rec.quantity,
-                  reason: `Recepción Pedido #${updated.number}`,
-                  userId: currentUser.id
-                });
-              })
-            );
-
-            const failures = results.filter(r => r.status === 'rejected');
-            if (failures.length > 0) {
-              console.error(`${failures.length} artículo(s) fallaron en la recepción:`, failures.map(r => r.reason));
-              toast.error(`${failures.length} artículo(s) fallaron al registrar la recepción`);
-            } else {
+            // RPC atómica: acumula received_quantity, decide Recibido Parcial /
+            // Recibido, sella received_date y descuenta stock en la misma
+            // transacción (antes eran 1 update + N registerMovement sueltos).
+            try {
+              await purchaseOrderService.receive(
+                updated.id,
+                receivedList.map(r => ({ itemId: r.itemId, quantity: r.quantity }))
+              );
               toast.success('Recepción registrada correctamente');
+              // Refresca pedido e inventario desde la BD (la RPC ya movió stock)
+              const refreshed = await purchaseOrderService.getAll();
+              useAppStore.getState().setPurchaseOrders(refreshed);
+              const stock = await inventoryService.getAll();
+              useAppStore.getState().setInventory(stock);
+            } catch (e) {
+              console.error('Error registrando la recepción:', e);
+              toast.error('Error al registrar la recepción');
             }
-
-            const updatedInventory = items.map(item => {
-              const rec = receivedList.find(r => r.partId === item.id);
-              if (rec) {
-                return { ...item, quantity: item.quantity + rec.quantity };
-              }
-              return item;
-            });
-            useAppStore.getState().setInventory(updatedInventory);
-
             setSelectedOrder(null);
           }}
           inventory={items}

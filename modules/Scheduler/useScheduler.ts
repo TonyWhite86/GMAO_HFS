@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useRestrictedItems } from '../../hooks/useFilteredData';
 import { useWorkOrderFilters } from '../../hooks/useWorkOrderFilters';
 import { usePermissions } from '../../hooks/usePermissions';
+import { workOrderService } from '../../services/workOrderService';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { getDaysToShow, navigateDate, formatHeaderLabel } from '../../utils/dateUtils';
 
@@ -124,12 +125,22 @@ export const useScheduler = () => {
         setCurrentDate(new Date());
     };
 
-    const handleAssign = (wo: WorkOrder, userId: string, targetDate: Date) => {
+    const handleAssign = async (wo: WorkOrder, userId: string, targetDate: Date) => {
+        const scheduled = targetDate.toISOString();
+        // La RPC es la autoridad: valida que el técnico pertenezca a la sección
+        // de la OT (o sea Admin), excluye observadores, sella status/scheduled y
+        // escribe el comentario de sistema. Si falla, no tocamos el estado local.
+        try {
+            await workOrderService.assign(wo.id, userId, scheduled);
+        } catch (err) {
+            console.error('Error asignando la OT:', err);
+            return;
+        }
         onUpdateWorkOrder({
             ...wo,
             assignedUserId: userId,
             status: WOStatus.SCHEDULED,
-            scheduledDate: targetDate.toISOString()
+            scheduledDate: scheduled
         });
     };
 

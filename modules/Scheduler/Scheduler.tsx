@@ -122,6 +122,8 @@ export const Scheduler: React.FC = () => {
                             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                         )
                     }
+                    onSelectAll={(ids) => s.setSelectedSubtasksToAssign(ids)}
+                    onClearSelection={() => s.setSelectedSubtasksToAssign([])}
                     onClose={() => s.setIsAssignSubtasksModalOpen(false)}
                     onConfirm={s.handleConfirmSubtaskAssignment}
                 />

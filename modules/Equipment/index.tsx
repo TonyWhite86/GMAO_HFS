@@ -119,11 +119,13 @@ export const EquipmentModule: React.FC = () => {
             </div>
 
             {/* Modals */}
-            <EquipmentModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                equipment={isEditMode ? selectedEquipment : null}
-            />
+            {isCreateModalOpen && (
+                <EquipmentModal
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                    equipment={isEditMode ? selectedEquipment : null}
+                />
+            )}
 
             {showQRDisplay && selectedEquipment && (
                 <QRDisplay

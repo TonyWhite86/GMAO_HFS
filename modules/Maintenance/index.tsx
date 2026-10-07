@@ -5,6 +5,7 @@ import { WorkOrder, WOStatus, UserRole, PreventivePlan, Equipment, WOType } from
 import { GenericSkeleton } from '../../components/GenericSkeleton';
 import { useAppStore } from '../../store/useAppStore';
 import { useRestrictedItems } from '../../hooks/useFilteredData';
+import { usePermissions } from '../../hooks/usePermissions';
 import { PageHeader } from '../../components/ui/PageHeader';
 
 // Subcomponents
@@ -61,6 +62,7 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
     if (!currentUser) return <GenericSkeleton />;
 
     const canManageMaintenance = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SECTION_MANAGER;
+    const { canViewActuaciones, canCreateActuaciones } = usePermissions(currentUser);
 
     // View State
     const [viewMode, setViewMode] = useState<ViewMode>('workOrders');
@@ -88,6 +90,12 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
             setCreationMode(false);
         }
     }, [creationMode, currentUser.role, setCreationMode]);
+
+    useEffect(() => {
+        if (viewMode === 'plannedActions' && !canViewActuaciones) {
+            setViewMode('workOrders');
+        }
+    }, [viewMode, canViewActuaciones]);
 
     // --- Security Filtering ---
     const securityFilteredWorkOrders = useRestrictedItems(
@@ -128,7 +136,9 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
             <PageHeader
                 title="Gestión de Mantenimiento"
                 actions={
-                    (viewMode !== 'plans' || canManageMaintenance) && (
+                    (viewMode !== 'plans' || canManageMaintenance)
+                    && (viewMode !== 'plannedActions' || canCreateActuaciones)
+                    && (
                         <button
                             onClick={handleCreateClick}
                             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto shadow-lg ${viewMode === 'plans'
@@ -168,15 +178,17 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                 >
                     Planes Preventivos
                 </button>
-                <button
-                    onClick={() => setViewMode('plannedActions')}
-                    className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plannedActions'
-                        ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
-                >
-                    Actuaciones
-                </button>
+                {canViewActuaciones && (
+                    <button
+                        onClick={() => setViewMode('plannedActions')}
+                        className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plannedActions'
+                            ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Actuaciones
+                    </button>
+                )}
             </div>
 
             {/* Views */}

@@ -186,7 +186,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         useAppStore.getState().addComment(sysComment, editedWO.id);
     };
 
-    const handleStatusChange = (newStatus: WOStatus, pendingReason?: string, spentHours?: number, spentMinutes?: number, autoSave = false) => {
+    const handleStatusChange = async (newStatus: WOStatus, pendingReason?: string, spentHours?: number, spentMinutes?: number, autoSave = false) => {
         let updated = { ...editedWO, status: newStatus };
 
         // --- HISTORY TRACKING ---
@@ -230,10 +230,34 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         };
 
         if (autoSave) {
+            // La BD es la única dueña de status_history / time_spent_minutes /
+            // closed_at. La transición se hace PRIMERO y se espera: si mandamos
+            // el update de metadatos antes, la RPC ve la OT ya 'Completada',
+            // aborta con "La orden ya está completada" y el tiempo se pierde.
+            if (newStatus !== workOrder.status) {
+                const action = newStatus === WOStatus.COMPLETED ? 'complete'
+                    : newStatus === WOStatus.IN_PROGRESS
+                        ? (workOrder.status === WOStatus.IN_PROGRESS ? 'resume' : 'start')
+                        : 'pause';
+                try {
+                    const manualMins = (spentHours ?? 0) * 60 + (spentMinutes ?? 0);
+                    await useAppStore.getState().transitionWorkOrder(
+                        editedWO.id,
+                        action as 'start' | 'pause' | 'resume' | 'complete',
+                        pendingReason ?? null,
+                        // Solo se pasa tiempo manual si el usuario indicó algo > 0.
+                        // Con 0 dejamos que la RPC lo calcule del historial (y aplique
+                        // el blindaje de no pisar un tiempo ya guardado).
+                        action === 'complete' && manualMins > 0 ? manualMins : null
+                    );
+                } catch (err) {
+                    console.error('Error transicionando la OT:', err);
+                    return;
+                }
+            }
             updated.comments = [...(updated.comments || []), sysComment];
             setEditedWO(updated);
             onUpdate(updated, false);
-            useAppStore.getState().addComment(sysComment, editedWO.id);
         } else {
             // If just editing, update local state only
             setEditedWO(updated);
@@ -257,7 +281,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         setIsEditing(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         // Validation
         if (!editedWO.title.trim() || !editedWO.equipmentId || !editedWO.section) {
             setShowValidationErrors(true);
@@ -308,6 +332,29 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
             sysComments.forEach(sc => {
                 useAppStore.getState().addComment(sc, editedWO.id);
             });
+        }
+
+        // Si el estado cambia, la transición la valida y sella la BD
+        if (finalWO.status !== workOrder.status) {
+            const action = finalWO.status === WOStatus.COMPLETED ? 'complete'
+                : finalWO.status === WOStatus.IN_PROGRESS
+                    ? (workOrder.status === WOStatus.IN_PROGRESS ? 'resume' : 'start')
+                    : 'pause';
+            try {
+                const manualMins = finalWO.timeSpentMinutes ?? 0;
+                await useAppStore.getState().transitionWorkOrder(
+                    editedWO.id,
+                    action as 'start' | 'pause' | 'resume' | 'complete',
+                    finalWO.pendingReason ?? null,
+                    // El tiempo indicado a mano se pasa como manualMinutes: sin
+                    // él la RPC lo recalcula desde el historial y deja 0 en una
+                    // OT que nunca se "inició".
+                    action === 'complete' && manualMins > 0 ? manualMins : null
+                );
+            } catch (err) {
+                console.error('Error transicionando la OT:', err);
+                return;
+            }
         }
 
         onUpdate(finalWO, true);
@@ -625,8 +672,11 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
 
                             <div className="mt-4 flex justify-end">
                                 <button
-                                    onClick={() => {
-                                        handleStatusChange(WOStatus.COMPLETED, completionNotes, finalHours, finalMinutes, true);
+                                    onClick={async () => {
+                                        // Se espera a que la transición termine antes de
+                                        // cerrar el panel: si se cierra al instante se pierde
+                                        // el feedback y el estado local queda a medias.
+                                        await handleStatusChange(WOStatus.COMPLETED, completionNotes, finalHours, finalMinutes, true);
                                         setStatusUpdateMode(null);
                                         setCompletionNotes('');
                                     }}
@@ -665,6 +715,18 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                         <Clock size={14} className={`opacity-70 ${isRunning ? 'animate-spin-slow' : ''}`} />
                                         Tiempo: <LiveTimer status={editedWO.status} statusHistory={editedWO.statusHistory} timeSpentMinutes={editedWO.timeSpentMinutes} />
                                     </span>
+                                    {editedWO.status === WOStatus.COMPLETED && editedWO.timeSource && (
+                                        <span
+                                            className={`flex items-center gap-1.5 whitespace-nowrap px-2 py-0.5 rounded-lg border text-[10px] font-bold uppercase tracking-wide ${editedWO.timeSource === 'manual'
+                                                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                                                : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                                }`}
+                                            title={`${editedWO.timeSource === 'manual' ? 'Tiempo escrito a mano' : 'Tiempo medido por sesiones de trabajo'}${editedWO.timeRecordedBy ? ` por ${users.find(u => u.id === editedWO.timeRecordedBy)?.name || '—'}` : ''}${editedWO.timeRecordedAt ? ` el ${new Date(editedWO.timeRecordedAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}`}
+                                        >
+                                            {editedWO.timeSource === 'manual' ? <AlertTriangle size={12} /> : <Check size={12} />}
+                                            {editedWO.timeSource === 'manual' ? 'Tiempo manual' : 'Tiempo medido'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         )}

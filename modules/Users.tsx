@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { User, UserRole, Section } from '../types';
-import { Search, Plus, UserPlus, Trash2, Edit2, Shield, Mail, Check, X, Building2, UserCircle, Briefcase, ToggleLeft, ToggleRight, Book, KeyRound } from 'lucide-react';
+import { User, UserRole, Section, IncidentCategory } from '../types';
+import { Search, Plus, UserPlus, Trash2, Edit2, Shield, Mail, Check, X, Building2, UserCircle, Briefcase, ToggleLeft, ToggleRight, Book, KeyRound, Tag } from 'lucide-react';
 import { GenericSkeleton } from '../components/GenericSkeleton';
 import { GenericTable } from '../components/GenericTable';
 import { normalizeForSearch } from '../utils/searchUtils';
 import { SkillsMatrix } from '../components/users/SkillsMatrix';
 import { SkillsManagementModal } from '../components/users/SkillsManagementModal';
+import { CategoriesManagementModal } from '../components/users/CategoriesManagementModal';
 import { PermissionModal } from '../components/users/PermissionModal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -24,12 +25,13 @@ export const UsersModule: React.FC = () => {
         deleteUser: onDeleteUser,
         addSection: onAddSection,
         deleteSection: onDeleteSection,
-        updateSection: onEditSection
+        updateSection: onEditSection,
+        deleteIncidentCategory
     } = useAppStore();
 
     if (!currentUser) return <GenericSkeleton />;
 
-    const [activeTab, setActiveTab] = useState<'users' | 'sections' | 'skills'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'sections' | 'skills' | 'categories'>('users');
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSection, setSelectedSection] = useState<string>('all');
@@ -38,6 +40,8 @@ export const UsersModule: React.FC = () => {
     const [showUserModal, setShowUserModal] = useState(false);
     const [showSectionModal, setShowSectionModal] = useState(false);
     const [showSkillsModal, setShowSkillsModal] = useState(false);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<IncidentCategory | null>(null);
     const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
     const [permissionUser, setPermissionUser] = useState<User | null>(null);
 
@@ -368,6 +372,28 @@ export const UsersModule: React.FC = () => {
             }
         },
         {
+            header: "Comodín",
+            render: (item: Section & { count: number }) => {
+                const isWildcard = item.isWildcard;
+                return (
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            await onEditSection({ ...item, isWildcard: !isWildcard });
+                        }}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-all border ${isWildcard
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+                            : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        title="Sección comodín: sus usuarios ven y gestionan TODAS las incidencias (no aplica a observadores)"
+                    >
+                        {isWildcard ? <Check size={12} /> : <X size={12} />}
+                        {isWildcard ? 'Comodín' : 'Normal'}
+                    </button>
+                );
+            }
+        },
+        {
             header: "Acciones",
             align: 'right' as const,
             render: (item: Section & { count: number }) => (
@@ -406,6 +432,9 @@ export const UsersModule: React.FC = () => {
                 {item.isSpecial && (
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold uppercase mt-1 inline-block">Especial</span>
                 )}
+                {item.isWildcard && (
+                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase mt-1 inline-block ml-1">Comodín</span>
+                )}
             </div>
             <div className="flex gap-2">
                 <button onClick={() => openEditSection(item)} className="p-2 text-slate-400 hover:text-blue-500 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
@@ -433,6 +462,111 @@ export const UsersModule: React.FC = () => {
         }));
     }, [filteredSections, users]);
 
+    // Categories
+    const { incidentCategories } = useAppStore();
+
+    const filteredCategories = useMemo(() => {
+        const term = normalizeForSearch(searchTerm);
+        return incidentCategories.filter(c => normalizeForSearch(c.name).includes(term));
+    }, [incidentCategories, searchTerm]);
+
+    const categoryVisibilitySummary = (c: IncidentCategory) => {
+        if (c.visibleSections.length === 0 && c.visibleRoles.length === 0) return 'Todos los usuarios';
+        const parts: string[] = [];
+        if (c.visibleSections.length > 0) parts.push(c.visibleSections.join(', '));
+        if (c.visibleRoles.length > 0) parts.push(c.visibleRoles.join(', '));
+        return parts.join(' · ');
+    };
+
+    const categoryColumns = useMemo(() => [
+        {
+            header: "Nombre",
+            sortKey: "name",
+            render: (c: IncidentCategory) => (
+                <div className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                    <Tag size={18} className="text-blue-500" />
+                    {c.name}
+                </div>
+            )
+        },
+        {
+            header: "Visibilidad",
+            render: (c: IncidentCategory) => (
+                <span className="text-sm text-slate-600 dark:text-slate-300">{categoryVisibilitySummary(c)}</span>
+            )
+        },
+        {
+            header: "Estado",
+            render: (c: IncidentCategory) => (
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${c.isActive
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    }`}>
+                    {c.isActive ? 'Activa' : 'Inactiva'}
+                </span>
+            )
+        },
+        {
+            header: "Acciones",
+            align: 'right' as const,
+            render: (c: IncidentCategory) => (
+                <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => { setEditingCategory(c); setShowCategoryModal(true); }}
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                    >
+                        <Edit2 size={16} />
+                    </button>
+                    <button
+                        onClick={() => setConfirmAction({
+                            title: 'Eliminar categoría',
+                            message: `¿Eliminar la categoría "${c.name}"? Las incidencias pasarán a "Avería".`,
+                            onConfirm: () => deleteIncidentCategory(c.id)
+                        })}
+                        className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            )
+        }
+    ], [deleteIncidentCategory]);
+
+    const renderCategoryCard = (c: IncidentCategory) => (
+        <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Tag size={18} className="text-blue-500" />
+                    {c.name}
+                </h3>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${c.isActive
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    }`}>
+                    {c.isActive ? 'Activa' : 'Inactiva'}
+                </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{categoryVisibilitySummary(c)}</p>
+            <div className="grid grid-cols-2 gap-2">
+                <button
+                    onClick={() => { setEditingCategory(c); setShowCategoryModal(true); }}
+                    className="flex items-center justify-center gap-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium transition-colors"
+                >
+                    <Edit2 size={14} /> Editar
+                </button>
+                <button
+                    onClick={() => setConfirmAction({
+                        title: 'Eliminar categoría',
+                        message: `¿Eliminar la categoría "${c.name}"? Las incidencias pasarán a "Avería".`,
+                        onConfirm: () => deleteIncidentCategory(c.id)
+                    })}
+                    className="flex items-center justify-center gap-2 py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium transition-colors"
+                >
+                    <Trash2 size={14} /> Eliminar
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -470,6 +604,16 @@ export const UsersModule: React.FC = () => {
                                 <span>Gestionar Habilidades</span>
                             </button>
                         )}
+
+                        {activeTab === 'categories' && (
+                            <button
+                                onClick={() => { setEditingCategory(null); setShowCategoryModal(true); }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg transition-colors bg-cyan-600 hover:bg-cyan-700 shadow-cyan-600/20"
+                            >
+                                <Tag size={18} />
+                                <span>Gestionar Categorías</span>
+                            </button>
+                        )}
                     </>
                 }
             />
@@ -502,6 +646,15 @@ export const UsersModule: React.FC = () => {
                 >
                     Matriz de Polivalencia
                 </button>
+                <button
+                    onClick={() => setActiveTab('categories')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'categories'
+                        ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                >
+                    Categorías
+                </button>
             </div>
 
             {/* Search Bar & Filters */}
@@ -511,7 +664,7 @@ export const UsersModule: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
-                            placeholder={activeTab === 'users' ? "Buscar usuario por nombre, email..." : "Buscar sección..."}
+                            placeholder={activeTab === 'users' ? "Buscar usuario por nombre, email..." : activeTab === 'categories' ? "Buscar categoría..." : "Buscar sección..."}
                             className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -554,6 +707,15 @@ export const UsersModule: React.FC = () => {
                         renderCard={renderSectionCard}
                         itemsPerPage={25}
                         emptyMessage="No se encontraron secciones."
+                    />
+                )}
+                {activeTab === 'categories' && (
+                    <GenericTable
+                        data={filteredCategories}
+                        columns={categoryColumns}
+                        renderCard={renderCategoryCard}
+                        itemsPerPage={25}
+                        emptyMessage="No se encontraron categorías."
                     />
                 )}
                 {activeTab === 'skills' && (
@@ -750,11 +912,21 @@ export const UsersModule: React.FC = () => {
                 </div>
             )}
 
-            <SkillsManagementModal
-                isOpen={showSkillsModal}
-                onClose={() => setShowSkillsModal(false)}
-                onSkillsChange={() => setSkillsRefreshTrigger(prev => prev + 1)}
-            />
+            {showSkillsModal && (
+                <SkillsManagementModal
+                    isOpen={showSkillsModal}
+                    onClose={() => setShowSkillsModal(false)}
+                    onSkillsChange={() => setSkillsRefreshTrigger(prev => prev + 1)}
+                />
+            )}
+
+            {showCategoryModal && (
+                <CategoriesManagementModal
+                    isOpen={showCategoryModal}
+                    onClose={() => { setShowCategoryModal(false); setEditingCategory(null); }}
+                    editingCategory={editingCategory}
+                />
+            )}
 
             {permissionUser && (
                 <PermissionModal

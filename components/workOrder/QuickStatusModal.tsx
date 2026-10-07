@@ -24,7 +24,21 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
     // When pausing, add PENDING to history (closes the session) but keep status IN_PROGRESS
     const historyStatus = isPausing ? WOStatus.PENDING : nextStatus;
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+        const action = isPausing ? 'pause' : isResuming ? 'resume' : 'start';
+        try {
+            // La BD es la única dueña de status_history / time_spent_minutes /
+            // closed_at: el RPC hace append de la sesión y recalcula el tiempo.
+            await useAppStore.getState().transitionWorkOrder(
+                workOrder.id,
+                action as 'start' | 'pause' | 'resume',
+                isPausing ? (reason || null) : null
+            );
+        } catch (e) {
+            console.error('Error transicionando la OT:', e);
+            return;
+        }
+
         const timestamp = new Date().toISOString();
         const historyEntry = { status: historyStatus, timestamp };
 
@@ -72,10 +86,9 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
             pendingReason: isPausing ? reason : undefined
         };
 
+        // Solo estado local: la persistencia (incluido el comentario de
+        // sistema) ya la hizo transition_work_order.
         onConfirm(updatedWO);
-
-        // Persist comment to DB
-        useAppStore.getState().addComment(sysComment, workOrder.id);
     };
 
     return (

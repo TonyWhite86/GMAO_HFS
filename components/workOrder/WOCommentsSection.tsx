@@ -1,7 +1,7 @@
 import React from 'react';
-import { SharedComment, CommentTimeline } from '../common/CommentTimeline';
+import { ActivityTimeline } from '../common/ActivityTimeline';
 import { CommentInput } from '../common/CommentInput';
-import { WorkOrder, User, WOStatus, Attachment } from '../../types';
+import { WorkOrder, User, Attachment } from '../../types';
 
 interface WOCommentsSectionProps {
     editedWO: WorkOrder;
@@ -18,12 +18,6 @@ export const WOCommentsSection: React.FC<WOCommentsSectionProps> = ({
     setViewMedia,
     onDictate
 }) => {
-    // Map WO comments to SharedComment format if necessary (they are already compatible)
-    const sharedComments: SharedComment[] = (editedWO.comments || []).map(c => ({
-        ...c,
-        status: (c as any).status // Maintain status for system messages
-    }));
-
     return (
         <div className="border-t border-slate-800 pt-6 space-y-6">
             {/* Unified Input */}
@@ -34,13 +28,14 @@ export const WOCommentsSection: React.FC<WOCommentsSectionProps> = ({
                 placeholder="Nuevo comentario o actualización..."
             />
 
-            {/* Unified Timeline */}
-            <CommentTimeline
-                comments={sharedComments}
+            {/* Actividad: log de eventos (work_order_events) + comentarios */}
+            <ActivityTimeline
+                workOrder={editedWO}
+                comments={editedWO.comments || []}
                 currentUserId={currentUser.id}
                 setViewMedia={setViewMedia}
-                title="Evolución y Comentarios"
-                emptyMessage="No hay comentarios todavía. Registra el primer avance."
+                title="Actividad e historial"
+                emptyMessage="No hay actividad todavía. Registra el primer avance."
             />
         </div>
     );

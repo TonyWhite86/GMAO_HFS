@@ -1,16 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { WorkOrder, InventoryItem, Equipment, User, WOStatus, UserRole, WOType } from '../types';
+import { WorkOrder, InventoryItem, Equipment, User, WOStatus, UserRole, WOType, Incident, IncidentStatus, IncidentCategory } from '../types';
 import {
     LayoutDashboard, Users, Package, Wrench, Search, ChevronRight,
-    Clock, DollarSign, Activity, AlertCircle, CheckCircle2, TrendingUp,
+    Clock, DollarSign, Activity, AlertCircle, AlertTriangle, CheckCircle2, TrendingUp,
     Calendar, MapPin, Box, FileText, ArrowUpRight, Download
 } from 'lucide-react';
 import { StatCard } from '../components/ui/StatCard';
 import { computeActiveMinutes } from '../utils/timeTracking';
+import { computeIncidentStats, computeMonthlySeries, computeDistribution } from '../utils/incidentStats';
+import { canSeeIncident } from '../utils/incidentVisibility';
+import { useVisibleCategories } from '../hooks/useVisibleCategories';
+import { reportService } from '../services/reportService';
 
 export interface ReportsProps { }
 
-type EntityType = 'worker' | 'machine' | 'inventory';
+type EntityType = 'worker' | 'machine' | 'inventory' | 'incident';
 
 // --- Reusable Components ---
 
@@ -74,6 +78,32 @@ const getDuration = (wo: WorkOrder) => {
 };
 
 const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOrders: WorkOrder[], inventory: InventoryItem[] }) => {
+    // Los KPIs numéricos salen de report_worker_stats (BD), para que el número
+    // sea el mismo venga de donde venga la consulta. El histórico de abajo sigue
+    // saliendo de las OTs ya cargadas en el store.
+    const [viewStats, setViewStats] = useState<{
+        count: number; totalMinutes: number; avgMinutes: number; manualMinutes: number;
+    } | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        reportService.getWorkerStats()
+            .then(rows => {
+                if (cancelled) return;
+                const row = rows.find(r => r.workerId === worker.id);
+                if (row) {
+                    setViewStats({
+                        count: row.completedCount,
+                        totalMinutes: row.totalMinutes,
+                        avgMinutes: row.avgMinutes,
+                        manualMinutes: row.manualMinutes
+                    });
+                }
+            })
+            .catch(err => console.warn('No se pudo cargar report_worker_stats:', err));
+        return () => { cancelled = true; };
+    }, [worker.id]);
+
     const stats = useMemo(() => {
         const completedWOs = workOrders.filter(wo => wo.assignedUserId === worker.id && wo.status === WOStatus.COMPLETED);
 
@@ -96,8 +126,27 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
             return acc + partsCost;
         }, 0);
 
-        return { totalHours, avgMinutes, efficiency, totalMaterialCost, count: completedWOs.length, history: completedWOs };
-    }, [worker, workOrders, inventory]);
+        // Tiempo escrito a mano vs medido por sesiones. Un % alto delata a
+        // quien nunca pulsa Iniciar/Finalizar.
+        const manualMinutes = completedWOs
+            .filter(wo => wo.timeSource === 'manual')
+            .reduce((acc, wo) => acc + getDuration(wo), 0);
+        const manualPct = totalMinutes > 0 ? (manualMinutes / totalMinutes) * 100 : 0;
+
+        // Si la vista respondió, manda ella (fuente única en BD).
+        const finalMinutes = viewStats?.totalMinutes ?? totalMinutes;
+        const finalCount = viewStats?.count ?? completedWOs.length;
+        const finalManual = viewStats?.manualMinutes ?? manualMinutes;
+        const finalPct = finalMinutes > 0 ? (finalManual / finalMinutes) * 100 : 0;
+
+        return {
+            totalHours: finalMinutes / 60,
+            avgMinutes: viewStats?.avgMinutes ?? avgMinutes,
+            efficiency, totalMaterialCost,
+            count: finalCount, history: completedWOs,
+            manualMinutes: finalManual, manualPct: finalPct
+        };
+    }, [worker, workOrders, inventory, viewStats]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -138,7 +187,25 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
                     icon={Activity}
                     color="purple"
                 />
+                <div className={stats.manualPct >= 50 ? 'ring-2 ring-amber-400 rounded-xl' : ''}>
+                    <StatCard
+                        title="Tiempo a mano"
+                        value={`${stats.manualPct.toFixed(0)}%`}
+                        icon={AlertTriangle}
+                        color={stats.manualPct >= 50 ? 'amber' : 'slate'}
+                    />
+                </div>
             </div>
+            {stats.manualPct >= 50 && stats.count > 0 && (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm">
+                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                    <p>
+                        <strong>Atención:</strong> {stats.manualPct.toFixed(0)}% del tiempo de este trabajador
+                        ({stats.manualMinutes} min de {Math.round(stats.totalHours * 60)} min) está <strong>escrito a mano</strong>,
+                        no medido por sesiones de trabajo. Revísalo si no cuadra con lo observado.
+                    </p>
+                </div>
+            )}
 
             {/* History Table */}
             <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
@@ -152,6 +219,14 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
                         { header: 'Orden', accessor: (wo) => <span className="font-medium text-blue-600 hover:underline cursor-pointer">{wo.id}</span> },
                         { header: 'Tarea', accessor: (wo) => wo.title },
                         { header: 'Tiempo', accessor: (wo) => <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs">{getDuration(wo)} min</span> },
+                        {
+                            header: 'Origen',
+                            accessor: (wo) => wo.timeSource === 'manual'
+                                ? <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase">Manual</span>
+                                : wo.timeSource === 'sesion'
+                                    ? <span className="px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase">Medido</span>
+                                    : <span className="text-slate-400 text-xs">—</span>
+                        },
                         {
                             header: 'Coste',
                             accessor: (wo) => ((wo.usedParts?.reduce((acc: number, p: any) => {
@@ -343,14 +418,122 @@ const normalizeText = (text: string) => {
 
 import { useAppStore } from '../store/useAppStore';
 
+const DistributionBars = ({ title, data }: { title: string, data: { value: string, count: number }[] }) => {
+    const maxCount = Math.max(...data.map(d => d.count), 0);
+    return (
+        <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+            <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-3">{title}</h3>
+            <div className="space-y-2">
+                {data.map(d => (
+                    <div key={d.value} className="flex items-center gap-2 text-xs">
+                        <span className="w-32 truncate text-slate-500 dark:text-slate-400" title={d.value}>{d.value}</span>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                            <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{ width: `${maxCount > 0 ? (d.count / maxCount) * 100 : 0}%` }}
+                            />
+                        </div>
+                        <span className="w-8 text-right font-bold text-slate-600 dark:text-slate-300">{d.count}</span>
+                    </div>
+                ))}
+                {data.length === 0 && <p className="text-xs text-slate-400">Sin datos</p>}
+            </div>
+        </div>
+    );
+};
+
+const IncidentDetails = ({ category, incidents, categoryName }: { category: IncidentCategory | null, incidents: Incident[], categoryName: string }) => {
+    const stats = computeIncidentStats(incidents);
+    const monthly = computeMonthlySeries(incidents);
+    const maxMonthly = Math.max(...monthly.map(m => m.count), 0);
+    const byStatus = computeDistribution(incidents, inc => inc.status);
+    const bySection = computeDistribution(incidents, inc => inc.section || '');
+    const byCategory = computeDistribution(incidents, inc => inc.categoryName || '');
+    const resolvedList = incidents.filter(inc => inc.status === IncidentStatus.RESOLVED);
+
+    return (
+        <div className="p-6 space-y-6 overflow-y-auto h-full custom-scrollbar">
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                    <AlertCircle size={24} />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{categoryName}</h2>
+                    <p className="text-slate-500 text-sm">Estadísticas de incidencias en el rango seleccionado</p>
+                </div>
+            </div>
+
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <StatCard title="Total" value={stats.total} icon={FileText} color="slate" />
+                <StatCard title="Abiertas" value={stats.open} icon={AlertCircle} color="amber" />
+                <StatCard title="En Revisión" value={stats.inReview} icon={Clock} color="blue" />
+                <StatCard title="Resueltas" value={stats.resolved} icon={CheckCircle2} color="emerald" />
+                <StatCard title="Canceladas" value={stats.cancelled} icon={FileText} color="slate" />
+                <StatCard title="% Resueltas" value={`${stats.resolutionRate}%`} icon={TrendingUp} color="emerald" />
+                <StatCard title="Convertidas a OT" value={stats.converted} icon={Wrench} color="purple" />
+                <StatCard title="Tiempo medio resolución" value={stats.avgResolutionDays !== null ? `${stats.avgResolutionDays} d` : '—'} icon={Clock} color="blue" />
+                <StatCard title="Con motivo" value={`${stats.reasonsFilled}/${stats.total}`} icon={FileText} color="blue" />
+                <StatCard title="Con solución" value={`${stats.solutionsFilled}/${stats.total}`} icon={CheckCircle2} color="emerald" />
+            </div>
+
+            {/* Monthly trend */}
+            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-3">Evolución mensual (últimos 12 meses)</h3>
+                <div className="flex items-end gap-1.5 h-32">
+                    {monthly.map(m => (
+                        <div key={m.key} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                            <span className="text-[10px] font-bold text-slate-500">{m.count > 0 ? m.count : ''}</span>
+                            <div className="w-full bg-blue-600 rounded-t" style={{ height: `${maxMonthly > 0 ? Math.max((m.count / maxMonthly) * 90, m.count > 0 ? 6 : 2) : 2}%` }} />
+                            <span className="text-[10px] text-slate-400 truncate w-full text-center capitalize">{m.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Distributions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <DistributionBars title="Por estado" data={byStatus} />
+                <DistributionBars title="Por sección" data={bySection} />
+                {!category && <DistributionBars title="Por categoría" data={byCategory} />}
+            </div>
+
+            {/* Resolved table with reason & solution */}
+            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-white">
+                    Resueltas — motivo y solución
+                </div>
+                <HistoryTable
+                    data={resolvedList}
+                    columns={[
+                        { header: 'ID', accessor: (inc: Incident) => <span className="font-mono text-xs">{inc.displayId || inc.id.slice(0, 8)}</span>, width: 'w-28' },
+                        { header: 'Título', accessor: (inc: Incident) => inc.title },
+                        { header: 'Motivo', accessor: (inc: Incident) => inc.reason || '—' },
+                        { header: 'Solución', accessor: (inc: Incident) => inc.solution || '—' },
+                        { header: 'Creada', accessor: (inc: Incident) => new Date(inc.createdAt).toLocaleDateString('es-ES') },
+                        { header: 'Resuelta', accessor: (inc: Incident) => inc.resolvedAt ? new Date(inc.resolvedAt).toLocaleDateString('es-ES') : '—' },
+                        { header: 'Resuelta por', accessor: (inc: Incident) => inc.resolvedByName || '—' }
+                    ]}
+                />
+            </div>
+        </div>
+    );
+};
+
 export const ReportsModule: React.FC = () => {
     const {
         workOrders,
         inventory,
         equipment,
         users,
-        currentUser
+        currentUser,
+        incidents,
+        incidentCategories,
+        sections: catalogSections
     } = useAppStore();
+
+    // Categorías visibles para el usuario (incluye inactivas: histórico)
+    const visibleCategories = useVisibleCategories(currentUser);
 
     // Selection state: Entity Type + Entity ID
     const [activeType, setActiveType] = useState<EntityType>('worker');
@@ -375,6 +558,23 @@ export const ReportsModule: React.FC = () => {
             return true;
         });
     }, [workOrders, startDate, endDate]);
+
+    // Filter Incidents by date (createdAt) + section scope + category visibility
+    const filteredIncidents = useMemo(() => {
+        const visible = incidents.filter(inc => canSeeIncident(inc, currentUser, incidentCategories, catalogSections));
+
+        return visible.filter(inc => {
+            const date = new Date(inc.createdAt);
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate) : null;
+            if (start && date < start) return false;
+            if (end) {
+                end.setHours(23, 59, 59);
+                if (date > end) return false;
+            }
+            return true;
+        });
+    }, [incidents, incidentCategories, currentUser, catalogSections, startDate, endDate]);
 
     // CSV Export Logic
     const handleExport = () => {
@@ -401,6 +601,30 @@ export const ReportsModule: React.FC = () => {
             dataToExport = filteredWOs
                 .filter(wo => wo.equipmentId === selectedId)
                 .map(wo => [wo.id, wo.title, new Date(wo.createdAt).toLocaleDateString(), wo.type, wo.status, getDuration(wo)]);
+        } else if (activeType === 'incident') {
+            const cat = selectedId === 'ALL' ? null : visibleCategories.find(c => c.id === selectedId);
+            filename = selectedId === 'ALL'
+                ? 'report_incidencias_todas'
+                : `report_incidencias_${(cat?.name || 'categoria').replace(/\s+/g, '_')}`;
+            headers = ['ID', 'Titulo', 'Categoria', 'Seccion', 'Estado', 'Prioridad', 'Motivo', 'Solucion', 'Creada', 'Resuelta', 'Resuelta por'];
+            const quote = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+            dataToExport = filteredIncidents
+                .filter(inc => selectedId === 'ALL' || inc.categoryId === selectedId)
+                .map(inc => [
+                    quote(inc.displayId || inc.id),
+                    quote(inc.title),
+                    quote(inc.categoryName || ''),
+                    quote(inc.section || ''),
+                    quote(inc.status),
+                    quote(inc.priority),
+                    quote(inc.reason || ''),
+                    quote(inc.solution || ''),
+                    quote(new Date(inc.createdAt).toLocaleDateString()),
+                    quote(inc.resolvedAt ? new Date(inc.resolvedAt).toLocaleDateString() : ''),
+                    quote(inc.resolvedByName || '')
+                ].join(','));
+            // Filas ya comillas+celdas: devolvemos strings directos
+            dataToExport = dataToExport.map(row => [row]);
         } else {
             const item = inventory.find(i => i.id === selectedId);
             if (!item) return;
@@ -463,10 +687,19 @@ export const ReportsModule: React.FC = () => {
         } else if (activeType === 'inventory') {
             items = inventory.filter(i => normalizeText(i.name).includes(normalizedSearch))
                 .map(i => ({ id: i.id, name: i.name, sub: `Stock: ${i.quantity}` }));
+        } else if (activeType === 'incident') {
+            const countByCat = (catId: string | null) =>
+                filteredIncidents.filter(inc => catId === null || inc.categoryId === catId).length;
+            items = [
+                { id: 'ALL', name: 'Todas las categorías', sub: `${countByCat(null)} incidencias` },
+                ...visibleCategories
+                    .filter(c => normalizeText(c.name).includes(normalizedSearch))
+                    .map(c => ({ id: c.id, name: c.name, sub: `${countByCat(c.id)} incidencias` }))
+            ];
         }
 
         return items;
-    }, [activeType, searchTerm, users, equipment, inventory]);
+    }, [activeType, searchTerm, users, equipment, inventory, filteredIncidents, visibleCategories]);
 
     // Select first item by default when nothing selected or current selection is invalid
     useEffect(() => {
@@ -490,6 +723,19 @@ export const ReportsModule: React.FC = () => {
         if (activeType === 'inventory') {
             const item = inventory.find(i => i.id === selectedId);
             if (item) return <InventoryDetails item={item} workOrders={filteredWOs} inventory={inventory} />;
+        }
+        if (activeType === 'incident') {
+            const cat = selectedId === 'ALL' ? null : visibleCategories.find(c => c.id === selectedId) || null;
+            const scoped = selectedId === 'ALL'
+                ? filteredIncidents
+                : filteredIncidents.filter(inc => inc.categoryId === selectedId);
+            return (
+                <IncidentDetails
+                    category={cat}
+                    incidents={scoped}
+                    categoryName={selectedId === 'ALL' ? 'Todas las categorías' : (cat?.name || 'Categoría')}
+                />
+            );
         }
         return null;
     };
@@ -529,6 +775,7 @@ export const ReportsModule: React.FC = () => {
                             { id: 'worker', label: 'Trabajadores', icon: Users },
                             { id: 'machine', label: 'Equipos', icon: Wrench },
                             { id: 'inventory', label: 'Repuestos', icon: Package },
+                            { id: 'incident', label: 'Incidencias', icon: AlertCircle },
                         ].map(type => (
                             <button
                                 key={type.id}

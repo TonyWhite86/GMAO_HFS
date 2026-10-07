@@ -32,16 +32,21 @@ const users: User[] = [
     { id: 'tech2', name: 'Luis Pérez', email: '', role: UserRole.TECHNICIAN, sections: ['Planta'], active: true },
 ];
 
-const props = {
+const baseProps = (over: Record<string, unknown> = {}) => ({
     pendingAssignment: { wo, userId: 'tech2', date: new Date(2026, 6, 15) },
     users,
     assignMain: true,
     selectedSubtasks: ['s1'],
     onAssignMainChange: vi.fn(),
     onToggleSubtask: vi.fn(),
+    onSelectAll: vi.fn(),
+    onClearSelection: vi.fn(),
     onClose: vi.fn(),
     onConfirm: vi.fn(),
-};
+    ...over,
+});
+
+const props = baseProps();
 
 describe('SubtaskAssignmentModal', () => {
     it('muestra el técnico asignado y todas las subtareas', () => {
@@ -82,5 +87,51 @@ describe('SubtaskAssignmentModal', () => {
         expect(props.onConfirm).toHaveBeenCalled();
         fireEvent.click(screen.getByText('Cancelar'));
         expect(props.onClose).toHaveBeenCalled();
+    });
+
+    describe('selección múltiple', () => {
+        it('el checkbox maestro llama a onSelectAll con las tareas asignables', () => {
+            const p = baseProps({ selectedSubtasks: [] });
+            render(<SubtaskAssignmentModal {...p} />);
+            const master = screen.getByLabelText(/Todas \(/);
+            fireEvent.click(master);
+            expect(p.onSelectAll).toHaveBeenCalledWith(['s1', 's2']);
+        });
+
+        it('con todo seleccionado, el maestro llama a onClearSelection', () => {
+            const p = baseProps({ selectedSubtasks: ['s1', 's2'] });
+            render(<SubtaskAssignmentModal {...p} />);
+            const master = screen.getByLabelText(/Todas \(/);
+            fireEvent.click(master);
+            expect(p.onClearSelection).toHaveBeenCalled();
+        });
+
+        it('excluye del "todas" las tareas ya asignadas a ese usuario', () => {
+            const withAssigned: SubTask[] = [
+                ...subtasks,
+                { id: 's3', description: 'Purgar circuito', completed: false, assignedUserIds: ['tech2'] }
+            ];
+            const p = baseProps({
+                selectedSubtasks: [],
+                pendingAssignment: { wo: { ...wo, subtasks: withAssigned }, userId: 'tech2', date: new Date(2026, 6, 15) }
+            });
+            render(<SubtaskAssignmentModal {...p} />);
+            const master = screen.getByLabelText(/Todas \(/);
+            fireEvent.click(master);
+            expect(p.onSelectAll).toHaveBeenCalledWith(['s1', 's2']);
+            expect(screen.getByText(/ya asignada/)).toBeTruthy();
+        });
+
+        it('el contador del maestro solo cuenta las asignables', () => {
+            const withAssigned: SubTask[] = [
+                ...subtasks,
+                { id: 's3', description: 'Purgar circuito', completed: false, assignedUserIds: ['tech2'] }
+            ];
+            render(<SubtaskAssignmentModal {...baseProps({
+                selectedSubtasks: [],
+                pendingAssignment: { wo: { ...wo, subtasks: withAssigned }, userId: 'tech2', date: new Date(2026, 6, 15) }
+            })} />);
+            expect(screen.getByText('Todas (2)')).toBeTruthy();
+        });
     });
 });
