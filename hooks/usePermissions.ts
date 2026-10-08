@@ -28,7 +28,9 @@ export const usePermissions = (currentUser: User | null) => {
         return perm?.level ?? 'total';
     }, [userPermissions, userId, isAdmin, isObserver]);
 
-    // Paradas: por defecto consulta (todos ven el calendario); 'total' permite gestionar
+    // Paradas: por defecto consulta (todos ven el calendario). La GESTIÓN ya
+    // no sale de 'paradas' = 'total': es Admin, o el creador de cada parada
+    // (ver utils/stoppagePermissions.ts).
     const paradasPermission: PermissionLevel = useMemo(() => {
         if (isAdmin) return 'total';
         if (!userId || isObserver) return 'sin_acceso';
@@ -39,7 +41,9 @@ export const usePermissions = (currentUser: User | null) => {
     const canViewActuaciones = actuacionesPermission !== 'sin_acceso';
     const canCreateActuaciones = actuacionesPermission === 'total';
     const canViewStoppages = paradasPermission !== 'sin_acceso';
-    const canManageStoppages = paradasPermission === 'total';
+    // Crear desde el calendario o gestionar paradas ajenas: sólo Admin.
+    const canCreateStoppages = isAdmin;
+    const canManageStoppages = isAdmin;
 
     const canManageUsers = isAdmin;
     const canManageSections = isAdmin;
@@ -81,6 +85,7 @@ export const usePermissions = (currentUser: User | null) => {
         canViewActuaciones,
         canCreateActuaciones,
         canViewStoppages,
+        canCreateStoppages,
         canManageStoppages,
         canManageUsers,
         canManageSections,

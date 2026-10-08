@@ -1172,7 +1172,8 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                     nextStatus={statusActionWO.nextStatus}
                     onClose={() => setStatusActionWO(null)}
                     onConfirm={(updated) => {
-                        onUpdate(updated, false);
+                        // transition_work_order ya persistió el cambio de estado.
+                        // Sólo sincronizamos el panel local.
                         setEditedWO(updated);
                         setStatusActionWO(null);
                     }}

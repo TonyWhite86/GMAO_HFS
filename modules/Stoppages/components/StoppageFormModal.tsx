@@ -16,6 +16,7 @@ interface StoppageFormModalProps {
     equipment: Equipment[];
     currentUser: User | null;
     canManage: boolean;
+    canDelete?: boolean;
     initialEquipmentId?: string;
     initialStartAt?: string;
     onCreate: (data: Partial<EquipmentStoppage>) => Promise<unknown>;
@@ -31,7 +32,7 @@ const toLocalInput = (iso?: string | null) => {
 };
 
 export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
-    isOpen, onClose, stoppage, equipment, currentUser, canManage,
+    isOpen, onClose, stoppage, equipment, currentUser, canManage, canDelete = false,
     initialEquipmentId, initialStartAt,
     onCreate, onUpdate, onDelete
 }) => {
@@ -217,11 +218,12 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
 
                     {canManage && (
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-700">
-                            {stoppage ? (
+                            {stoppage && canDelete ? (
                                 <button
                                     type="button"
                                     onClick={handleDelete}
                                     className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors"
+                                    title={stoppage.incidentId ? 'Las paradas de una incidencia no se pueden eliminar' : 'Eliminar parada'}
                                 >
                                     <Trash2 size={16} />
                                     Eliminar

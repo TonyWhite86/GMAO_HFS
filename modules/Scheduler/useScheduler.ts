@@ -19,6 +19,7 @@ export const useScheduler = () => {
         preventivePlans,
         inventory,
         updateWorkOrder: onUpdateWorkOrder,
+        patchWorkOrderLocal,
         addWorkOrder: onAddWorkOrder,
         updateInventory: onUpdateInventory
     } = useAppStore();
@@ -128,65 +129,55 @@ export const useScheduler = () => {
     const handleAssign = async (wo: WorkOrder, userId: string, targetDate: Date) => {
         const scheduled = targetDate.toISOString();
         // La RPC es la autoridad: valida que el técnico pertenezca a la sección
-        // de la OT (o sea Admin), excluye observadores, sella status/scheduled y
-        // escribe el comentario de sistema. Si falla, no tocamos el estado local.
+        // (o sea Admin), excluye observadores, sella status/scheduled y escribe
+        // el comentario de sistema. Sólo si sale bien actualizamos el store, y lo
+        // hacemos con un parche LOCAL: volver a llamar a workOrderService.update
+        // reescribiría todos los metadatos del cliente y podía pisar un cambio
+        // concurrente (lost update).
         try {
             await workOrderService.assign(wo.id, userId, scheduled);
         } catch (err) {
             console.error('Error asignando la OT:', err);
             return;
         }
-        onUpdateWorkOrder({
-            ...wo,
+        patchWorkOrderLocal(wo.id, {
             assignedUserId: userId,
             status: WOStatus.SCHEDULED,
             scheduledDate: scheduled
         });
     };
 
-    const handleUnassign = (wo: WorkOrder, userIdToUnassign?: string) => {
-        let updatedWO = { ...wo };
-        let hasRemainingAssignees = false;
-
-        if (userIdToUnassign) {
-            // 1. Remove from Main Assignee
-            if (updatedWO.assignedUserId === userIdToUnassign) {
-                updatedWO.assignedUserId = undefined;
-            }
-
-            // 2. Remove from Subtasks
-            if (updatedWO.subtasks && updatedWO.subtasks.length > 0) {
-                updatedWO.subtasks = updatedWO.subtasks.map(t => ({
-                    ...t,
-                    assignedUserIds: t.assignedUserIds?.filter(id => id !== userIdToUnassign) || []
-                }));
-            }
-
-            // 3. Remove from Collaborators
-            if (updatedWO.collaborators) {
-                updatedWO.collaborators = updatedWO.collaborators.filter(id => id !== userIdToUnassign);
-            }
-
-            // Check if anyone else is left
-            const hasMain = !!updatedWO.assignedUserId;
-            const hasSub = updatedWO.subtasks?.some(t => t.assignedUserIds && t.assignedUserIds.length > 0);
-            const hasCollab = updatedWO.collaborators && updatedWO.collaborators.length > 0;
-
-            hasRemainingAssignees = hasMain || hasSub || hasCollab;
+    const handleUnassign = async (wo: WorkOrder, userIdToUnassign?: string) => {
+        // La RPC quita al usuario de responsable, subtareas y colaboradores; si
+        // no queda nadie, devuelve la OT a Pendiente y le quita la fecha.
+        try {
+            await workOrderService.unassign(wo.id, userIdToUnassign ?? null);
+        } catch (err) {
+            console.error('Error desasignando la OT:', err);
+            return;
         }
 
-        // If completely empty (or naive unassign was called), reset status
-        if (!userIdToUnassign || !hasRemainingAssignees) {
-            updatedWO.assignedUserId = undefined;
-            updatedWO.status = WOStatus.PENDING;
-            updatedWO.scheduledDate = undefined; // Move back to unassigned pool
-            if (!userIdToUnassign) {
-                updatedWO.subtasks = updatedWO.subtasks?.map(t => ({ ...t, assignedUserIds: [] }));
-                updatedWO.collaborators = [];
-            }
-        }
+        const subtasks = (wo.subtasks || []).map(t => userIdToUnassign
+            ? { ...t, assignedUserIds: (t.assignedUserIds || []).filter(id => id !== userIdToUnassign) }
+            : { ...t, assignedUserIds: [] }
+        );
+        const collaborators = userIdToUnassign
+            ? (wo.collaborators || []).filter(id => id !== userIdToUnassign)
+            : [];
+        const assignedUserId = (userIdToUnassign && wo.assignedUserId !== userIdToUnassign)
+            ? wo.assignedUserId
+            : undefined;
 
-        onUpdateWorkOrder(updatedWO);
+        const hasRemaining = !!assignedUserId
+            || subtasks.some(t => (t.assignedUserIds || []).length > 0)
+            || collaborators.length > 0;
+
+        patchWorkOrderLocal(wo.id, {
+            assignedUserId,
+            subtasks,
+            collaborators,
+            ...(hasRemaining ? {} : { status: WOStatus.PENDING, scheduledDate: undefined })
+        });
     };
 
     // Drag and Drop Handlers
@@ -227,31 +218,38 @@ export const useScheduler = () => {
         }
     };
 
-    const handleConfirmSubtaskAssignment = () => {
+    const handleConfirmSubtaskAssignment = async () => {
         if (!pendingAssignment) return;
 
         const { wo, userId, date } = pendingAssignment;
+        const scheduled = date.toISOString();
 
-        // Update Subtasks
-        const updatedSubtasks = wo.subtasks?.map(t => {
-            if (selectedSubtasksToAssign.includes(t.id)) {
-                const currentIds = t.assignedUserIds || [];
-                if (!currentIds.includes(userId)) {
-                    return { ...t, assignedUserIds: [...currentIds, userId] };
-                }
-            }
-            return t;
-        }) || [];
+        // La RPC recibe las subtareas a asignar y si se pone como responsable
+        // principal: valida sección y observadores y registra el evento.
+        try {
+            await workOrderService.assign(
+                wo.id, userId, scheduled,
+                selectedSubtasksToAssign.length > 0 ? selectedSubtasksToAssign : null,
+                assignMain
+            );
+        } catch (err) {
+            console.error('Error asignando la OT:', err);
+            return;
+        }
 
-        const updatedWO = {
-            ...wo,
-            assignedUserId: assignMain ? userId : wo.assignedUserId, // Only update main if checked
+        const subtasks = (wo.subtasks || []).map(t =>
+            selectedSubtasksToAssign.includes(t.id)
+                ? { ...t, assignedUserIds: Array.from(new Set([...(t.assignedUserIds || []), userId])) }
+                : t
+        );
+
+        patchWorkOrderLocal(wo.id, {
+            assignedUserId: assignMain ? userId : wo.assignedUserId,
             status: WOStatus.SCHEDULED,
-            scheduledDate: date.toISOString(),
-            subtasks: updatedSubtasks
-        };
+            scheduledDate: scheduled,
+            subtasks
+        });
 
-        onUpdateWorkOrder(updatedWO);
         setIsAssignSubtasksModalOpen(false);
         setPendingAssignment(null);
     };

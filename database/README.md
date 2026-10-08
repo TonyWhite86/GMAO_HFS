@@ -8,7 +8,7 @@ repo: los scripts se ejecutan a mano en el **SQL Editor** de Supabase.
 ## TL;DR — un solo archivo
 
 **`hfs_all.sql`** concatena toda la cadena (b → c → d → e → f → f2 →
-`work_order_events` → `incident_stoppage` → g → g2) en un script único,
+`work_order_events` → `incident_stoppage` → g → g2 → g3) en un script único,
 **idempotente** y con diagnóstico al final. Es lo que hay que ejecutar cuando
 se duda de qué está aplicado: borra las sobrecargas de RPCs (evita `PGRST203`)
 y re-crea todo lo que falte.
@@ -20,7 +20,7 @@ todos los datos. Sólo se ejecuta al levantar una BD nueva.
 
 ## Cómo levantar una BD desde cero
 
-Ejecuta estos 11 scripts **en este orden** (son idempotentes):
+Ejecuta estos 12 scripts **en este orden** (son idempotentes):
 
 | # | Script | Qué hace |
 |---|---|---|
@@ -34,6 +34,7 @@ Ejecuta estos 11 scripts **en este orden** (son idempotentes):
 | 8 | `hfs_work_order_events.sql` | **`work_order_events`** — log append-only del histórico de la OT. `work_orders.status_history` pasa a ser una proyección derivada por trigger. Es la versión **definitiva** de `transition_work_order` |
 | 9 | `hfs_incident_stoppage.sql` | Paradas abiertas (`equipment_stoppages.end_at` nullable), vínculo 1:1 `incidents ↔ equipment_stoppages`, RPCs `create_incident_with_stoppage` / `complete_stoppage`, auto-cierre al resolver la incidencia, `incidents.equipment_id NOT NULL` |
 | 10 | `hfs_phase_g.sql` | `profile_emails` (email fuera de `profiles`, RLS sólo-Admin), motor de planes preventivos (`launch_due_preventive_plans` + cron diario a las 06:30) y vistas de reporting (`report_worker_stats`, `report_equipment_stats`, `report_part_rotation`, `report_incident_stats`) |
+| 12 | `hfs_phase_g3.sql` | Permisos de paradas: `can_manage_stoppage` / `can_delete_stoppage`. Crear desde el calendario sólo Admin; gestionar = Admin o creador (sólo si está abierta); nunca se borra una parada de una incidencia; lo cerrado sólo lo borra Admin |
 | 11 | `hfs_phase_g2.sql` | Ajustes a las vistas de reporting: `report_equipment_stats` gana `total_count` y se añade `report_incident_stats_by_category` para la pestaña de Incidencias |
 
 > **Regla de orden**: cada script puede supersedir a un anterior. En concreto

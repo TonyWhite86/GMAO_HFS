@@ -177,11 +177,20 @@ describe('usePermissions', () => {
             expect(run(observerN2).canManageStoppages).toBe(false);
         });
 
-        it('permiso total permite gestionar', () => {
+        it('permiso total ya NO da gestión: gestionan Admin y el creador de cada parada', () => {
             setModulePermission(technician.id, 'paradas', 'total');
             const r = run(technician);
             expect(r.canViewStoppages).toBe(true);
-            expect(r.canManageStoppages).toBe(true);
+            // La gestión salió de 'paradas' = 'total' (ver utils/stoppagePermissions.ts)
+            expect(r.canManageStoppages).toBe(false);
+            expect(r.canCreateStoppages).toBe(false);
+        });
+
+        it('sólo Admin crea desde el calendario', () => {
+            expect(run(admin).canCreateStoppages).toBe(true);
+            expect(run(technician).canCreateStoppages).toBe(false);
+            expect(run(manager).canCreateStoppages).toBe(false);
+            expect(run(observerN1).canCreateStoppages).toBe(false);
         });
 
         it('permiso sin_acceso bloquea la vista', () => {

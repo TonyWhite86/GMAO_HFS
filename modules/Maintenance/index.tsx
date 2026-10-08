@@ -336,13 +336,10 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     workOrder={statusActionWO.wo}
                     nextStatus={statusActionWO.nextStatus}
                     onClose={() => setStatusActionWO(null)}
-                    onConfirm={async (updatedWO) => {
-                        try {
-                            await onUpdateWorkOrder(updatedWO);
-                            setStatusActionWO(null);
-                        } catch (e) {
-                            toast.error('Error al actualizar estado');
-                        }
+                    onConfirm={() => {
+                        // El cambio de estado ya lo hizo transition_work_order (RPC):
+                        // aquí no se vuelve a escribir la OT.
+                        setStatusActionWO(null);
                     }}
                     currentUser={currentUser}
                 />

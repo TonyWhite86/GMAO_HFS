@@ -221,8 +221,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             workOrder={statusActionWO.wo}
             nextStatus={statusActionWO.nextStatus}
             onClose={() => setStatusActionWO(null)}
-            onConfirm={(updatedWO) => {
-              onUpdateWorkOrder(updatedWO);
+            onConfirm={() => {
+              // El cambio de estado ya lo hizo transition_work_order (RPC):
+              // no se vuelve a escribir la OT, sólo se cierra el modal.
               setStatusActionWO(null);
             }}
             currentUser={currentUser}

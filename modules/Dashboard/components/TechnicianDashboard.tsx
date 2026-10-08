@@ -117,8 +117,8 @@ export const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ onRequ
                     workOrder={statusActionWO.wo}
                     nextStatus={statusActionWO.nextStatus}
                     onClose={() => setStatusActionWO(null)}
-                    onConfirm={(updatedWO) => {
-                        useAppStore.getState().updateWorkOrder(updatedWO);
+                    onConfirm={() => {
+                        // El cambio de estado ya lo hizo transition_work_order (RPC).
                         setStatusActionWO(null);
                     }}
                     currentUser={currentUser}

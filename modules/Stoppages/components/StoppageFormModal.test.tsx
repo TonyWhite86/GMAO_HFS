@@ -51,6 +51,7 @@ const baseProps = (over: Partial<React.ComponentProps<typeof StoppageFormModal>>
     equipment,
     currentUser: admin,
     canManage: true,
+    canDelete: true,
     onCreate: vi.fn().mockResolvedValue(undefined),
     onUpdate: vi.fn().mockResolvedValue(undefined),
     onDelete: vi.fn().mockResolvedValue(undefined),

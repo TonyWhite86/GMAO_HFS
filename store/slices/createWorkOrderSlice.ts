@@ -10,6 +10,8 @@ export interface WorkOrderSlice {
     addWorkOrder: (wo: WorkOrder) => Promise<WorkOrder>;
     updateWorkOrder: (wo: WorkOrder) => Promise<void>;
     transitionWorkOrder: (id: string, action: 'start' | 'pause' | 'resume' | 'complete', note?: string | null, manualMinutes?: number | null) => Promise<void>;
+    /** Fusión optimista en el store, SIN escribir en BD. */
+    patchWorkOrderLocal: (id: string, patch: Partial<WorkOrder>) => void;
     addComment: (comment: Comment, workOrderId: string) => Promise<void>;
     toggleSubtask: (subtaskId: string, completed: boolean) => Promise<void>;
 }
@@ -81,6 +83,11 @@ export const createWorkOrderSlice: StateCreator<AppState, [], [], WorkOrderSlice
             toast.error('Error al actualizar orden');
             throw error;
         }
+    },
+    patchWorkOrderLocal: (id, patch) => {
+        set((state) => ({
+            workOrders: state.workOrders.map(w => w.id === id ? { ...w, ...patch } : w)
+        }));
     },
     transitionWorkOrder: async (id, action, note, manualMinutes) => {
         try {

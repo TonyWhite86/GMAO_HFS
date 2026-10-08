@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, CalendarPlus, Calendar as CalendarIcon } fro
 import { PageHeader } from '../../components/ui/PageHeader';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useRestrictedEquipment } from '../../hooks/useFilteredData';
+import { canManageStoppage, canDeleteStoppage } from '../../utils/stoppagePermissions';
 import { STOPPAGE_REASON_FALLBACK, STOPPAGE_REASON_CONFIG, STOPPAGE_STATUS_CONFIG } from '../../constants';
 import { StoppageGrid } from './components/StoppageGrid';
 import { StoppageFormModal } from './components/StoppageFormModal';
@@ -24,7 +25,7 @@ export const StoppagesModule: React.FC = () => {
         stoppages, equipment, currentUser,
         addStoppage, updateStoppage, deleteStoppage
     } = useAppStore();
-    const { canManageStoppages } = usePermissions(currentUser);
+    const { canCreateStoppages } = usePermissions(currentUser);
     const restrictedEquipment = useRestrictedEquipment(equipment, currentUser);
 
     const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
@@ -77,7 +78,7 @@ export const StoppagesModule: React.FC = () => {
                 title="Paradas Programadas"
                 subtitle="Planificación de paros de máquina por mejora, mantenimiento o intervención de terceros."
                 actions={
-                    canManageStoppages && (
+                    canCreateStoppages && (
                         <button
                             onClick={() => openCreate()}
                             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95"
@@ -124,7 +125,7 @@ export const StoppagesModule: React.FC = () => {
                     equipment={restrictedEquipment}
                     daysToShow={daysToShow}
                     stoppages={weekStoppages}
-                    canManage={canManageStoppages}
+                    canManage={canCreateStoppages}
                     onSelectStoppage={openDetail}
                     onCreateAtSlot={(equipmentId, date) => openCreate(equipmentId, date)}
                 />
@@ -178,7 +179,8 @@ export const StoppagesModule: React.FC = () => {
                 stoppage={editingStoppage}
                 equipment={restrictedEquipment}
                 currentUser={currentUser}
-                canManage={canManageStoppages}
+                canManage={editingStoppage ? canManageStoppage(editingStoppage, currentUser) : true}
+                canDelete={editingStoppage ? canDeleteStoppage(editingStoppage, currentUser) : false}
                 initialEquipmentId={initialEquipmentId}
                 initialStartAt={initialStartAt}
                 onCreate={addStoppage}
