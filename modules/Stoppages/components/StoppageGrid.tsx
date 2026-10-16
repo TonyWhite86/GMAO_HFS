@@ -35,14 +35,14 @@ export const StoppageGrid: React.FC<StoppageGridProps> = ({
     };
 
     return (
-        <div className="bg-white dark:bg-slate-700 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-2xl border border-line shadow-sm overflow-hidden">
             {/* Header days */}
-            <div className="grid border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30" style={{ gridTemplateColumns: `200px repeat(${totalDays}, 1fr)` }}>
-                <div className="p-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Equipo</div>
+            <div className="grid border-b border-line bg-surface-2/50 bg-surface/30" style={{ gridTemplateColumns: `200px repeat(${totalDays}, 1fr)` }}>
+                <div className="p-3 text-[10px] font-bold text-txt-3 uppercase tracking-widest">Equipo</div>
                 {daysToShow.map(day => (
                     <div
                         key={day.toISOString()}
-                        className={`p-3 text-center text-xs font-bold border-l border-slate-100 dark:border-slate-700 ${isSameDay(day, new Date()) ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-500 dark:text-slate-400'}`}
+                        className={`p-3 text-center text-xs font-bold border-l border-line ${isSameDay(day, new Date()) ? 'text-accent bg-accent-dim/50 ' : 'text-txt-2'}`}
                     >
                         {day.toLocaleDateString('es-ES', { weekday: 'short' })}
                         <span className="block text-[10px] font-normal">
@@ -53,13 +53,13 @@ export const StoppageGrid: React.FC<StoppageGridProps> = ({
             </div>
 
             {/* Rows */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-700 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="divide-y divide-line max-h-[60vh] overflow-y-auto custom-scrollbar">
                 {equipment.map(eq => {
                     const eqStoppages = stoppages.filter(s => s.equipmentId === eq.id);
                     return (
                         <div key={eq.id} className="relative grid items-stretch" style={{ gridTemplateColumns: `200px repeat(${totalDays}, 1fr)` }}>
                             <div className="p-3 flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-bold text-slate-800 dark:text-white truncate" title={eq.name}>
+                                <span className="text-sm font-bold text-txt truncate" title={eq.name}>
                                     {eq.code ? `[${eq.code}] ` : ''}{eq.name}
                                 </span>
                             </div>
@@ -68,11 +68,11 @@ export const StoppageGrid: React.FC<StoppageGridProps> = ({
                                     key={idx}
                                     onClick={() => canManage && onCreateAtSlot(eq.id, day)}
                                     disabled={!canManage}
-                                    className={`relative border-l border-slate-100 dark:border-slate-700 min-h-[64px] group ${isSameDay(day, new Date()) ? 'bg-blue-50/30 dark:bg-blue-900/5' : ''} ${canManage ? 'hover:bg-blue-50/60 dark:hover:bg-blue-900/10 cursor-pointer' : ''}`}
+                                    className={`relative border-l border-line min-h-[64px] group ${isSameDay(day, new Date()) ? 'bg-accent-dim/30 ' : ''} ${canManage ? 'hover:bg-accent-dim/60  cursor-pointer' : ''}`}
                                     title={canManage ? 'Programar parada en esta fecha' : undefined}
                                 >
                                     {canManage && (
-                                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center text-blue-400">
+                                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center text-accent">
                                             <Plus size={16} />
                                         </span>
                                     )}
@@ -104,7 +104,7 @@ export const StoppageGrid: React.FC<StoppageGridProps> = ({
                                     >
                                         <span className="truncate">{s.title}</span>
                                         {open && (
-                                            <span className="ml-1 shrink-0 w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
+                                            <span className="ml-1 shrink-0 w-2 h-2 rounded-full bg-warn animate-pulse" />
                                         )}
                                     </button>
                                 );
@@ -113,7 +113,7 @@ export const StoppageGrid: React.FC<StoppageGridProps> = ({
                     );
                 })}
                 {equipment.length === 0 && (
-                    <div className="p-8 text-center text-sm text-slate-400">No hay equipos</div>
+                    <div className="p-8 text-center text-sm text-txt-3">No hay equipos</div>
                 )}
             </div>
         </div>

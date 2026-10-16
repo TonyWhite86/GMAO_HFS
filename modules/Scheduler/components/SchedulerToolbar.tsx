@@ -45,23 +45,23 @@ export const SchedulerToolbar: React.FC<SchedulerToolbarProps> = ({
     onNavigate,
     onToday
 }) => {
-    const selectClass = "h-9 px-3 rounded-md text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500";
+    const selectClass = "h-9 px-3 rounded-md text-xs border border-line bg-surface text-txt-2 outline-none focus:ring-2 focus:ring-accent";
 
     return (
-        <div className="flex flex-col xl:flex-row flex-wrap justify-between items-center gap-3 bg-white dark:bg-slate-700 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="flex flex-col xl:flex-row flex-wrap justify-between items-center gap-3 bg-surface p-3 rounded-lg border border-line shadow-sm">
             <div className="flex flex-wrap items-center gap-3 justify-center">
                 {!isMobile && (
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-9">
+                    <div className="flex bg-surface-2 rounded-lg p-1 border border-line h-9">
                         <button
                             onClick={() => onViewModeChange('day')}
-                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'day' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'day' ? 'bg-surface text-accent shadow-sm' : 'text-txt-2 hover:text-txt-2 '}`}
                         >
                             <LayoutGrid size={15} />
                             Día
                         </button>
                         <button
                             onClick={() => onViewModeChange('week')}
-                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'week' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'week' ? 'bg-surface text-accent shadow-sm' : 'text-txt-2 hover:text-txt-2 '}`}
                         >
                             <CalendarDays size={15} />
                             Semana
@@ -71,17 +71,17 @@ export const SchedulerToolbar: React.FC<SchedulerToolbarProps> = ({
 
                 {/* Tab selector */}
                 {canViewGrid && !isMobile && (
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-9">
+                    <div className="flex bg-surface-2 rounded-lg p-1 border border-line h-9">
                         <button
                             onClick={() => onTabChange('programacion')}
-                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${activeTab === 'programacion' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${activeTab === 'programacion' ? 'bg-surface text-accent shadow-sm' : 'text-txt-2 hover:text-txt-2 '}`}
                         >
                             <LayoutGrid size={15} />
                             Programación
                         </button>
                         <button
                             onClick={() => onTabChange('parte')}
-                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${activeTab === 'parte' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            className={`px-3 h-full rounded-md text-xs font-medium flex items-center gap-2 transition-colors ${activeTab === 'parte' ? 'bg-surface text-accent shadow-sm' : 'text-txt-2 hover:text-txt-2 '}`}
                         >
                             <BarChart3 size={15} />
                             Parte
@@ -140,7 +140,7 @@ export const SchedulerToolbar: React.FC<SchedulerToolbarProps> = ({
                 {viewMode === 'week' && (
                     <button
                         onClick={onToggleSunday}
-                        className={`flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded-md border transition-colors whitespace-nowrap ${showSunday ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' : 'bg-transparent text-slate-500 border-slate-200 dark:border-slate-700'}`}
+                        className={`flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded-md border transition-colors whitespace-nowrap ${showSunday ? 'bg-accent-dim text-accent border-accent-border  text-accent ' : 'bg-transparent text-txt-2 border-line'}`}
                         title={showSunday ? "Ocultar Domingo" : "Mostrar Domingo"}
                     >
                         {showSunday ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -152,19 +152,19 @@ export const SchedulerToolbar: React.FC<SchedulerToolbarProps> = ({
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                     onClick={onToday}
-                    className="hidden sm:flex items-center gap-1.5 h-9 px-3 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500 transition-colors shadow-sm"
+                    className="hidden sm:flex items-center gap-1.5 h-9 px-3 text-xs font-medium bg-surface border border-line rounded-md text-txt-2 hover:text-accent hover:border-accent-border transition-colors shadow-sm"
                 >
                     <CalendarCheck size={15} />
                     Hoy
                 </button>
 
-                <button onClick={() => onNavigate('prev')} className="h-9 w-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-600 dark:text-slate-300">
+                <button onClick={() => onNavigate('prev')} className="h-9 w-9 flex items-center justify-center hover:bg-surface-2 rounded-full transition-colors text-txt-2">
                     <ChevronLeft size={18} />
                 </button>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize min-w-[200px] text-center text-sm whitespace-nowrap">
+                <span className="font-semibold text-txt-2 capitalize min-w-[200px] text-center text-sm whitespace-nowrap">
                     {headerLabel}
                 </span>
-                <button onClick={() => onNavigate('next')} className="h-9 w-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-600 dark:text-slate-300">
+                <button onClick={() => onNavigate('next')} className="h-9 w-9 flex items-center justify-center hover:bg-surface-2 rounded-full transition-colors text-txt-2">
                     <ChevronRight size={18} />
                 </button>
             </div>
