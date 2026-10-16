@@ -64,7 +64,7 @@ export const EquipmentModule: React.FC = () => {
     if (!currentUser) return <GenericSkeleton />;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] md:h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
+        <div className="flex flex-col h-[calc(100vh-4rem)] md:h-screen bg-bg transition-colors">
             <div className="flex-none p-4 md:p-6 pb-0 mb-4">
                 <PageHeader
                     title="Gestión de Equipos"
@@ -76,7 +76,7 @@ export const EquipmentModule: React.FC = () => {
                                     setIsEditMode(false);
                                     setIsCreateModalOpen(true);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+                                className="btn btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
                             >
                                 <Plus size={20} />
                                 Nuevo Equipo
@@ -100,7 +100,7 @@ export const EquipmentModule: React.FC = () => {
                 />
 
                 <div className={`
-          flex-1 bg-white dark:bg-slate-700 shadow-sm border border-slate-200 dark:border-slate-700 overflow-y-auto transition-colors
+          flex-1 bg-surface shadow-sm border border-line overflow-y-auto transition-colors
           fixed inset-0 z-45 md:static md:z-auto rounded-none md:rounded-lg
           ${selectedEqId ? 'block' : 'hidden md:block'}
          `}>

@@ -54,13 +54,13 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
     };
 
     return (
-        <div className="w-full md:w-96 flex-shrink-0 bg-white dark:bg-slate-700 border-r-0 md:border-r border-b md:border-b-0 border-slate-200 dark:border-slate-700 rounded-lg shadow-sm flex flex-col transition-colors h-full">
+        <div className="w-full md:w-96 flex-shrink-0 bg-surface border-r-0 md:border-r border-b md:border-b-0 border-line rounded-lg shadow-sm flex flex-col transition-colors h-full">
             {/* Navigation Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 rounded-t-lg flex justify-between items-center">
+            <div className="p-4 border-b border-line bg-surface-2 rounded-t-lg flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                    <h2 className="font-bold text-slate-700 dark:text-slate-200">Explorador</h2>
+                    <h2 className="font-bold text-txt-2">Explorador</h2>
                     {currentRoot && (
-                        <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 truncate max-w-[120px]">
+                        <span className="text-xs text-txt-3 bg-surface-2 px-2 py-0.5 rounded-full border border-line truncate max-w-[120px]">
                             {currentRoot.name}
                         </span>
                     )}
@@ -70,7 +70,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                 {viewRootId && (
                     <button
                         onClick={handleNavigateUp}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-xl text-sm font-bold transition-all border border-blue-200 dark:border-blue-800 active:scale-95 shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-accent-dim hover:bg-accent-dim text-accent rounded-xl text-sm font-bold transition-all border border-accent-border active:scale-95 shadow-sm"
                         title="Subir de nivel"
                     >
                         <ArrowLeft size={18} />
@@ -80,10 +80,10 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
             </div>
 
             {/* Search Bar */}
-            <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-700">
+            <div className="p-3 border-b border-line bg-surface">
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={16} />
                         <input
                             type="text"
                             id="equipment-sidebar-search"
@@ -91,12 +91,12 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                             placeholder="Buscar equipo por nombre o QR..."
                             value={equipmentSearch}
                             onChange={(e) => setEquipmentSearch(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 dark:text-white"
+                            className="w-full pl-9 pr-3 py-2 bg-surface-2 border-none rounded-lg text-sm focus:ring-2 focus:ring-accent text-txt"
                         />
                     </div>
                     <button
                         onClick={onQRScan}
-                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                        className="p-2 bg-surface-2 text-txt-2 rounded-lg hover:bg-surface-3 transition-colors"
                         title="Escanear QR"
                     >
                         <QrCode size={20} />
@@ -115,20 +115,20 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                     className={`
                     flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border-l-4
                     ${selectedEqId === item.id
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600 dark:border-blue-400'
-                                            : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
+                                            ? 'bg-accent-dim border-accent'
+                                            : 'border-transparent hover:bg-surface-2 '
                                         }
                   `}
                                     onClick={() => {
                                         setSelectedEqId(item.id);
                                     }}
                                 >
-                                    <div className={`p-2 rounded-lg flex-shrink-0 ${item.parentId ? 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400' : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                    <div className={`p-2 rounded-lg flex-shrink-0 ${item.parentId ? 'bg-surface-2 text-txt-2 bg-surface text-txt-3' : 'bg-warn-dim text-warn'}`}>
                                         {item.parentId ? <Box size={18} /> : <Folder size={18} />}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className="font-medium text-slate-900 dark:text-white truncate">{item.name}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                                        <div className="font-medium text-txt truncate">{item.name}</div>
+                                        <div className="text-xs text-txt-2 truncate flex items-center gap-1">
                                             <QrCode size={12} />
                                             {item.qrCode}
                                         </div>
@@ -136,7 +136,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                 </div>
                             ))}
                         {filteredEquipment.length === 0 && (
-                            <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                            <div className="p-8 text-center text-txt-2">
                                 <Search size={32} className="mx-auto mb-2 opacity-50" />
                                 <p>No se encontraron equipos</p>
                             </div>
@@ -155,8 +155,8 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                         key={item.id}
                                         className={`
                         flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border
-                        ${selectedEqId === item.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-500 shadow-sm'
-                                                : 'bg-white dark:bg-slate-700 border-transparent hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-200 dark:hover:border-slate-600'
+                        ${selectedEqId === item.id ? 'bg-accent-dim border-accent shadow-sm'
+                                                : 'bg-surface border-transparent hover:bg-surface-2  hover:border-line '
                                             }
 `}
                                         onClick={() => setSelectedEqId(item.id)}
@@ -166,16 +166,16 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                             <div className={`
                     w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
                             ${hasChildren
-                                                    ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400'
+                                                    ? 'bg-warn-dim text-warn'
+                                                    : 'bg-surface-2 text-txt-2 bg-surface text-txt-3'
                                                 }
                           `}>
                                                 {hasChildren ? <Folder size={20} /> : <Box size={20} />}
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h3 className={`font-medium truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}`}>{item.name}</h3>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                                <h3 className={`font-medium truncate ${isSelected ? 'text-accent' : 'text-txt-2'}`}>{item.name}</h3>
+                                                <p className="text-xs text-txt-2 truncate">
                                                     {hasChildren ? 'Contiene sub-equipos' : (item.serialNumber || 'Item final')}
                                                 </p>
                                             </div>
@@ -188,7 +188,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                                     e.stopPropagation();
                                                     setViewRootId(item.id);
                                                 }}
-                                                className="ml-2 p-3 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/30 active:scale-90"
+                                                className="ml-2 p-3 text-txt-2 hover:text-accent hover:bg-accent-dim rounded-xl transition-all border border-line bg-surface-2/30 active:scale-90"
                                                 title="Entrar en carpeta"
                                             >
                                                 <ChevronRight size={24} />
@@ -198,7 +198,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                 );
                             })
                         ) : (
-                            <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                            <div className="p-8 text-center text-txt-2">
                                 <FolderOpen size={32} className="mx-auto mb-2 opacity-50" />
                                 <p>Carpeta vacía</p>
                             </div>

@@ -62,18 +62,18 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ equipment, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-700 rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center relative animate-fade-in">
+            <div className="bg-surface rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center relative animate-fade-in">
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                    className="absolute top-4 right-4 text-txt-3 hover:text-txt-2 transition-colors"
                 >
                     <X size={24} />
                 </button>
 
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{equipment.name}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-mono">{equipment.code || equipment.qrCode}</p>
+                <h3 className="text-xl font-bold text-txt mb-2">{equipment.name}</h3>
+                <p className="text-sm text-txt-2 mb-6 font-mono">{equipment.code || equipment.qrCode}</p>
 
-                <div className="bg-white p-4 rounded-xl shadow-inner inline-block mb-6" id="qr-code-container">
+                <div className="bg-surface p-4 rounded-xl shadow-inner inline-block mb-6" id="qr-code-container">
                     <QRCodeSVG
                         id="qr-code-svg"
                         value={equipment.qrCode}
@@ -86,14 +86,14 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ equipment, onClose }) => {
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={printQR}
-                        className="flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors"
+                        className="flex items-center justify-center gap-2 py-2.5 px-4 bg-surface-2 hover:bg-surface-3 text-txt-2 rounded-lg font-medium transition-colors"
                     >
                         <Printer size={18} />
                         Imprimir
                     </button>
                     <button
                         onClick={downloadQR}
-                        className="flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                        className="flex items-center justify-center gap-2 py-2.5 px-4 btn btn-primary text-white rounded-lg font-medium transition-colors shadow-sm"
                     >
                         <Download size={18} />
                         Descargar

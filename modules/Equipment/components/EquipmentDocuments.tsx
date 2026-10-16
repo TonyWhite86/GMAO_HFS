@@ -123,14 +123,14 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
-                    <button onClick={() => setCurrentDocPath([])} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors">
+                <div className="flex items-center gap-2 text-sm text-txt-2 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
+                    <button onClick={() => setCurrentDocPath([])} className="p-1.5 hover:bg-surface-2 rounded-md transition-colors">
                         <Home size={16} />
                     </button>
                     {currentDocPath.map((f, i) => (
                         <React.Fragment key={f.id}>
                             <ChevronRight size={14} className="shrink-0" />
-                            <button onClick={() => setCurrentDocPath(currentDocPath.slice(0, i + 1))} className="px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors max-w-[120px] truncate">
+                            <button onClick={() => setCurrentDocPath(currentDocPath.slice(0, i + 1))} className="px-2 py-1 hover:bg-surface-2 rounded-md transition-colors max-w-[120px] truncate">
                                 {f.name}
                             </button>
                         </React.Fragment>
@@ -138,11 +138,11 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button onClick={handleCreateFolder} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <button onClick={handleCreateFolder} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-txt-2 bg-surface border border-line rounded-lg hover:bg-surface-2 transition-colors">
                         <FolderPlus size={16} />
                         <span>Carpeta</span>
                     </button>
-                    <button onClick={() => fileInputRef.current?.click()} disabled={isUploadingDocs} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
+                    <button onClick={() => fileInputRef.current?.click()} disabled={isUploadingDocs} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-accent rounded-lg hover:bg-accent-2 transition-colors shadow-sm disabled:opacity-50">
                         {isUploadingDocs ? <span className="animate-spin mr-1">◌</span> : <FileUp size={16} />}
                         <span>Subir</span>
                     </button>
@@ -154,50 +154,50 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                 {currentDocs.map(d => (
                     <div key={d.id} className="flex flex-col items-center gap-2 p-2 group" onClick={() => d.type === 'folder' ? setCurrentDocPath([...currentDocPath, { id: d.id, name: d.name }]) : window.open(d.url, '_blank')}>
                         <div className="relative">
-                            <div className="w-16 h-16 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-sm flex items-center justify-center group-active:scale-95 transition-transform">
+                            <div className="w-16 h-16 bg-surface border border-line rounded-2xl shadow-sm flex items-center justify-center group-active:scale-95 transition-transform">
                                 {d.type === 'folder' ? (
-                                    <Folder size={32} className="text-amber-500 fill-amber-50" />
+                                    <Folder size={32} className="text-warn fill-warn-dim" />
                                 ) : (
                                     <div className="relative">
-                                        <FileText size={32} className="text-blue-500" />
-                                        {d.name.toLowerCase().endsWith('.pdf') && <span className="absolute -bottom-1 -right-1 bg-red-500 text-[8px] text-white px-1 rounded font-bold">PDF</span>}
+                                        <FileText size={32} className="text-accent" />
+                                        {d.name.toLowerCase().endsWith('.pdf') && <span className="absolute -bottom-1 -right-1 bg-ko text-[8px] text-white px-1 rounded font-bold">PDF</span>}
                                     </div>
                                 )}
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteDoc(d.id); }} className="absolute -top-1 -right-1 w-6 h-6 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center shadow-sm border border-red-100 dark:border-red-900/50">
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteDoc(d.id); }} className="absolute -top-1 -right-1 w-6 h-6 bg-ko-dim text-ko rounded-full flex items-center justify-center shadow-sm border border-ko-border">
                                 <X size={12} />
                             </button>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-800 dark:text-slate-200 text-center line-clamp-2 px-1">
+                        <span className="text-[11px] font-medium text-txt-2 text-center line-clamp-2 px-1">
                             {d.name}
                         </span>
                     </div>
                 ))}
             </div>
 
-            <div className="hidden md:block bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+            <div className="hidden md:block bg-surface rounded-xl border border-line overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                     <thead>
-                        <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/50">
-                            <th className="p-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Nombre</th>
-                            <th className="p-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Tamaño</th>
-                            <th className="p-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Fecha</th>
-                            <th className="p-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase text-right">Acciones</th>
+                        <tr className="border-b border-line bg-surface-2/50 bg-surface">
+                            <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Nombre</th>
+                            <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Tamaño</th>
+                            <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Fecha</th>
+                            <th className="p-3 text-xs font-semibold text-txt-2 uppercase text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
+                    <tbody className="divide-y divide-line text-sm">
                         {currentDocs.map(d => (
-                            <tr key={d.id} className="group hover:bg-slate-100 dark:hover:bg-slate-700/30 transition-colors">
+                            <tr key={d.id} className="group hover:bg-surface-2 transition-colors">
                                 <td className="p-3">
-                                    <button onClick={() => d.type === 'folder' ? setCurrentDocPath([...currentDocPath, { id: d.id, name: d.name }]) : window.open(d.url, '_blank')} className="flex items-center gap-3 text-slate-900 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
-                                        {d.type === 'folder' ? <Folder size={18} className="text-amber-500" /> : <FileText size={18} className="text-blue-500" />}
+                                    <button onClick={() => d.type === 'folder' ? setCurrentDocPath([...currentDocPath, { id: d.id, name: d.name }]) : window.open(d.url, '_blank')} className="flex items-center gap-3 text-txt-2 hover:text-accent font-medium">
+                                        {d.type === 'folder' ? <Folder size={18} className="text-warn" /> : <FileText size={18} className="text-accent" />}
                                         {d.name}
                                     </button>
                                 </td>
-                                <td className="p-3 text-slate-500 dark:text-slate-400">{d.size || '-'}</td>
-                                <td className="p-3 text-slate-500 dark:text-slate-400">{new Date(d.date).toLocaleDateString()}</td>
+                                <td className="p-3 text-txt-2">{d.size || '-'}</td>
+                                <td className="p-3 text-txt-2">{new Date(d.date).toLocaleDateString()}</td>
                                 <td className="p-3 text-right">
-                                    <button onClick={() => handleDeleteDoc(d.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all">
+                                    <button onClick={() => handleDeleteDoc(d.id)} className="p-1.5 text-txt-3 hover:text-ko hover:bg-ko-dim rounded-md transition-all">
                                         <Trash2 size={16} />
                                     </button>
                                 </td>
@@ -208,10 +208,10 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
             </div>
 
             {currentDocs.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50/50 dark:bg-slate-700/20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
-                    <FolderOpen size={48} className="text-slate-300 dark:text-slate-600 mb-3" />
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Esta carpeta está vacía</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Crea una subcarpeta o sube un archivo para empezar</p>
+                <div className="flex flex-col items-center justify-center py-16 px-4 bg-surface-2/50 bg-surface/20 border-2 border-dashed border-line rounded-2xl">
+                    <FolderOpen size={48} className="text-txt-3 mb-3" />
+                    <p className="text-txt-2 font-medium">Esta carpeta está vacía</p>
+                    <p className="text-xs text-txt-3 mt-1">Crea una subcarpeta o sube un archivo para empezar</p>
                 </div>
             )}
         </div>
