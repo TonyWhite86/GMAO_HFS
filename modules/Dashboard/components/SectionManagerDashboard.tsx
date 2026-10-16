@@ -32,80 +32,80 @@ export const SectionManagerDashboard: React.FC<SectionManagerDashboardProps> = (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de {currentUser.sections[0] || 'Sección'}</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Resumen de operaciones y mantenimiento.</p>
+                    <h1 className="text-2xl font-bold text-txt">Panel de {currentUser.sections[0] || 'Sección'}</h1>
+                    <p className="text-txt-2">Resumen de operaciones y mantenimiento.</p>
                 </div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm">
                     {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { status: [WOStatus.PENDING] })}>
+                <div className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { status: [WOStatus.PENDING] })}>
                     <div className="flex justify-between items-start mb-2">
-                        <div className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-lg text-yellow-600 dark:text-yellow-400">
+                        <div className="bg-warn-dim p-2 rounded-lg text-warn">
                             <Clock size={20} />
                         </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{pendingWOs.length}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Pendientes</p>
+                    <h3 className="text-2xl font-bold text-txt mb-1">{pendingWOs.length}</h3>
+                    <p className="text-sm text-txt-2">Pendientes</p>
                 </div>
 
-                <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { unassigned: true })}>
+                <div className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { unassigned: true })}>
                     <div className="flex justify-between items-start mb-2">
-                        <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 dark:text-orange-400">
+                        <div className="bg-warn-dim p-2 rounded-lg text-warn">
                             <Users size={20} />
                         </div>
-                        {unassignedWOs.length > 0 && <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Acción Req.</span>}
+                        {unassignedWOs.length > 0 && <span className="text-xs font-bold bg-warn-dim text-warn px-2 py-0.5 rounded-full">Acción Req.</span>}
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{unassignedWOs.length}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Sin Asignar</p>
+                    <h3 className="text-2xl font-bold text-txt mb-1">{unassignedWOs.length}</h3>
+                    <p className="text-sm text-txt-2">Sin Asignar</p>
                 </div>
 
-                <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { status: [WOStatus.SCHEDULED] })}>
+                <div className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { status: [WOStatus.SCHEDULED] })}>
                     <div className="flex justify-between items-start mb-2">
-                        <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg text-purple-600 dark:text-purple-400">
+                        <div className="bg-spec-dim p-2 rounded-lg text-spec">
                             <Calendar size={20} />
                         </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{scheduledWOs.length}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Programadas</p>
+                    <h3 className="text-2xl font-bold text-txt mb-1">{scheduledWOs.length}</h3>
+                    <p className="text-sm text-txt-2">Programadas</p>
                 </div>
 
-                <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { priority: [WOPriority.CRITICAL, WOPriority.HIGH], status: [WOStatus.PENDING, WOStatus.IN_PROGRESS, WOStatus.SCHEDULED] })}>
+                <div className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigateWithFilter('maintenance', { priority: [WOPriority.CRITICAL, WOPriority.HIGH], status: [WOStatus.PENDING, WOStatus.IN_PROGRESS, WOStatus.SCHEDULED] })}>
                     <div className="flex justify-between items-start mb-2">
-                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg text-red-600 dark:text-red-400">
+                        <div className="bg-ko-dim p-2 rounded-lg text-ko">
                             <AlertTriangle size={20} />
                         </div>
-                        {criticalWOs.length > 0 && <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Prioritario</span>}
+                        {criticalWOs.length > 0 && <span className="text-xs font-bold bg-ko-dim text-ko px-2 py-0.5 rounded-full">Prioritario</span>}
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{criticalWOs.length}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Críticas / Altas</p>
+                    <h3 className="text-2xl font-bold text-txt mb-1">{criticalWOs.length}</h3>
+                    <p className="text-sm text-txt-2">Críticas / Altas</p>
                 </div>
             </div>
 
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white mt-8 mb-4">Acciones Rápidas</h2>
+            <h2 className="text-lg font-bold text-txt mt-8 mb-4">Acciones Rápidas</h2>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <button onClick={onCreateWorkOrder} className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
+                <button onClick={onCreateWorkOrder} className="btn btn-primary text-white p-4 rounded-xl shadow-lg shadow-accent/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
                     <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform">
                         <Plus size={24} />
                     </div>
                     <span className="font-medium">Nueva Orden</span>
                 </button>
-                <button onClick={() => onNavigate('scheduler')} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
-                    <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <button onClick={() => onNavigate('scheduler')} className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
+                    <div className="bg-spec-dim text-spec p-2 rounded-lg group-hover:scale-110 transition-transform">
                         <Calendar size={24} />
                     </div>
                     <span className="font-medium">Programador</span>
                 </button>
-                <button onClick={onRequestPurchase} className="bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-xl shadow-lg shadow-amber-600/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
+                <button onClick={onRequestPurchase} className="text-white p-4 rounded-xl shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group hover:brightness-110" style={{ background: 'var(--amber)' }}>
                     <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition-transform">
                         <ShoppingCart size={24} />
                     </div>
                     <span className="font-bold text-sm">Solicitud Material</span>
                 </button>
-                <button onClick={onRequestWithdrawal} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
-                    <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <button onClick={onRequestWithdrawal} className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
+                    <div className="bg-ok-dim text-ok p-2 rounded-lg group-hover:scale-110 transition-transform">
                         <Package size={24} />
                     </div>
                     <span className="font-medium">Sacar Repuesto</span>

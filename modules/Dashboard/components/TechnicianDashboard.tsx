@@ -41,17 +41,17 @@ export const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ onRequ
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Hola, {currentUser?.name.split(' ')[0]}</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Tienes <span className="font-bold text-slate-800 dark:text-white">{myAssignedWOs.length}</span> trabajos pendientes para hoy.</p>
+                    <h1 className="text-2xl font-bold text-txt">Hola, {currentUser?.name.split(' ')[0]}</h1>
+                    <p className="text-txt-2">Tienes <span className="font-bold text-txt">{myAssignedWOs.length}</span> trabajos pendientes para hoy.</p>
                 </div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm">
                     {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                <button onClick={onRequestWithdrawal} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
-                    <div className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <button onClick={onRequestWithdrawal} className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group">
+                    <div className="bg-ko-dim text-ko p-2 rounded-lg group-hover:scale-110 transition-transform">
                         <Package size={24} />
                     </div>
                     <span className="font-medium text-sm">Retirar Material</span>
@@ -60,8 +60,8 @@ export const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ onRequ
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-4">
-                    <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2 px-1">
-                        <Wrench size={20} className="text-blue-500" />
+                    <h3 className="font-bold text-txt text-lg flex items-center gap-2 px-1">
+                        <Wrench size={20} className="text-accent" />
                         Trabajos Prioritarios para Hoy
                     </h3>
                     <div>
@@ -80,8 +80,8 @@ export const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ onRequ
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
-                                <CheckCircle size={48} className="mx-auto mb-4 text-green-500 opacity-50" />
+                            <div className="bg-surface rounded-xl shadow-sm border border-line p-8 text-center text-txt-2">
+                                <CheckCircle size={48} className="mx-auto mb-4 text-ok opacity-50" />
                                 <p className="text-lg font-medium">¡Todo al día!</p>
                                 <p>No tienes tareas asignadas retrasadas o para realizar hoy.</p>
                             </div>
@@ -91,8 +91,8 @@ export const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ onRequ
 
                 {myTomorrowWOs.length > 0 && (
                     <div className="space-y-4">
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2 px-1 opacity-75">
-                            <Calendar size={20} className="text-purple-500" />
+                        <h3 className="font-bold text-txt text-lg flex items-center gap-2 px-1 opacity-75">
+                            <Calendar size={20} className="text-spec" />
                             Trabajos para Mañana
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">

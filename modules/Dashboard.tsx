@@ -15,42 +15,8 @@ export interface DashboardProps {
   onRequestPurchase: () => void;
 }
 
-// Consistent Status Colors Helper (Same as Maintenance.tsx)
-const getStatusColor = (status: WOStatus) => {
-  switch (status) {
-    case WOStatus.COMPLETED: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800';
-    case WOStatus.IN_PROGRESS: return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-    case WOStatus.SCHEDULED: return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800';
-    case WOStatus.PENDING: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
-    default: return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300 border-gray-200 dark:border-slate-600';
-  }
-};
-
-const getPriorityIcon = (priority: WOPriority) => {
-  switch (priority) {
-    case WOPriority.CRITICAL:
-    case WOPriority.HIGH:
-      return <AlertTriangle size={14} />;
-    default:
-      return <Clock size={14} />;
-  }
-};
-
-const getPriorityStyles = (priority: WOPriority) => {
-  switch (priority) {
-    case WOPriority.CRITICAL:
-      return 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/40 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-500/20 shadow-sm shadow-red-500/10';
-    case WOPriority.HIGH:
-      return 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20 shadow-sm shadow-amber-500/10';
-    case WOPriority.MEDIUM:
-      return 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/20 shadow-sm shadow-blue-500/10';
-    case WOPriority.LOW:
-    default:
-      return 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/20 dark:to-slate-800/40 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm shadow-slate-500/5';
-  }
-};
-
 import { useAppStore } from '../store/useAppStore';
+import { getStatusColor, PRIORITY_CONFIG } from '../constants';
 
 export const Dashboard: React.FC<DashboardProps> = ({
   onNavigate, onNavigateWithFilter, onCreateWorkOrder, onRequestWithdrawal, onRequestPurchase
@@ -137,10 +103,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Hola, {currentUser.name.split(' ')[0]}</h1>
-            <p className="text-slate-500 dark:text-slate-400">Tienes <span className="font-bold text-slate-800 dark:text-white">{myAssignedWOs.length}</span> trabajos pendientes para hoy.</p>
+            <h1 className="text-2xl font-bold text-txt">Hola, {currentUser.name.split(' ')[0]}</h1>
+            <p className="text-txt-2">Tienes <span className="font-bold text-txt">{myAssignedWOs.length}</span> trabajos pendientes para hoy.</p>
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm">
             {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
@@ -148,9 +114,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-1 gap-4">
           <button
             onClick={onRequestWithdrawal}
-            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
+            className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
           >
-            <div className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-ko-dim text-ko p-2 rounded-lg group-hover:scale-110 transition-transform">
               <Package size={24} />
             </div>
             <span className="font-medium text-sm">Retirar Material</span>
@@ -160,8 +126,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-1 gap-6">
           {/* Assigned Tasks List */}
           <div className="space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2 px-1">
-              <Wrench size={20} className="text-blue-500" />
+            <h3 className="font-bold text-txt text-lg flex items-center gap-2 px-1">
+              <Wrench size={20} className="text-accent" />
               Trabajos Prioritarios para Hoy
             </h3>
 
@@ -181,8 +147,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
-                  <CheckCircle size={48} className="mx-auto mb-4 text-green-500 opacity-50" />
+                <div className="bg-surface rounded-xl shadow-sm border border-line p-8 text-center text-txt-2">
+                  <CheckCircle size={48} className="mx-auto mb-4 text-ok opacity-50" />
                   <p className="text-lg font-medium">¡Todo al día!</p>
                   <p>No tienes tareas asignadas retrasadas o para realizar hoy.</p>
                 </div>
@@ -193,8 +159,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Tomorrow's Tasks List */}
           {myTomorrowWOs.length > 0 && (
             <div className="space-y-4">
-              <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2 px-1 opacity-75">
-                <Calendar size={20} className="text-purple-500" />
+              <h3 className="font-bold text-txt text-lg flex items-center gap-2 px-1 opacity-75">
+                <Calendar size={20} className="text-spec" />
                 Trabajos para Mañana
               </h3>
 
@@ -293,10 +259,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de Almacén</h1>
-            <p className="text-slate-500 dark:text-slate-400">Control de repuestos y suministros.</p>
+            <h1 className="text-2xl font-bold text-txt">Panel de Almacén</h1>
+            <p className="text-txt-2">Control de repuestos y suministros.</p>
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm font-medium">
+          <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm font-medium">
             {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
@@ -342,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               // We'd need to pass a "showCreateModal" prop or trigger it via store if needed.
               // For now, navigating to inventory is the primary action.
             }}
-            className="flex items-center justify-between p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all active:scale-95 group"
+            className="grad-primary flex items-center justify-between p-4 rounded-xl shadow-lg text-white transition-all active:scale-95 group hover:brightness-110"
           >
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
@@ -350,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div className="text-left">
                 <span className="block font-bold">Añadir Artículo</span>
-                <span className="text-xs text-indigo-100">Registrar nuevo repuesto en el sistema</span>
+                <span className="text-xs opacity-80">Registrar nuevo repuesto en el sistema</span>
               </div>
             </div>
             <ArrowRight size={20} className="opacity-50" />
@@ -358,7 +324,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={onRequestWithdrawal}
-            className="flex items-center justify-between p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg transition-all active:scale-95 group"
+            className="grad-primary flex items-center justify-between p-4 rounded-xl shadow-lg text-white transition-all active:scale-95 group hover:brightness-110"
           >
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
@@ -366,7 +332,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div className="text-left">
                 <span className="block font-bold">Modo Retirada</span>
-                <span className="text-xs text-emerald-100">Sacar material del inventario</span>
+                <span className="text-xs opacity-80">Sacar material del inventario</span>
               </div>
             </div>
             <ArrowRight size={20} className="opacity-50" />
@@ -375,31 +341,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Withdrawals (Consumption) */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-6">Consumos Recientes</h3>
+          <div className="lg:col-span-2 bg-surface rounded-xl shadow-sm border border-line p-6">
+            <h3 className="font-bold text-txt text-lg mb-6">Consumos Recientes</h3>
             <div className="space-y-4">
               {recentWithdrawals.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+                <div key={idx} className="flex items-center justify-between p-3 hover:bg-surface-2 rounded-lg transition-colors border border-transparent hover:border-line">
                   <div className="flex items-center gap-4">
-                    <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-lg text-slate-500 dark:text-slate-400">
+                    <div className="bg-surface-2 p-2 rounded-lg text-txt-2">
                       <Package size={18} />
                     </div>
                     <div>
-                      <h4 className="font-medium text-slate-800 dark:text-slate-200">{item.part?.name || 'Repuesto desconocido'}</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <h4 className="font-medium text-txt text-txt-2">{item.part?.name || 'Repuesto desconocido'}</h4>
+                      <p className="text-xs text-txt-2">
                         {item.equipment} • {new Date(item.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                    <span className="text-sm font-bold text-txt-2">
                       -{item.quantity} un.
                     </span>
                   </div>
                 </div>
               ))}
               {recentWithdrawals.length === 0 && (
-                <div className="text-center py-10 text-slate-400">
+                <div className="text-center py-10 text-txt-3">
                   No hay registros de consumo recientes.
                 </div>
               )}
@@ -407,28 +373,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Low Stock Watchlist */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-4 flex items-center gap-2">
-              <AlertTriangle size={20} className="text-amber-500" />
+          <div className="bg-surface rounded-xl shadow-sm border border-line p-6 flex flex-col">
+            <h3 className="font-bold text-txt text-lg mb-4 flex items-center gap-2">
+              <AlertTriangle size={20} className="text-warn" />
               Alerta de Reposición
             </h3>
             <div className="flex-1 space-y-4">
               {lowStockItems.slice(0, 10).map(item => (
                 <div key={item.id} className="flex justify-between items-center group cursor-pointer" onClick={() => onNavigate('inventory')}>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{item.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Mínimo: {item.minStock} un.</p>
+                    <p className="text-sm font-medium text-txt-2 truncate">{item.name}</p>
+                    <p className="text-xs text-txt-2">Mínimo: {item.minStock} un.</p>
                   </div>
                   <div className="ml-4 text-right">
-                    <span className={`text-sm font-bold ${item.quantity <= item.minStock / 2 ? 'text-red-500' : 'text-amber-500'}`}>
+                    <span className={`text-sm font-bold ${item.quantity <= item.minStock / 2 ? 'text-ko' : 'text-warn'}`}>
                       {item.quantity} un.
                     </span>
                   </div>
                 </div>
               ))}
               {lowStockItems.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-3">
-                  <CheckCircle size={40} className="text-green-500/50" />
+                <div className="flex flex-col items-center justify-center py-10 text-txt-3 gap-3">
+                  <CheckCircle size={40} className="text-ok/50" />
                   <p className="text-sm">Stock bajo control</p>
                 </div>
               )}
@@ -436,7 +402,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {lowStockItems.length > 10 && (
               <button
                 onClick={() => onNavigate('inventory')}
-                className="mt-4 w-full py-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                className="mt-4 w-full py-2 text-xs font-bold text-accent hover:bg-accent-dim rounded-lg transition-colors"
               >
                 VER TODOS ({lowStockItems.length})
               </button>
@@ -444,30 +410,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Pending Requests Mini-List */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-4 flex items-center gap-2">
-              <ShoppingCart size={20} className="text-amber-500" />
+          <div className="bg-surface rounded-xl shadow-sm border border-line p-6 flex flex-col">
+            <h3 className="font-bold text-txt text-lg mb-4 flex items-center gap-2">
+              <ShoppingCart size={20} className="text-warn" />
               Solicitudes Pendientes
             </h3>
             <div className="flex-1 space-y-4">
               {pendingRequests.slice(0, 5).map(req => (
-                <div key={req.id} className="flex flex-col border-b border-slate-100 dark:border-slate-700 pb-3 last:border-0" onClick={() => onNavigate('inventory')}>
+                <div key={req.id} className="flex flex-col border-b border-line pb-3 last:border-0" onClick={() => onNavigate('inventory')}>
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{req.number}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">{new Date(req.requestedDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                    <span className="text-sm font-bold text-txt-2">{req.number}</span>
+                    <span className="text-[10px] text-txt-3 font-mono">{new Date(req.requestedDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{req.notes || 'Sin notas'}</p>
+                  <p className="text-xs text-txt-2 line-clamp-1">{req.notes || 'Sin notas'}</p>
                   <div className="mt-2 flex gap-1">
                     {req.items.slice(0, 2).map((item, i) => (
-                      <span key={i} className="text-[9px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">{inventory.find(p => p.id === item.partId)?.name}</span>
+                      <span key={i} className="text-[9px] bg-surface-2 px-1.5 py-0.5 rounded text-txt-2">{inventory.find(p => p.id === item.partId)?.name}</span>
                     ))}
-                    {req.items.length > 2 && <span className="text-[9px] text-slate-400">+{req.items.length - 2}</span>}
+                    {req.items.length > 2 && <span className="text-[9px] text-txt-3">+{req.items.length - 2}</span>}
                   </div>
                 </div>
               ))}
               {pendingRequests.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-3">
-                  <Package size={40} className="text-slate-200 dark:text-slate-700" />
+                <div className="flex flex-col items-center justify-center py-10 text-txt-3 gap-3">
+                  <Package size={40} className="text-txt-3" />
                   <p className="text-sm">No hay solicitudes nuevas</p>
                 </div>
               )}
@@ -475,7 +441,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {pendingRequests.length > 5 && (
               <button
                 onClick={() => onNavigate('inventory')}
-                className="mt-4 w-full py-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                className="mt-4 w-full py-2 text-xs font-bold text-accent hover:bg-accent-dim rounded-lg transition-colors"
               >
                 GESTIONAR ({pendingRequests.length})
               </button>
@@ -503,10 +469,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de {currentUser.sections[0] || 'Sección'}</h1>
-            <p className="text-slate-500 dark:text-slate-400">Resumen de operaciones y mantenimiento.</p>
+            <h1 className="text-2xl font-bold text-txt">Panel de {currentUser.sections[0] || 'Sección'}</h1>
+            <p className="text-txt-2">Resumen de operaciones y mantenimiento.</p>
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm">
             {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
@@ -514,69 +480,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Quick Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
-            className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => onNavigateWithFilter?.('maintenance', { status: [WOStatus.PENDING] })}
           >
             <div className="flex justify-between items-start mb-2">
-              <div className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-lg text-yellow-600 dark:text-yellow-400">
+              <div className="bg-warn-dim p-2 rounded-lg text-warn">
                 <Clock size={20} />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{pendingWOs.length}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Pendientes</p>
+            <h3 className="text-2xl font-bold text-txt mb-1">{pendingWOs.length}</h3>
+            <p className="text-sm text-txt-2">Pendientes</p>
           </div>
 
           <div
-            className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => onNavigateWithFilter?.('maintenance', { unassigned: true })}
           >
             <div className="flex justify-between items-start mb-2">
-              <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 dark:text-orange-400">
+              <div className="bg-warn-dim p-2 rounded-lg text-warn">
                 <Users size={20} />
               </div>
-              {unassignedWOs.length > 0 && <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Acción Req.</span>}
+              {unassignedWOs.length > 0 && <span className="text-xs font-bold bg-warn-dim text-warn px-2 py-0.5 rounded-full">Acción Req.</span>}
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{unassignedWOs.length}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Sin Asignar</p>
+            <h3 className="text-2xl font-bold text-txt mb-1">{unassignedWOs.length}</h3>
+            <p className="text-sm text-txt-2">Sin Asignar</p>
           </div>
 
           <div
-            className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => onNavigateWithFilter?.('maintenance', { status: [WOStatus.SCHEDULED] })}
           >
             <div className="flex justify-between items-start mb-2">
-              <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg text-purple-600 dark:text-purple-400">
+              <div className="bg-spec-dim p-2 rounded-lg text-spec">
                 <Calendar size={20} />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{scheduledWOs.length}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Programadas</p>
+            <h3 className="text-2xl font-bold text-txt mb-1">{scheduledWOs.length}</h3>
+            <p className="text-sm text-txt-2">Programadas</p>
           </div>
 
           <div
-            className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-surface p-4 rounded-xl shadow-sm border border-line cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => onNavigateWithFilter?.('maintenance', {
               priority: [WOPriority.CRITICAL, WOPriority.HIGH],
               status: [WOStatus.PENDING, WOStatus.IN_PROGRESS, WOStatus.SCHEDULED]
             })}
           >
             <div className="flex justify-between items-start mb-2">
-              <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg text-red-600 dark:text-red-400">
+              <div className="bg-ko-dim p-2 rounded-lg text-ko">
                 <AlertTriangle size={20} />
               </div>
-              {criticalWOs.length > 0 && <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Prioritario</span>}
+              {criticalWOs.length > 0 && <span className="text-xs font-bold bg-ko-dim text-ko px-2 py-0.5 rounded-full">Prioritario</span>}
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">{criticalWOs.length}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Críticas / Altas</p>
+            <h3 className="text-2xl font-bold text-txt mb-1">{criticalWOs.length}</h3>
+            <p className="text-sm text-txt-2">Críticas / Altas</p>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <h2 className="text-lg font-bold text-slate-800 dark:text-white mt-8 mb-4">Acciones Rápidas</h2>
+        <h2 className="text-lg font-bold text-txt mt-8 mb-4">Acciones Rápidas</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <button
             onClick={onCreateWorkOrder}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
+            className="btn btn-primary text-white p-4 rounded-xl shadow-lg shadow-accent/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
           >
             <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <Plus size={24} />
@@ -586,9 +552,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => onNavigate('scheduler')}
-            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
+            className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
           >
-            <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-spec-dim text-spec p-2 rounded-lg group-hover:scale-110 transition-transform">
               <Calendar size={24} />
             </div>
             <span className="font-medium">Programador</span>
@@ -596,7 +562,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={onRequestPurchase}
-            className="bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-xl shadow-lg shadow-amber-600/20 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
+            className="text-white p-4 rounded-xl shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group hover:brightness-110" style={{ background: 'var(--amber)' }}
           >
             <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition-transform">
               <ShoppingCart size={24} />
@@ -606,9 +572,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={onRequestWithdrawal}
-            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
+            className="bg-surface text-txt-2 border border-line p-4 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-2 group"
           >
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-ok-dim text-ok p-2 rounded-lg group-hover:scale-110 transition-transform">
               <Package size={24} />
             </div>
             <span className="font-medium">Sacar Repuesto</span>
@@ -623,10 +589,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de Control</h1>
-          <p className="text-slate-500 dark:text-slate-400">Bienvenido de nuevo, {currentUser.name}</p>
+          <h1 className="text-2xl font-bold text-txt">Panel de Control</h1>
+          <p className="text-txt-2">Bienvenido de nuevo, {currentUser.name}</p>
         </div>
-        <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="text-sm text-txt-2 bg-surface px-4 py-2 rounded-lg border border-line shadow-sm">
           {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
@@ -666,12 +632,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Recent Activity Column */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="lg:col-span-2 bg-surface rounded-xl shadow-sm border border-line p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg">Órdenes Recientes</h3>
+            <h3 className="font-bold text-txt text-lg">Órdenes Recientes</h3>
             <button
               onClick={() => onNavigate('maintenance')}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              className="text-sm text-accent hover:underline flex items-center gap-1"
             >
               Ver todas <ArrowRight size={14} />
             </button>
@@ -679,14 +645,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="space-y-4">
             {workOrders.slice(0, 5).map(wo => (
-              <div key={wo.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+              <div key={wo.id} className="flex items-center justify-between p-3 hover:bg-surface-2 rounded-lg transition-colors border border-transparent hover:border-line">
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-current opacity-90 ${getPriorityStyles(wo.priority)}`}>
-                    {getPriorityIcon(wo.priority)}
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-current opacity-90 ${PRIORITY_CONFIG[wo.priority]?.bgClass}`}>
+                    {React.createElement(PRIORITY_CONFIG[wo.priority]?.icon || Clock, { size: 14 })}
                   </div>
                   <div>
-                    <h4 className="font-medium text-slate-800 dark:text-slate-200">{wo.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <h4 className="font-medium text-txt text-txt-2">{wo.title}</h4>
+                    <p className="text-xs text-txt-2">
                       {equipment.find(e => e.id === wo.equipmentId)?.name || 'Equipo no especificado'} • {new Date(wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </p>
                   </div>
@@ -699,7 +665,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             ))}
             {workOrders.length === 0 && (
-              <div className="text-center text-slate-400 py-4">No hay actividad reciente.</div>
+              <div className="text-center text-txt-3 py-4">No hay actividad reciente.</div>
             )}
           </div>
         </div>
@@ -708,9 +674,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="space-y-6">
 
           {/* Workload by Section */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-4 flex items-center gap-2">
-              <BarChart3 size={20} className="text-slate-400" />
+          <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
+            <h3 className="font-bold text-txt text-lg mb-4 flex items-center gap-2">
+              <BarChart3 size={20} className="text-txt-3" />
               Carga por Sección
             </h3>
             <div className="space-y-4">
@@ -719,43 +685,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 return (
                   <div key={section}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-600 dark:text-slate-300">{section}</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-100">{count}</span>
+                      <span className="text-txt-2">{section}</span>
+                      <span className="font-bold text-txt">{count}</span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-surface-2 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-accent h-2 rounded-full"
                         style={{ width: `${maxCount > 0 ? ((count as number) / maxCount) * 100 : 0}%` }}
                       ></div>
                     </div>
                   </div>
                 );
               }) : (
-                <div className="text-center text-slate-400 text-sm">Sin datos suficientes.</div>
+                <div className="text-center text-txt-3 text-sm">Sin datos suficientes.</div>
               )}
             </div>
           </div>
 
           {/* Low Stock Alert Mini-List */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-4 flex items-center gap-2">
-              <AlertTriangle size={20} className="text-amber-500" />
+          <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
+            <h3 className="font-bold text-txt text-lg mb-4 flex items-center gap-2">
+              <AlertTriangle size={20} className="text-warn" />
               Alertas de Stock
             </h3>
             <div className="space-y-3">
               {lowStockItems.slice(0, 3).map(item => (
-                <div key={item.id} className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0 last:pb-0">
-                  <span className="text-slate-600 dark:text-slate-300 truncate pr-2">{item.name}</span>
-                  <span className="font-bold text-red-500 whitespace-nowrap">{item.quantity} un.</span>
+                <div key={item.id} className="flex justify-between items-center text-sm border-b border-line pb-2 last:border-0 last:pb-0">
+                  <span className="text-txt-2 truncate pr-2">{item.name}</span>
+                  <span className="font-bold text-ko whitespace-nowrap">{item.quantity} un.</span>
                 </div>
               ))}
               {lowStockItems.length === 0 && (
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm bg-green-50 dark:bg-green-900/10 p-2 rounded">
+                <div className="flex items-center gap-2 text-ok text-sm bg-ok-dim p-2 rounded">
                   <CheckCircle size={16} /> Todo en orden
                 </div>
               )}
               {lowStockItems.length > 3 && (
-                <button onClick={() => onNavigate('inventory')} className="text-xs text-blue-600 dark:text-blue-400 hover:underline pt-2 w-full text-center">
+                <button onClick={() => onNavigate('inventory')} className="text-xs text-accent hover:underline pt-2 w-full text-center">
                   Ver {lowStockItems.length - 3} más
                 </button>
               )}
@@ -771,21 +737,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
 // Internal Component for KPI Cards
 const KpiCard = ({ title, value, icon: Icon, color, onClick, suffix = "" }: { title: string, value: number, icon: any, color: string, onClick?: () => void, suffix?: string }) => {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-blue-100 dark:border-blue-900/50',
-    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 border-amber-100 dark:border-amber-900/50',
-    red: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border-red-100 dark:border-red-900/50',
-    purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 border-purple-100 dark:border-purple-900/50',
-  }[color] || 'bg-slate-50 text-slate-600';
+    blue: 'bg-accent-dim text-accent border-accent-border',
+    amber: 'bg-warn-dim text-warn border-warn-border',
+    red: 'bg-ko-dim text-ko border-ko-border',
+    purple: 'bg-spec-dim text-spec border-spec-border',
+  }[color] || 'bg-surface-2 text-txt-2';
 
   return (
     <div
       onClick={onClick}
-      className={`p-6 rounded-xl border transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 group relative overflow-hidden`}
+      className={`p-6 rounded-xl border transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 bg-surface border-line group relative overflow-hidden`}
     >
       <div className="flex justify-between items-start z-10 relative">
         <div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-          <h3 className="text-3xl font-bold text-slate-800 dark:text-white">{value}{suffix}</h3>
+          <p className="text-sm font-medium text-txt-2 mb-1">{title}</p>
+          <h3 className="text-3xl font-bold text-txt">{value}{suffix}</h3>
         </div>
         <div className={`p-3 rounded-lg ${colorClasses}`}>
           <Icon size={24} />
