@@ -142,9 +142,9 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                 <div className="relative flex-1">
                     <div
                         className={`
-              w-full p-3 pl-9 pr-14 border rounded-xl bg-white  text-slate-900  flex items-center
+              w-full p-3 pl-9 pr-14 border rounded-xl bg-surface text-txt flex items-center
               ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
-              ${isOpen ? `ring-2 ${c.ring} border-transparent` : error ? 'border-red-500 ring-1 ring-red-500 bg-red-50 ' : 'border-slate-300 '}
+              ${isOpen ? `ring-2 ${c.ring} border-transparent` : error ? 'border-ko ring-1 ring-ko bg-ko-dim' : 'border-line-2'}
             `}
                         onClick={() => {
                             if (disabled) return;
@@ -164,7 +164,7 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span className={`block truncate font-bold text-sm ${!selectedEquipment ? 'text-slate-400 font-normal' : ''}`}>
+                            <span className={`block truncate font-bold text-sm ${!selectedEquipment ? 'text-txt-3 font-normal' : ''}`}>
                                 {selectedEquipment ? (selectedEquipment.code ? `[${selectedEquipment.code}] ${selectedEquipment.name}` : selectedEquipment.name) : placeholder}
                             </span>
                         )}
@@ -195,16 +195,16 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                                     <div
                                         key={eq.id}
                                         className={`
-                      p-2.5 hover:bg-slate-100  cursor-pointer flex justify-between items-center group transition-colors
+                      p-2.5 hover:bg-surface-2 cursor-pointer flex justify-between items-center group transition-colors
                       ${eq.id === selectedId ? c.itemBg : ''}
                     `}
                                         onClick={() => handleSelect(eq.id)}
                                     >
                                         <div className="flex flex-col">
-                                            <span className={`font-medium ${eq.id === selectedId ? c.itemText : 'text-slate-700 '}`}>
+                                            <span className={`font-medium ${eq.id === selectedId ? c.itemText : 'text-txt-2'}`}>
                                                 {eq.code ? `[${eq.code}] ` : ''}{eq.name}
                                             </span>
-                                            <span className="text-xs text-slate-400 group-hover:text-slate-500 :text-slate-300">
+                                            <span className="text-xs text-txt-3 group-hover:text-txt-2">
                                                 {eq.location} {eq.serialNumber ? `• SN: ${eq.serialNumber}` : ''}
                                             </span>
                                         </div>
@@ -212,7 +212,7 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-4 text-center text-slate-400 text-sm">
+                                <div className="p-4 text-center text-txt-3 text-sm">
                                     No se encontraron equipos
                                 </div>
                             )}

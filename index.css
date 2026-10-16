@@ -7,8 +7,6 @@
 /* ════════════════════════════════════════════════════════
    TEMAS — se activan con clase en <html>: theme-azul (default),
    theme-claro, theme-oscuro, theme-suave.
-   Mientras queda migración pendiente, theme-oscuro también
-   aplica la clase .dark (puente para las utilidades dark:).
    ════════════════════════════════════════════════════════ */
 
 /* ── TEMA AZUL (default) ── */
@@ -160,8 +158,7 @@ html.theme-suave {
         transition: background .25s, color .25s;
     }
 
-    html.theme-oscuro,
-    html.dark {
+    html.theme-oscuro {
         color-scheme: dark;
     }
 
@@ -750,6 +747,11 @@ html.theme-suave {
 }
 
 @layer utilities {
+    /* Logos de login por tema (blanco solo en tema oscuro) */
+    .logo-dark { display: none; }
+    html.theme-oscuro .logo-light { display: none; }
+    html.theme-oscuro .logo-dark { display: block; }
+
     /* Gradientes de marca (varían con el tema) */
     .grad-primary {
         background: var(--btn-primary-bg);
@@ -765,7 +767,9 @@ html.theme-suave {
     }
 
     .glass {
-        @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/20 dark:border-slate-700/30;
+        background: color-mix(in srgb, var(--surface) 70%, transparent);
+        backdrop-filter: blur(12px);
+        border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
     }
 
     .card-hover {
@@ -773,7 +777,6 @@ html.theme-suave {
     }
 
     /* Fix to make the calendar icon visible in dark mode */
-    .dark ::-webkit-calendar-picker-indicator,
     html.theme-oscuro ::-webkit-calendar-picker-indicator {
         filter: invert(1);
     }

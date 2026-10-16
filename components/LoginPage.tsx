@@ -87,9 +87,9 @@ export const LoginPage: React.FC = () => {
                         </div>
                     ) : BRANDING.logo ? (
                         <>
-                            <img src={BRANDING.logo} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg dark:hidden" />
+                            <img src={BRANDING.logo} alt="Logo" className="logo-light h-24 w-auto object-contain drop-shadow-lg" />
                             {BRANDING.logoDark && (
-                                <img src={BRANDING.logoDark} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg hidden dark:block" />
+                                <img src={BRANDING.logoDark} alt="Logo" className="logo-dark h-24 w-auto object-contain drop-shadow-lg" />
                             )}
                         </>
                     ) : (

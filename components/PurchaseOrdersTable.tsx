@@ -71,7 +71,7 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
                             <th className="px-6 py-4 text-right rounded-tr-xl border-b border-line"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-line">
                         {orders.map((order) => (
                             <tr
                                 key={order.id}

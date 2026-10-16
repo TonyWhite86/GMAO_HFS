@@ -23,7 +23,7 @@ export const ReadOnlyInventoryView: React.FC<ReadOnlyInventoryViewProps> = ({ it
       header: "SKU",
       sortKey: "sku",
       render: (item: InventoryItem) => (
-        <span className="font-mono text-slate-600 dark:text-slate-400 text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+        <span className="font-mono text-txt-2 text-xs bg-surface-2 px-2 py-1 rounded">
           {item.sku}
         </span>
       )
@@ -33,9 +33,9 @@ export const ReadOnlyInventoryView: React.FC<ReadOnlyInventoryViewProps> = ({ it
       sortKey: "name",
       render: (item: InventoryItem) => (
         <div>
-          <div className="font-bold text-slate-800 dark:text-white">{item.name}</div>
+          <div className="font-bold text-txt">{item.name}</div>
           {item.quantity <= item.minStock && (
-            <div className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+            <div className="text-xs text-ko mt-1 flex items-center gap-1">
               <AlertTriangle size={12} /> Stock Bajo
             </div>
           )}
@@ -51,7 +51,7 @@ export const ReadOnlyInventoryView: React.FC<ReadOnlyInventoryViewProps> = ({ it
       header: "Stock",
       sortKey: "quantity",
       render: (item: InventoryItem) => (
-        <span className={`font-bold ${item.quantity <= item.minStock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+        <span className={`font-bold ${item.quantity <= item.minStock ? 'text-ko' : 'text-txt-2'}`}>
           {item.quantity} un.
         </span>
       )
@@ -59,20 +59,20 @@ export const ReadOnlyInventoryView: React.FC<ReadOnlyInventoryViewProps> = ({ it
   ], []);
 
   const renderCard = (item: InventoryItem) => (
-    <div className="bg-white dark:bg-slate-700 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200">
+    <div className="bg-surface p-5 rounded-xl border border-line hover:border-accent transition-all duration-200">
       <div className="flex justify-between items-start mb-2">
-        <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300">{item.sku}</span>
+        <span className="text-xs font-mono bg-surface-2 px-2 py-1 rounded text-txt-2">{item.sku}</span>
         {item.quantity <= item.minStock && (
-          <span className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">
+          <span className="text-xs font-bold text-ko flex items-center gap-1 bg-ko-dim px-2 py-1 rounded">
             <AlertTriangle size={12} /> Stock Bajo
           </span>
         )}
       </div>
-      <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">{item.name}</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{item.location}</p>
-      <div className="flex items-center justify-between text-sm pt-3 border-t border-slate-100 dark:border-slate-600">
-        <span className="text-slate-500 dark:text-slate-400">Stock:</span>
-        <span className={`font-bold ${item.quantity <= item.minStock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+      <h3 className="font-bold text-txt text-lg mb-1">{item.name}</h3>
+      <p className="text-sm text-txt-2 mb-4">{item.location}</p>
+      <div className="flex items-center justify-between text-sm pt-3 border-t border-line">
+        <span className="text-txt-2">Stock:</span>
+        <span className={`font-bold ${item.quantity <= item.minStock ? 'text-ko' : 'text-txt-2'}`}>
           {item.quantity} un.
         </span>
       </div>
@@ -82,10 +82,10 @@ export const ReadOnlyInventoryView: React.FC<ReadOnlyInventoryViewProps> = ({ it
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+        <div className="p-2 bg-accent-dim rounded-lg text-accent">
           <Package size={20} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Consulta de Inventario</h1>
+        <h1 className="text-2xl font-bold text-txt">Consulta de Inventario</h1>
       </div>
 
       <GenericTable

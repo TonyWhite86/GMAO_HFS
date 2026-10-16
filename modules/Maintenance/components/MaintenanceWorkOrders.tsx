@@ -155,7 +155,7 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                         className={`p-2 rounded-lg border transition-colors ${showAdvancedFilters
                             ? 'bg-accent-dim border-accent-border text-accent'
-                            : 'bg-white border-line text-txt-2 bg-surface border-line text-txt-3 '
+                            : 'bg-surface border-line text-txt-2'
                             }`}
                     >
                         <Filter size={20} />

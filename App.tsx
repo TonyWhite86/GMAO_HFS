@@ -79,9 +79,6 @@ const App: React.FC = () => {
     const root = document.documentElement;
     root.classList.remove('theme-azul', 'theme-claro', 'theme-oscuro', 'theme-suave');
     root.classList.add(`theme-${theme}`);
-    // Puente: mientras queden utilidades dark: sin migrar, el tema oscuro
-    // también activa la clase .dark (se retira al terminar la migración visual).
-    root.classList.toggle('dark', theme === 'oscuro');
   }, [theme]);
 
   // Restore Supabase Auth session and load user data
@@ -193,7 +190,7 @@ const App: React.FC = () => {
       case 'stoppages':
         return <StoppagesModule />;
       default:
-        return <div className="dark:text-white">Módulo no encontrado</div>;
+        return <div className="text-txt">Módulo no encontrado</div>;
     }
   };
 
@@ -215,10 +212,10 @@ const App: React.FC = () => {
       {!currentUser ? (
         <LoginPage />
       ) : isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-slate-800">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
           <LoadingSpinner />
           {error && (
-            <p className="mt-4 text-sm text-red-500 dark:text-red-400 px-4 text-center">
+            <p className="mt-4 text-sm text-ko px-4 text-center">
               {error} —{' '}
               <button onClick={() => fetchInitialData()} className="underline hover:no-underline">
                 Reintentar
@@ -227,10 +224,10 @@ const App: React.FC = () => {
           )}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-800 p-8">
-          <div className="bg-white dark:bg-slate-700 rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Error de carga</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-bg p-8">
+          <div className="bg-surface rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold text-txt mb-2">Error de carga</h2>
+            <p className="text-txt-2 mb-6">{error}</p>
             <button
               onClick={() => fetchInitialData()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors"

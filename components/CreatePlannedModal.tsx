@@ -192,7 +192,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 {subtasks.map((task, idx) => {
                                     const isAssigned = task.assignedUserIds?.includes(assignedUserId);
                                     return (
-                                        <label key={task.id} className="flex items-center gap-2 text-sm text-txt-2 cursor-pointer hover:bg-white p-1.5 rounded transition-colors">
+                                        <label key={task.id} className="flex items-center gap-2 text-sm text-txt-2 cursor-pointer hover:bg-surface-2 p-1.5 rounded transition-colors">
                                             <input
                                                 type="checkbox"
                                                 className="rounded border-line-2 text-warn focus:ring-warn"

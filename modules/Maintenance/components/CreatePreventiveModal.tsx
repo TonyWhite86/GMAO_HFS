@@ -301,7 +301,7 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
                         <div className="space-y-3">
                             {tasks.length > 0 ? (
                                 tasks.map((task, idx) => (
-                                    <div key={task.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${task.completed ? 'bg-ok-dim border-ok-border  ' : 'bg-white border-line bg-surface border-line group hover:border-spec-border'}`}>
+                                    <div key={task.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${task.completed ? 'bg-ok-dim border-ok-border' : 'bg-surface border-line group hover:border-spec-border'}`}>
                                         <div className="flex items-center gap-4 flex-1">
                                             {/* Checkbox for visual consistency */}
                                             <button

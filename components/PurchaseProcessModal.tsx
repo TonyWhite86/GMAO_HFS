@@ -216,7 +216,7 @@ export const PurchaseProcessModal: React.FC<PurchaseProcessModalProps> = ({
                         onClick={handleSave}
                         className={`px-6 py-2 rounded-lg font-bold shadow-lg transition-all flex items-center gap-2 text-sm ${status === POStatus.ORDERED
                             ? 'btn btn-primary text-white shadow-accent/20'
-                            : 'bg-surface-3 hover:bg-surface-3 text-white shadow-slate-500/20'
+                            : 'bg-surface-3 hover:bg-surface-3 text-white'
                             }`}
                     >
                         {status === POStatus.ORDERED ? <CheckCircle2 size={18} /> : <Save size={18} />}

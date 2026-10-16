@@ -92,7 +92,7 @@ export const WOSubtasksList: React.FC<WOSubtasksListProps> = ({
             <div className="space-y-3">
                 {(editedWO.subtasks && editedWO.subtasks.length > 0) ? (
                     editedWO.subtasks.map((task) => (
-                        <div key={task.id} className={`p-4 rounded-xl border transition-all shadow-sm group ${task.completed ? 'bg-ok-dim border-ok-border   opacity-60' : 'bg-white border-line bg-surface border-line hover:border-accent-border '}`}>
+                        <div key={task.id} className={`p-4 rounded-xl border transition-all shadow-sm group ${task.completed ? 'bg-ok-dim border-ok-border opacity-60' : 'bg-surface border-line hover:border-accent-border'}`}>
                             <div className="flex items-start gap-4">
                                 {/* Checkbox */}
                                 <button

@@ -59,7 +59,7 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
             const mins = wo.timeSpentMinutes ?? 0;
             return {
                 icon: <CheckCircle2 size={14} />,
-                iconClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
+                iconClass: 'bg-ok-dim text-ok',
                 title: 'Orden completada',
                 detail: `Fin: ${fmtDateTime(wo.closedAt)} · Tiempo: ${formatDuration(mins)}` +
                     (wo.timeSource === 'manual' ? ' · registrado a mano' : '')
@@ -68,7 +68,7 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
         case WorkOrderEventKind.ASSIGN:
             return {
                 icon: <UserPlus size={14} />,
-                iconClass: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300',
+                iconClass: 'bg-spec-dim text-spec',
                 title: e.note || 'Asignación'
             };
         case WorkOrderEventKind.UNASSIGN:
@@ -80,19 +80,19 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
         case WorkOrderEventKind.PRIORITY:
             return {
                 icon: <Star size={14} />,
-                iconClass: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300',
+                iconClass: 'bg-warn-dim text-warn',
                 title: e.note ? `Prioridad cambiada: ${e.note}` : 'Prioridad cambiada'
             };
         case WorkOrderEventKind.PARTS:
             return {
                 icon: <Wrench size={14} />,
-                iconClass: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: e.note || 'Repuestos actualizados'
             };
         case WorkOrderEventKind.CONVERT:
             return {
                 icon: <Link2 size={14} />,
-                iconClass: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: e.note || 'Creada desde una incidencia'
             };
         default:
@@ -212,11 +212,11 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                                         </div>
                                     )}
 
-                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-[11px] text-txt-3 mt-1.5 flex items-center gap-1.5 flex-wrap">
                                         {item.actorName && <span className="font-semibold">{item.actorName}</span>}
                                         <span>{fmtDateTime(item.timestamp)}</span>
                                         {item.kind === 'event' && (item.detail || '').includes('registrado a mano') && (
-                                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
+                                            <span className="inline-flex items-center gap-1 text-warn font-bold">
                                                 <AlertTriangle size={11} /> Manual
                                             </span>
                                         )}
