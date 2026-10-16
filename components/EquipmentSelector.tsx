@@ -87,8 +87,8 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
     const colorMap = {
         blue: {
             ring: 'ring-blue-500',
-            itemBg: 'bg-blue-50 dark:bg-blue-900/20',
-            itemText: 'text-blue-700 dark:text-blue-300',
+            itemBg: 'bg-blue-50 ',
+            itemText: 'text-blue-700 ',
             check: 'text-blue-600',
             qrBg: 'bg-blue-100',
             qrColor: 'text-blue-600',
@@ -98,36 +98,36 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
         },
         purple: {
             ring: 'ring-purple-500',
-            itemBg: 'bg-purple-50 dark:bg-purple-900/20',
-            itemText: 'text-purple-700 dark:text-purple-300',
+            itemBg: 'bg-purple-50 ',
+            itemText: 'text-purple-700 ',
             check: 'text-purple-600',
             qrBg: 'bg-purple-100',
             qrColor: 'text-purple-600',
             qrBorder: 'border-purple-500/50',
             btn: 'bg-purple-600 hover:bg-purple-700',
-            btnShadow: 'shadow-purple-600/20',
+            btnShadow: 'shadow-spec/20',
         },
         green: {
             ring: 'ring-green-500',
-            itemBg: 'bg-green-50 dark:bg-green-900/20',
-            itemText: 'text-green-700 dark:text-green-300',
+            itemBg: 'bg-green-50 ',
+            itemText: 'text-green-700 ',
             check: 'text-green-600',
             qrBg: 'bg-green-100',
             qrColor: 'text-green-600',
-            qrBorder: 'border-green-500/50',
+            qrBorder: 'border-ok/50',
             btn: 'bg-green-600 hover:bg-green-700',
-            btnShadow: 'shadow-green-600/20',
+            btnShadow: 'shadow-ok/20',
         },
         orange: {
             ring: 'ring-orange-500',
-            itemBg: 'bg-orange-50 dark:bg-orange-900/20',
-            itemText: 'text-orange-700 dark:text-orange-300',
+            itemBg: 'bg-orange-50 ',
+            itemText: 'text-orange-700 ',
             check: 'text-orange-600',
             qrBg: 'bg-orange-100',
             qrColor: 'text-orange-600',
             qrBorder: 'border-orange-500/50',
             btn: 'bg-orange-600 hover:bg-orange-700',
-            btnShadow: 'shadow-orange-600/20',
+            btnShadow: 'shadow-warn/20',
         },
     } as const;
 
@@ -142,9 +142,9 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                 <div className="relative flex-1">
                     <div
                         className={`
-              w-full p-3 pl-9 pr-14 border rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white flex items-center
+              w-full p-3 pl-9 pr-14 border rounded-xl bg-white  text-slate-900  flex items-center
               ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
-              ${isOpen ? `ring-2 ${c.ring} border-transparent` : error ? 'border-red-500 ring-1 ring-red-500 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700'}
+              ${isOpen ? `ring-2 ${c.ring} border-transparent` : error ? 'border-red-500 ring-1 ring-red-500 bg-red-50 ' : 'border-slate-300 '}
             `}
                         onClick={() => {
                             if (disabled) return;
@@ -181,7 +181,7 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                             if (disabled) return;
                             setIsQRModalOpen(true);
                         }}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
+                        className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
                         title="Escanear QR"
                     >
                         <QrCode size={16} />
@@ -189,22 +189,22 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
 
                     {/* Dropdown List */}
                     {isOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 animate-fade-in custom-scrollbar">
+                        <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-fade-in custom-scrollbar">
                             {filteredEquipment.length > 0 ? (
                                 filteredEquipment.map(eq => (
                                     <div
                                         key={eq.id}
                                         className={`
-                      p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center group transition-colors
+                      p-2.5 hover:bg-slate-100  cursor-pointer flex justify-between items-center group transition-colors
                       ${eq.id === selectedId ? c.itemBg : ''}
                     `}
                                         onClick={() => handleSelect(eq.id)}
                                     >
                                         <div className="flex flex-col">
-                                            <span className={`font-medium ${eq.id === selectedId ? c.itemText : 'text-slate-700 dark:text-slate-200'}`}>
+                                            <span className={`font-medium ${eq.id === selectedId ? c.itemText : 'text-slate-700 '}`}>
                                                 {eq.code ? `[${eq.code}] ` : ''}{eq.name}
                                             </span>
-                                            <span className="text-xs text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300">
+                                            <span className="text-xs text-slate-400 group-hover:text-slate-500 :text-slate-300">
                                                 {eq.location} {eq.serialNumber ? `• SN: ${eq.serialNumber}` : ''}
                                             </span>
                                         </div>

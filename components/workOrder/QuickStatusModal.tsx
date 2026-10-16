@@ -96,18 +96,18 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+                className="bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-line"
             >
-                <div className={`p-6 ${isPausing ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                <div className={`p-6 ${isPausing ? 'bg-warn-dim' : 'bg-accent-dim'}`}>
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-full ${isPausing ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <div className={`p-3 rounded-full ${isPausing ? 'bg-warn-dim text-warn' : 'bg-accent-dim text-accent'}`}>
                             {isPausing ? <PauseCircle size={32} /> : <PlayCircle size={32} />}
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                            <h3 className="text-xl font-bold text-txt">
                                 {isPausing ? '¿Pausar Trabajo?' : isResuming ? '¿Reanudar Trabajo?' : '¿Iniciar Trabajo?'}
                             </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Orden #{workOrder.id}</p>
+                            <p className="text-sm text-txt-2">Orden #{workOrder.id}</p>
                         </div>
                     </div>
                 </div>
@@ -116,13 +116,13 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
                     {isPausing && (
                         <div>
                             <div className="flex justify-between items-center mb-2">
-                                <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Motivo de la Pausa</label>
+                                <label className="block text-sm font-bold text-txt-2 uppercase tracking-wider">Motivo de la Pausa</label>
                                 <VoiceInputButton
                                     onTranscript={text => setReason(prev => prev ? `${prev} ${text}` : text)}
                                 />
                             </div>
                             <textarea
-                                className="w-full p-4 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 min-h-[100px] resize-none"
+                                className="w-full p-4 bg-surface-2 border border-line rounded-xl text-sm text-txt outline-none focus:ring-2 focus:ring-warn min-h-[100px] resize-none"
                                 placeholder="Indique por qué se detiene el trabajo..."
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
@@ -132,7 +132,7 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
                     )}
 
                     {!isPausing && (
-                        <p className="text-slate-600 dark:text-slate-300">
+                        <p className="text-txt-2">
                             {isResuming
                                 ? 'Se reanudará el trabajo y se registrará en el historial de la orden.'
                                 : 'Se registrará el inicio del trabajo en el historial de la orden.'}
@@ -142,13 +142,13 @@ export const QuickStatusModal: React.FC<QuickStatusModalProps> = ({ workOrder, n
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                            className="flex-1 py-3 text-txt-2 font-bold hover:bg-surface-2 rounded-xl transition-colors"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleConfirm}
-                            className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 ${isPausing ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}
+                            className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 ${isPausing ? 'bg-warn hover:bg-warn shadow-warn/20' : 'bg-accent hover:bg-accent-2 shadow-accent/20'}`}
                         >
                             {isPausing ? 'Pausar' : isResuming ? 'Reanudar' : 'Iniciar'}
                         </button>

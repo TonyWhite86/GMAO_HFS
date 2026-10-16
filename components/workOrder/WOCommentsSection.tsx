@@ -19,7 +19,7 @@ export const WOCommentsSection: React.FC<WOCommentsSectionProps> = ({
     onDictate
 }) => {
     return (
-        <div className="border-t border-slate-800 pt-6 space-y-6">
+        <div className="border-t border-line pt-6 space-y-6">
             {/* Unified Input */}
             <CommentInput
                 onSend={handleSendComment}

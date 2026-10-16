@@ -53,7 +53,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
             className="relative mb-4"
         >
             <div
-                className="relative bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 active:scale-[0.99] transition-all cursor-pointer z-10"
+                className="relative bg-surface p-4 rounded-xl shadow-sm border border-line active:scale-[0.99] transition-all cursor-pointer z-10"
                 onClick={onClick}
             >
                 <div className="flex justify-between items-start mb-2">
@@ -61,12 +61,12 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                         <StatusBadge status={wo.status} type="workOrder" />
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded">
+                        <span className="text-xs font-mono text-txt-2 bg-surface-2 px-2 py-0.5 rounded">
                             {wo.id}
                         </span>
                         {isOverdue && (
-                            <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight flex items-center gap-1">
-                                <AlertTriangle size={10} className="fill-red-600/10" />
+                            <span className="text-[10px] font-bold text-ko uppercase tracking-tight flex items-center gap-1">
+                                <AlertTriangle size={10} className="fill-current opacity-10" />
                                 Retrasado
                             </span>
                         )}
@@ -74,14 +74,14 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                 </div>
 
                 <div className="flex gap-3">
-                    <div className={`w-1 rounded-full self-stretch flex-shrink-0 ${PRIORITY_CONFIG[wo.priority]?.color === 'red' ? 'bg-red-500' :
-                        PRIORITY_CONFIG[wo.priority]?.color === 'orange' ? 'bg-orange-500' :
-                            PRIORITY_CONFIG[wo.priority]?.color === 'blue' ? 'bg-blue-500' : 'bg-slate-300'
-                        }`}></div>
+                    <div
+                        className="w-1 rounded-full self-stretch flex-shrink-0"
+                        style={{ background: PRIORITY_CONFIG[wo.priority]?.dotColor || 'var(--text3)' }}
+                    ></div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-slate-900 dark:text-white mb-1 truncate">{wo.title}</h3>
+                        <h3 className="font-bold text-txt mb-1 truncate">{wo.title}</h3>
 
-                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
+                        <div className="flex items-center justify-between text-xs text-txt-2 mt-2">
                             {eq && (
                                 <div className="flex items-center gap-1 truncate pr-2">
                                     <Wrench size={12} className="flex-shrink-0" />
@@ -90,7 +90,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                             )}
                             <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                                 <Clock size={12} className="flex-shrink-0" />
-                                <span className={isOverdue ? "text-red-500 font-medium whitespace-nowrap" : "whitespace-nowrap"}>
+                                <span className={isOverdue ? "text-ko font-medium whitespace-nowrap" : "whitespace-nowrap"}>
                                     {new Date(wo.scheduledDate || wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 </span>
                             </div>
@@ -98,24 +98,24 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-3 mt-3">
-                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between border-t border-line pt-3 mt-3">
+                    <div className="flex items-center gap-2 text-xs text-txt-2">
                         {assignedUser ? (
                             <>
-                                <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-[10px] text-slate-700 dark:text-slate-200">
+                                <div className="w-5 h-5 rounded-full bg-surface-3 flex items-center justify-center text-[10px] text-txt-2">
                                     {assignedUser.name.charAt(0)}
                                 </div>
                                 <span className="truncate max-w-[80px]">{assignedUser.name.split(' ')[0]}</span>
                             </>
                         ) : (
-                            <span className="text-slate-400 italic">Sin asignar</span>
+                            <span className="text-txt-3 italic">Sin asignar</span>
                         )}
 
                         {/* Collaborators Badge */}
                         {collaborators.length > 0 && (
                             <div className="relative ml-1">
                                 <div
-                                    className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-700 flex items-center justify-center text-[10px] text-purple-700 dark:text-purple-300 font-bold cursor-pointer hover:scale-110 transition-transform"
+                                    className="w-5 h-5 rounded-full bg-spec-dim border border-spec-border flex items-center justify-center text-[10px] text-spec font-bold cursor-pointer hover:scale-110 transition-transform"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setShowCollaborators(!showCollaborators);
@@ -125,17 +125,17 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                                 </div>
                                 {showCollaborators && (
                                     <div
-                                        className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-slate-700 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in-95 duration-200"
+                                        className="absolute bottom-full left-0 mb-2 w-48 bg-surface rounded-lg shadow-xl border border-line p-2 z-50 animate-in fade-in zoom-in-95 duration-200"
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Colaboradores</div>
+                                        <div className="text-[10px] font-bold text-txt-3 uppercase tracking-wider mb-1 px-1">Colaboradores</div>
                                         <div className="space-y-1">
                                             {collaborators.map(c => (
-                                                <div key={c.id} className="flex items-center gap-2 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700/50">
-                                                    <div className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[8px]">
+                                                <div key={c.id} className="flex items-center gap-2 p-1 rounded hover:bg-surface-2">
+                                                    <div className="w-4 h-4 rounded-full bg-spec-dim text-spec flex items-center justify-center text-[8px]">
                                                         {c.name.charAt(0)}
                                                     </div>
-                                                    <span className="text-xs text-slate-700 dark:text-slate-200 truncate">{c.name}</span>
+                                                    <span className="text-xs text-txt-2 truncate">{c.name}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -155,8 +155,8 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                                         onStatusAction(wo, nextStatus);
                                     }}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isRunning
-                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
-                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200'
+                                        ? 'bg-warn-dim text-warn hover:bg-warn'
+                                        : 'bg-accent-dim text-accent hover:bg-accent'
                                         }`}
                                 >
                                     {isRunning ? (
@@ -171,7 +171,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                             {onComplete && (
                                 <button
                                     onClick={() => onComplete(wo)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-ok-dim text-ok hover:bg-ok transition-colors"
                                 >
                                     <CheckCircle size={14} /> Finalizar
                                 </button>

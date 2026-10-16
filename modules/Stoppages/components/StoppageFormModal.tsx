@@ -150,7 +150,7 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Equipo *</label>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Equipo *</label>
                         <EquipmentSelector
                             equipment={equipment}
                             selectedId={equipmentId}
@@ -163,8 +163,8 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                     {stoppage?.incidentId ? (
                         // El motivo lo aporta la categoría de la incidencia: no se edita aquí.
                         <div>
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Motivo de la parada</label>
-                            <div className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-sm">
+                            <label className="block text-sm font-medium text-slate-500 mb-1">Motivo de la parada</label>
+                            <div className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-sm">
                                 {stoppage.reasonLabel || '—'}
                                 <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">de la incidencia</span>
                             </div>
@@ -184,25 +184,25 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Inicio *</label>
+                            <label className="block text-sm font-medium text-slate-500 mb-1">Inicio *</label>
                             <input
                                 type="datetime-local"
                                 required
                                 value={startAt}
                                 onChange={(e) => setStartAt(e.target.value)}
                                 disabled={!canManage}
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Fin *</label>
+                            <label className="block text-sm font-medium text-slate-500 mb-1">Fin *</label>
                             <input
                                 type="datetime-local"
                                 required
                                 value={endAt}
                                 onChange={(e) => setEndAt(e.target.value)}
                                 disabled={!canManage}
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -217,12 +217,12 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                     />
 
                     {canManage && (
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                             {stoppage && canDelete ? (
                                 <button
                                     type="button"
                                     onClick={handleDelete}
-                                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
                                     title={stoppage.incidentId ? 'Las paradas de una incidencia no se pueden eliminar' : 'Eliminar parada'}
                                 >
                                     <Trash2 size={16} />
@@ -246,7 +246,7 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                         {stoppage.status === StoppageStatus.SCHEDULED && (
                             <button
                                 onClick={() => handleStatus(StoppageStatus.IN_PROGRESS)}
-                                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-warn text-white rounded-xl font-bold text-sm transition-all active:scale-95"
                             >
                                 <PlayCircle size={16} />
                                 Iniciar Parada
@@ -275,7 +275,7 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-6 py-2.5 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-2"
+                        className="px-6 py-2.5 text-slate-600 font-bold text-sm hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-2"
                     >
                         <X size={16} />
                         Cerrar

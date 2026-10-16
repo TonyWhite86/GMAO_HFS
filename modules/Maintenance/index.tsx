@@ -142,10 +142,10 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                         <button
                             onClick={handleCreateClick}
                             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto shadow-lg ${viewMode === 'plans'
-                                ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
+                                ? 'bg-spec hover:bg-spec shadow-spec/20'
                                 : viewMode === 'plannedActions'
-                                    ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
-                                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                                    ? 'bg-warn hover:bg-warn shadow-warn/20'
+                                    : 'bg-accent hover:bg-accent-2 shadow-accent/20'
                                 }`}
                         >
                             <Plus size={18} />
@@ -159,12 +159,12 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                 }
             />
 
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
+            <div className="flex gap-1 bg-surface-2 p-1 rounded-lg border border-line shadow-sm w-fit">
                 <button
                     onClick={() => setViewMode('workOrders')}
                     className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'workOrders'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        ? 'bg-surface text-accent shadow-sm'
+                        : 'text-txt-2 hover:text-txt-2 '
                         }`}
                 >
                     Órdenes de Trabajo
@@ -172,8 +172,8 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                 <button
                     onClick={() => setViewMode('plans')}
                     className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plans'
-                        ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        ? 'bg-surface text-spec shadow-sm'
+                        : 'text-txt-2 hover:text-txt-2 '
                         }`}
                 >
                     Planes Preventivos
@@ -182,8 +182,8 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     <button
                         onClick={() => setViewMode('plannedActions')}
                         className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plannedActions'
-                            ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            ? 'bg-surface text-warn  shadow-sm'
+                            : 'text-txt-2 hover:text-txt-2 '
                             }`}
                     >
                         Actuaciones

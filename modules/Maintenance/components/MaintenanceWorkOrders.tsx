@@ -64,8 +64,8 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
             sortKey: "title",
             render: (wo: WorkOrder) => (
                 <div>
-                    <div className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{wo.title}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">#{wo.id}</div>
+                    <div className="font-medium text-txt group-hover:text-accent :text-accent transition-colors">{wo.title}</div>
+                    <div className="text-xs text-txt-2">#{wo.id}</div>
                 </div>
             )
         },
@@ -110,9 +110,9 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
             header: "Fecha",
             sortKey: "date",
             render: (wo: WorkOrder) => (
-                <span className="text-sm text-slate-500 dark:text-slate-400">
+                <span className="text-sm text-txt-2">
                     {wo.scheduledDate
-                        ? <span className="text-purple-600 dark:text-purple-400 font-medium">{new Date(wo.scheduledDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                        ? <span className="text-spec font-medium">{new Date(wo.scheduledDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                         : new Date(wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </span>
             )
@@ -122,16 +122,16 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={18} />
                         <input
                             type="text"
                             placeholder="Buscar órdenes..."
                             value={filterText}
                             onChange={(e) => setFilterText(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-4 py-2 border border-line rounded-lg bg-surface-2 text-txt focus:ring-2 focus:ring-accent"
                         />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                                     onClick={() => toggleStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors border ${activeStatuses.includes(status)
                                         ? config.bgClass
-                                        : 'bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                                        : 'bg-surface text-txt-2 border-line hover:border-line-2'
                                         }`}
                                 >
                                     {status}
@@ -154,8 +154,8 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                     <button
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                         className={`p-2 rounded-lg border transition-colors ${showAdvancedFilters
-                            ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300'
-                            : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            ? 'bg-accent-dim border-accent-border text-accent'
+                            : 'bg-white border-line text-txt-2 bg-surface border-line text-txt-3 '
                             }`}
                     >
                         <Filter size={20} />
@@ -163,17 +163,17 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                 </div>
 
                 {showAdvancedFilters && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700 animate-in slide-in-from-top-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-line animate-in slide-in-from-top-2">
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Prioridad</label>
+                            <label className="text-xs font-bold text-txt-2 uppercase mb-2 block">Prioridad</label>
                             <div className="space-y-1">
                                 {Object.values(WOPriority).map(priority => (
-                                    <label key={priority} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <label key={priority} className="flex items-center gap-2 text-sm text-txt-2 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={selectedPriorities.includes(priority)}
                                             onChange={() => togglePriorityFilter(priority)}
-                                            className="rounded text-blue-600 focus:ring-blue-500"
+                                            className="rounded text-accent focus:ring-accent"
                                         />
                                         {priority}
                                     </label>
@@ -181,20 +181,20 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Fecha</label>
+                            <label className="text-xs font-bold text-txt-2 uppercase mb-2 block">Fecha</label>
                             <div className="space-y-2">
                                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full text-sm p-2 border rounded" />
                                 <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full text-sm p-2 border rounded" />
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Asignación</label>
-                            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                            <label className="text-xs font-bold text-txt-2 uppercase mb-2 block">Asignación</label>
+                            <label className="flex items-center gap-2 text-sm text-txt-2 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={showUnassigned}
                                     onChange={(e) => setShowUnassigned(e.target.checked)}
-                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                    className="rounded text-accent focus:ring-accent"
                                 />
                                 Mostrar solo Sin Asignar
                             </label>
@@ -226,10 +226,10 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                     />
                 </div>
             ) : (
-                <div className="text-center py-12 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 border-dashed">
-                    <CheckSquare size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-white">No hay órdenes de trabajo</h3>
-                    <p className="text-slate-500 dark:text-slate-400">Intenta ajustar los filtros o crea una nueva orden.</p>
+                <div className="text-center py-12 bg-surface rounded-xl border border-line border-dashed">
+                    <CheckSquare size={48} className="mx-auto text-txt-3 mb-4" />
+                    <h3 className="text-lg font-medium text-txt">No hay órdenes de trabajo</h3>
+                    <p className="text-txt-2">Intenta ajustar los filtros o crea una nueva orden.</p>
                 </div>
             )}
         </div>

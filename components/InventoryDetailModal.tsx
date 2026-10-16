@@ -208,9 +208,9 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header */}
-                <div className="flex justify-between items-start p-6 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex justify-between items-start p-6 border-b border-slate-100">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                             {isEditing ? (
@@ -220,16 +220,16 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                         type="text"
                                         value={editedItem.sku}
                                         onChange={(e) => setEditedItem({ ...editedItem, sku: e.target.value })}
-                                        className="font-mono text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="font-mono text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
                                     />
                                 </div>
                             ) : (
-                                <span className="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-400">
+                                <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
                                     {item.sku}
                                 </span>
                             )}
                             {item.quantity <= item.minStock && (
-                                <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">
+                                <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
                                     <AlertTriangle size={12} /> Stock Crítico
                                 </span>
                             )}
@@ -239,10 +239,10 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                 type="text"
                                 value={editedItem.name}
                                 onChange={(e) => setEditedItem({ ...editedItem, name: e.target.value })}
-                                className="text-2xl font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 w-full"
+                                className="text-2xl font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 w-full"
                             />
                         ) : (
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white leading-tight">
+                            <h2 className="text-2xl font-bold text-slate-800 leading-tight">
                                 {item.name}
                                 {item.status === 'Draft' && (
                                     <span className="ml-3 inline-block px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Borrador</span>
@@ -252,19 +252,19 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     </div>
                     <button 
                         onClick={onClose} 
-                        className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-sm"
+                        className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-xl transition-all active:scale-95 border border-slate-200 shadow-sm"
                     >
                         <X size={20} className="sm:size-6" />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-100 dark:border-slate-700 px-6 overflow-x-auto">
+                <div className="flex border-b border-slate-100 px-6 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('details')}
                         className={`pb-3 pt-4 px-2 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'details'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                            ? 'border-blue-600 text-blue-600 '
+                            : 'border-transparent text-slate-500 hover:text-slate-700 '
                             }`}
                     >
                         Detalles
@@ -272,13 +272,13 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     <button
                         onClick={() => setActiveTab('suppliers')}
                         className={`pb-3 pt-4 px-2 font-medium text-sm transition-colors border-b-2 flex items-center gap-2 whitespace-nowrap ${activeTab === 'suppliers'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                            ? 'border-blue-600 text-blue-600 '
+                            : 'border-transparent text-slate-500 hover:text-slate-700 '
                             }`}
                     >
                         Proveedores
                         {(editedItem.suppliers?.length || 0) > 0 && (
-                            <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs px-1.5 py-0.5 rounded-full">
+                            <span className="bg-slate-100 text-slate-600 text-xs px-1.5 py-0.5 rounded-full">
                                 {editedItem.suppliers?.length}
                             </span>
                         )}
@@ -286,13 +286,13 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     <button
                         onClick={() => setActiveTab('linked')}
                         className={`pb-3 pt-4 px-2 font-medium text-sm transition-colors border-b-2 flex items-center gap-2 whitespace-nowrap ${activeTab === 'linked'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                            ? 'border-blue-600 text-blue-600 '
+                            : 'border-transparent text-slate-500 hover:text-slate-700 '
                             }`}
                     >
                         Equipos Vinculados
                         {(editedItem.linkedEquipmentIds?.length || 0) > 0 && (
-                            <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs px-1.5 py-0.5 rounded-full">
+                            <span className="bg-slate-100 text-slate-600 text-xs px-1.5 py-0.5 rounded-full">
                                 {editedItem.linkedEquipmentIds?.length}
                             </span>
                         )}
@@ -310,10 +310,10 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                         <img
                                             src={editedItem.image}
                                             alt={editedItem.name}
-                                            className="w-48 h-48 object-cover rounded-xl shadow-md border-4 border-white dark:border-slate-700"
+                                            className="w-48 h-48 object-cover rounded-xl shadow-md border-4 border-white"
                                         />
                                     ) : (
-                                        <div className="w-48 h-48 bg-slate-100 dark:bg-slate-900 rounded-xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-700">
+                                        <div className="w-48 h-48 bg-slate-100 rounded-xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300">
                                             <ImageIcon size={48} className="mb-2 opacity-50" />
                                             <span className="text-xs">Sin imagen</span>
                                         </div>
@@ -359,10 +359,10 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                 type="text"
                                                 value={editedItem.location}
                                                 onChange={(e) => setEditedItem({ ...editedItem, location: e.target.value })}
-                                                className="w-full text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-slate-700"
+                                                className="w-full text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200"
                                             />
                                         ) : (
-                                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                            <div className="flex items-center gap-2 text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                                                 <MapPin size={18} className="text-blue-500" />
                                                 <span className="font-medium">{item.location}</span>
                                             </div>
@@ -378,11 +378,11 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                 type="text"
                                                 value={editedItem.manufacturer}
                                                 onChange={(e) => setEditedItem({ ...editedItem, manufacturer: e.target.value })}
-                                                className="w-full text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-slate-700"
+                                                className="w-full text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200"
                                                 placeholder="Ej. SKF, Siemens..."
                                             />
                                         ) : (
-                                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                            <div className="flex items-center gap-2 text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                                                 <Tag size={18} className="text-slate-400" />
                                                 <span className="">{item.manufacturer || 'Sin marca'}</span>
                                             </div>
@@ -398,10 +398,10 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                 type="text"
                                                 value={editedItem.supplier}
                                                 onChange={(e) => setEditedItem({ ...editedItem, supplier: e.target.value })}
-                                                className="w-full text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-slate-700"
+                                                className="w-full text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200"
                                             />
                                         ) : (
-                                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 p-2">
+                                            <div className="flex items-center gap-2 text-slate-700 p-2">
                                                 <Package size={18} className="text-slate-400" />
                                                 <span>{item.supplier}</span>
                                             </div>
@@ -413,7 +413,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                     <div>
                                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Estado de Stock</label>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className={`p-3 rounded-lg text-center border ${isEditing ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
+                                            <div className={`p-3 rounded-lg text-center border ${isEditing ? 'bg-slate-50  border-slate-200' : 'bg-blue-50  border-blue-100 '}`}>
                                                 {isEditing ? (
                                                     <input
                                                         aria-label="Cantidad actual"
@@ -423,11 +423,11 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                         className="text-xl font-bold text-center bg-transparent w-full outline-none"
                                                     />
                                                 ) : (
-                                                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{item.quantity}</div>
+                                                    <div className="text-xl font-bold text-blue-600">{item.quantity}</div>
                                                 )}
                                                 <div className="text-xs text-slate-500 font-medium">Actual</div>
                                             </div>
-                                            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-center border border-slate-100 dark:border-slate-700">
+                                            <div className="p-3 bg-slate-50 rounded-lg text-center border border-slate-100">
                                                 {isEditing ? (
                                                     <input
                                                         aria-label="Stock mínimo"
@@ -437,16 +437,16 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                         className="text-xl font-bold text-center bg-transparent w-full outline-none"
                                                     />
                                                 ) : (
-                                                    <div className="text-xl font-bold text-slate-600 dark:text-slate-400">{item.minStock}</div>
+                                                    <div className="text-xl font-bold text-slate-600">{item.minStock}</div>
                                                 )}
-                                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Mínimo</div>
+                                                <div className="text-xs text-slate-500 font-medium">Mínimo</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="border-t border-slate-100 dark:border-slate-700 my-4"></div>
+                            <div className="border-t border-slate-100 my-4"></div>
 
                             {canViewPrice && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -457,15 +457,15 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                 type="number"
                                                 value={isNaN(editedItem.price) ? '' : editedItem.price}
                                                 onChange={(e) => setEditedItem({ ...editedItem, price: e.target.value === '' ? NaN : parseFloat(e.target.value) })}
-                                                className="text-lg font-bold bg-slate-50 dark:bg-slate-900/50 border border-slate-200 rounded px-2 w-full"
+                                                className="text-lg font-bold bg-slate-50 border border-slate-200 rounded px-2 w-full"
                                             />
                                         ) : (
-                                            <div className="text-lg font-bold text-slate-800 dark:text-slate-200">{item.price.toFixed(2)} €</div>
+                                            <div className="text-lg font-bold text-slate-800">{item.price.toFixed(2)} €</div>
                                         )}
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-400 mb-1 block">Valor Total</label>
-                                        <div className="text-lg font-bold text-slate-800 dark:text-slate-200">{(editedItem.price * editedItem.quantity).toFixed(2)} €</div>
+                                        <div className="text-lg font-bold text-slate-800">{(editedItem.price * editedItem.quantity).toFixed(2)} €</div>
                                     </div>
                                     <div className="col-span-2">
                                         <label className="text-xs text-slate-400 mb-1 block">Importancia</label>
@@ -473,7 +473,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                             <select
                                                 value={editedItem.critic}
                                                 onChange={(e) => setEditedItem({ ...editedItem, critic: e.target.value as any })}
-                                                className="text-xs font-bold bg-slate-50 dark:bg-slate-900/50 border border-slate-200 rounded px-2 py-1 w-full"
+                                                className="text-xs font-bold bg-slate-50 border border-slate-200 rounded px-2 py-1 w-full"
                                             >
                                                 <option value="Alta">Alta</option>
                                                 <option value="Media">Media</option>
@@ -492,7 +492,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                             )}
 
                             {/* QR Code Section */}
-                            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-800 mt-4">
+                            <div className="bg-slate-50 p-4 rounded-xl flex items-center justify-between border border-slate-100 mt-4">
                                 <div className="flex items-center gap-3 flex-1">
                                     <div className="bg-white p-2 rounded border border-slate-200">
                                         <QRCodeSVG
@@ -510,18 +510,18 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                 type="text"
                                                 value={editedItem.qrCode}
                                                 onChange={(e) => setEditedItem({ ...editedItem, qrCode: e.target.value })}
-                                                className="w-full text-sm font-bold font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full text-sm font-bold font-mono bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 outline-none"
                                                 placeholder="Personalizar QR..."
                                             />
                                         ) : (
-                                            <div className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{item.qrCode || item.sku}</div>
+                                            <div className="font-mono text-sm font-bold text-slate-700">{item.qrCode || item.sku}</div>
                                         )}
                                     </div>
                                 </div>
                                 {!isEditing && (
                                     <button
                                         onClick={handlePrint}
-                                        className="text-blue-600 hover:text-blue-700 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                        className="text-blue-600 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Imprimir Etiqueta"
                                     >
                                         <Printer size={20} />
@@ -532,7 +532,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     ) : activeTab === 'suppliers' ? (
                         <div className="space-y-4">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-slate-800 dark:text-white">Lista de Proveedores</h3>
+                                <h3 className="font-bold text-slate-800">Lista de Proveedores</h3>
                                 {isEditing && (
                                     <button
                                         onClick={() => setIsAddingSupplier(true)}
@@ -544,26 +544,26 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                             </div>
 
                             {isAddingSupplier && (
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-200 dark:border-slate-700 animate-fade-in mb-4">
-                                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 block">Nuevo Registro de Compra</h4>
+                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 animate-fade-in mb-4">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-3 block">Nuevo Registro de Compra</h4>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
                                         <div className="col-span-2">
                                             <label className="text-xs text-slate-500 mb-1 block">Proveedor</label>
-                                            <input className="w-full text-sm p-2 rounded border border-slate-300 dark:border-slate-600" placeholder="Nombre del proveedor" value={newSupplier.name} onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })} />
+                                            <input className="w-full text-sm p-2 rounded border border-slate-300" placeholder="Nombre del proveedor" value={newSupplier.name} onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })} />
                                         </div>
                                         {canViewPrice && (
                                             <div>
                                                 <label className="text-xs text-slate-500 mb-1 block">Precio (€)</label>
-                                                <input className="w-full text-sm p-2 rounded border border-slate-300 dark:border-slate-600" type="number" placeholder="0.00" value={isNaN(newSupplier.lastPrice) ? '' : newSupplier.lastPrice} onChange={e => setNewSupplier({ ...newSupplier, lastPrice: e.target.value === '' ? NaN : parseFloat(e.target.value) })} />
+                                                <input className="w-full text-sm p-2 rounded border border-slate-300" type="number" placeholder="0.00" value={isNaN(newSupplier.lastPrice) ? '' : newSupplier.lastPrice} onChange={e => setNewSupplier({ ...newSupplier, lastPrice: e.target.value === '' ? NaN : parseFloat(e.target.value) })} />
                                             </div>
                                         )}
                                         <div>
                                             <label className="text-xs text-slate-500 mb-1 block">Cantidad</label>
-                                            <input className="w-full text-sm p-2 rounded border border-slate-300 dark:border-slate-600" type="number" placeholder="0" value={isNaN(newSupplier.lastQuantity) ? '' : newSupplier.lastQuantity} onChange={e => setNewSupplier({ ...newSupplier, lastQuantity: e.target.value === '' ? NaN : parseInt(e.target.value) })} />
+                                            <input className="w-full text-sm p-2 rounded border border-slate-300" type="number" placeholder="0" value={isNaN(newSupplier.lastQuantity) ? '' : newSupplier.lastQuantity} onChange={e => setNewSupplier({ ...newSupplier, lastQuantity: e.target.value === '' ? NaN : parseInt(e.target.value) })} />
                                         </div>
                                         <div className="col-span-2">
                                             <label className="text-xs text-slate-500 mb-1 block">Fecha</label>
-                                            <input className="w-full text-sm p-2 rounded border border-slate-300 dark:border-slate-600" type="date" value={newSupplier.lastDate} onChange={e => setNewSupplier({ ...newSupplier, lastDate: e.target.value })} />
+                                            <input className="w-full text-sm p-2 rounded border border-slate-300" type="date" value={newSupplier.lastDate} onChange={e => setNewSupplier({ ...newSupplier, lastDate: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="flex justify-end gap-2">
@@ -573,9 +573,9 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                 </div>
                             )}
 
-                            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                            <div className="border border-slate-200 rounded-xl overflow-hidden">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium">
                                         <tr>
                                             <th className="p-3">Proveedor</th>
                                             <th className="p-3">Fecha</th>
@@ -584,13 +584,13 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                             {isEditing && <th className="p-3 w-10"></th>}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                    <tbody className="divide-y divide-slate-100">
                                         {(editedItem.suppliers && editedItem.suppliers.length > 0) ? editedItem.suppliers.map((sup) => (
-                                            <tr key={sup.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{sup.name}</td>
-                                                <td className="p-3 text-slate-500 dark:text-slate-400">{sup.lastDate}</td>
-                                                <td className="p-3 text-right text-slate-700 dark:text-slate-300">{sup.lastQuantity}</td>
-                                                {canViewPrice && <td className="p-3 text-right font-medium text-slate-700 dark:text-slate-200">{sup.lastPrice.toFixed(2)} €</td>}
+                                            <tr key={sup.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="p-3 font-medium text-slate-800">{sup.name}</td>
+                                                <td className="p-3 text-slate-500">{sup.lastDate}</td>
+                                                <td className="p-3 text-right text-slate-700">{sup.lastQuantity}</td>
+                                                {canViewPrice && <td className="p-3 text-right font-medium text-slate-700">{sup.lastPrice.toFixed(2)} €</td>}
                                                 {isEditing && (
                                                     <td className="p-3 text-center">
                                                         <button onClick={() => handleRemoveSupplier(sup.id)} className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors">
@@ -611,7 +611,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     ) : (
                         <div className="space-y-4">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-slate-800 dark:text-white">Equipos Donde se Utiliza</h3>
+                                <h3 className="font-bold text-slate-800">Equipos Donde se Utiliza</h3>
                                 {isEditing && (
                                     <button
                                         onClick={() => setIsLinkingEq(true)}
@@ -623,25 +623,25 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                             </div>
 
                             {isLinkingEq && (
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-200 dark:border-slate-700 animate-fade-in mb-4">
-                                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Buscar Equipo para Vincular</h4>
+                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 animate-fade-in mb-4">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-2">Buscar Equipo para Vincular</h4>
                                     <div className="relative mb-3">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
-                                            className="w-full pl-9 pr-4 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                            className="w-full pl-9 pr-4 py-2 text-sm rounded border border-slate-300 bg-white"
                                             placeholder="Buscar por nombre..."
                                             value={eqSearchTerm}
                                             onChange={(e) => setEqSearchTerm(e.target.value)}
                                             autoFocus
                                         />
                                     </div>
-                                    <div className="max-h-40 overflow-y-auto space-y-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800">
+                                    <div className="max-h-40 overflow-y-auto space-y-1 border border-slate-200 rounded bg-white">
                                         {filteredEquipmentForLinking.length > 0 ? (
                                             filteredEquipmentForLinking.map(eq => (
                                                 <div
                                                     key={eq.id}
                                                     onClick={() => handleLinkEquipment(eq.id)}
-                                                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm flex justify-between items-center"
+                                                    className="p-2 hover:bg-slate-50 cursor-pointer text-sm flex justify-between items-center"
                                                 >
                                                     <span>{eq.name}</span>
                                                     <span className="text-xs text-slate-400">{eq.location}</span>
@@ -657,32 +657,32 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                 </div>
                             )}
 
-                            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                            <div className="border border-slate-200 rounded-xl overflow-hidden">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                                         <tr>
                                             <th className="p-3">Equipo</th>
                                             <th className="p-3">Ubicación</th>
                                             {isEditing && <th className="p-3 w-10"></th>}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                                    <tbody className="divide-y divide-slate-100 bg-white">
                                         {getLinkedEquipment().length > 0 ? getLinkedEquipment().map(eq => (
-                                            <tr key={eq.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                            <tr key={eq.id} className="hover:bg-slate-50 transition-colors">
                                                 <td className="p-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500">
+                                                        <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                                                             <Boxes size={18} />
                                                         </div>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-200">{eq.name}</span>
+                                                        <span className="font-bold text-slate-800">{eq.name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-slate-500 dark:text-slate-400">{eq.location}</td>
+                                                <td className="p-3 text-slate-500">{eq.location}</td>
                                                 {isEditing && (
                                                     <td className="p-3 text-center">
                                                         <button
                                                             onClick={() => handleUnlinkEquipment(eq.id)}
-                                                            className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                            className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
                                                             title="Desvincular"
                                                         >
                                                             <Trash2 size={16} />
@@ -705,14 +705,14 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
 
                     {/* Merging Interface */}
                     {isMerging && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-2xl p-6 space-y-5 animate-in slide-in-from-top-4 duration-300">
+                        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 space-y-5 animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                <h3 className="font-bold text-amber-800 flex items-center gap-2">
                                     <ArrowRightLeft size={20} /> Fusionar Artículo
                                 </h3>
                                 <button 
                                     onClick={() => { setIsMerging(false); setConfirmingMergeId(null); }}
-                                    className="p-1.5 hover:bg-amber-100 dark:hover:bg-amber-800 rounded-lg text-amber-600 dark:text-amber-400"
+                                    className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
                                 >
                                     <X size={18} />
                                 </button>
@@ -720,14 +720,14 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
 
                             {!confirmingMergeId ? (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-amber-700 dark:text-amber-400/80">
+                                    <p className="text-sm text-amber-700">
                                         Selecciona el artículo <strong>original</strong> con el que deseas fusionar este duplicado. 
                                         Todo el historial y stock de <strong>{item.name}</strong> se moverá al artículo que selecciones a continuación.
                                     </p>
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
-                                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-sm"
+                                            className="w-full pl-10 pr-4 py-3 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-sm"
                                             placeholder="Buscar artículo destino por nombre o SKU..."
                                             value={mergeSearchTerm}
                                             onChange={(e) => setMergeSearchTerm(e.target.value)}
@@ -746,14 +746,14 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                                     <button
                                                         key={i.id}
                                                         onClick={() => setConfirmingMergeId(i.id)}
-                                                        className="w-full p-4 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 border border-slate-200 dark:border-amber-900/30 rounded-xl flex items-center justify-between group transition-all"
+                                                        className="w-full p-4 bg-white hover:bg-amber-50 border border-slate-200 rounded-xl flex items-center justify-between group transition-all"
                                                     >
                                                         <div className="flex items-center gap-3 text-left">
-                                                            <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-800 text-slate-500 group-hover:text-amber-600 transition-colors">
+                                                            <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-amber-100 :bg-amber-800 text-slate-500 group-hover:text-amber-600 transition-colors">
                                                                 <Package size={20} />
                                                             </div>
                                                             <div>
-                                                                <div className="font-bold text-slate-800 dark:text-slate-200">{i.name}</div>
+                                                                <div className="font-bold text-slate-800">{i.name}</div>
                                                                 <div className="text-xs text-slate-500 font-mono">{i.sku} · {i.manufacturer || 'Sin marca'}</div>
                                                             </div>
                                                         </div>
@@ -769,19 +769,19 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                 </div>
                             ) : (
                                 <div className="space-y-6">
-                                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800">
+                                    <div className="bg-white p-5 rounded-2xl border-2 border-dashed border-amber-300">
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex-1 text-center">
                                                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Duplicado</div>
-                                                <div className="font-bold text-slate-800 dark:text-white truncate">{item.name}</div>
+                                                <div className="font-bold text-slate-800 truncate">{item.name}</div>
                                                 <div className="text-[10px] font-mono text-slate-500">{item.sku}</div>
                                             </div>
-                                            <div className="p-2 bg-amber-100 dark:bg-amber-800 rounded-full text-amber-600 flex-shrink-0 animate-pulse">
+                                            <div className="p-2 bg-amber-100 rounded-full text-amber-600 flex-shrink-0 animate-pulse">
                                                 <ArrowRight size={20} />
                                             </div>
                                             <div className="flex-1 text-center">
                                                 <div className="text-[10px] font-bold text-amber-600 uppercase mb-1">Destino (Original)</div>
-                                                <div className="font-bold text-slate-800 dark:text-white truncate">
+                                                <div className="font-bold text-slate-800 truncate">
                                                     {inventory.find(i => i.id === confirmingMergeId)?.name}
                                                 </div>
                                                 <div className="text-[10px] font-mono text-slate-500">
@@ -791,9 +791,9 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                         </div>
                                     </div>
 
-                                    <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-xl border border-red-100 dark:border-red-900/30 flex items-start gap-3">
+                                    <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start gap-3">
                                         <AlertTriangle className="text-red-600 shrink-0" size={20} />
-                                        <p className="text-xs text-red-700 dark:text-red-300">
+                                        <p className="text-xs text-red-700">
                                             <strong>Acción irreversible:</strong> {item.name} será <strong>eliminado</strong> permanentemente tras migrar sus datos. Asegúrate de que el artículo de destino es el correcto.
                                         </p>
                                     </div>
@@ -801,7 +801,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setConfirmingMergeId(null)}
-                                            className="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                                            className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors"
                                             disabled={isProcessingMerge}
                                         >
                                             Cambiar Destino
@@ -825,10 +825,10 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
                     >
                         Cerrar
                     </button>
@@ -836,7 +836,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     {!isEditing && canEdit && item.status === 'Active' && !isMerging && (
                         <button
                             onClick={() => setIsMerging(true)}
-                            className="px-4 py-2 text-amber-600 dark:text-amber-400 font-bold rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all flex items-center gap-2"
+                            className="px-4 py-2 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition-all flex items-center gap-2"
                         >
                             <ArrowRightLeft size={18} />
                             Fusionar
@@ -846,7 +846,7 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     {isEditing ? (
                         <button
                             onClick={handleSave}
-                            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all flex items-center gap-2"
+                            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 shadow-lg shadow-ok/20 transition-all flex items-center gap-2"
                         >
                             <Save size={18} />
                             Guardar Cambios

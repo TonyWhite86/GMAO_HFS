@@ -98,7 +98,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             <Modal.Header onClose={onClose}>
                 <div className="flex items-center gap-3">
                     <span>Nueva Actuación Programada</span>
-                    <span className="text-sm px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg font-bold uppercase tracking-wider text-[10px]">Planificado</span>
+                    <span className="text-sm px-2 py-1 bg-warn-dim text-warn rounded-lg font-bold uppercase tracking-wider text-[10px]">Planificado</span>
                 </div>
             </Modal.Header>
 
@@ -120,7 +120,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                         {/* Description */}
                         <div className="md:col-span-2">
                             <div className="flex justify-between items-center mb-1">
-                                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">Descripción</label>
+                                <label className="block text-sm font-medium text-txt-2">Descripción</label>
                                 <VoiceInputButton
                                     onTranscript={(text) => setDescription(prev => prev ? prev + ' ' + text : text)}
                                 />
@@ -135,7 +135,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
 
                         {/* Equipment */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Equipo / Activo *</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Equipo / Activo *</label>
                             <EquipmentSelector
                                 equipment={equipment}
                                 selectedId={equipmentId}
@@ -183,8 +183,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
 
                     {/* Bulk Assignment UI (Conditional) */}
                     {assignedUserId && subtasks.length > 0 && (
-                        <div className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-lg border border-orange-100 dark:border-orange-900/20 animate-in fade-in slide-in-from-top-2">
-                            <h4 className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-2 flex items-center gap-2">
+                        <div className="bg-warn-dim p-4 rounded-lg border border-warn-border animate-in fade-in slide-in-from-top-2">
+                            <h4 className="text-sm font-semibold text-warn mb-2 flex items-center gap-2">
                                 <UserIcon size={14} />
                                 Asignar tareas a {users.find(u => u.id === assignedUserId)?.name}
                             </h4>
@@ -192,10 +192,10 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 {subtasks.map((task, idx) => {
                                     const isAssigned = task.assignedUserIds?.includes(assignedUserId);
                                     return (
-                                        <label key={task.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-white dark:hover:bg-slate-800 p-1.5 rounded transition-colors">
+                                        <label key={task.id} className="flex items-center gap-2 text-sm text-txt-2 cursor-pointer hover:bg-white p-1.5 rounded transition-colors">
                                             <input
                                                 type="checkbox"
-                                                className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                                                className="rounded border-line-2 text-warn focus:ring-warn"
                                                 checked={!!isAssigned}
                                                 onChange={() => {
                                                     const newSubtasks = subtasks.map(t => {
@@ -220,8 +220,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                     )}
 
                     {/* Subtasks Section */}
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                    <div className="border-t border-line pt-4">
+                        <label className="block text-sm font-medium text-txt-2 mb-3 flex items-center gap-2">
                             <ClipboardList size={18} /> Tareas y Asignaciones
                         </label>
 
@@ -234,7 +234,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                         value={newTaskDesc}
                                         onChange={e => setNewTaskDesc(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSubtask())}
-                                        className="w-full p-3 pr-24 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-shadow"
+                                        className="w-full p-3 pr-24 border border-line rounded-xl bg-surface text-txt focus:ring-2 focus:ring-warn outline-none transition-shadow"
                                     />
                                     <div className="absolute right-1 top-1/2 -translate-y-1/2">
                                         <VoiceInputButton
@@ -259,7 +259,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 type="button"
                                 onClick={handleAddSubtask}
                                 disabled={!newTaskDesc.trim()}
-                                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                                className="px-4 py-2 bg-warn hover:bg-warn text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
                             >
                                 <Plus size={18} /> Añadir
                             </button>
@@ -274,15 +274,15 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                     const assignedUser = firstUserId ? users.find(u => u.id === firstUserId) : null;
 
                                     return (
-                                        <div key={task.id} className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 group">
+                                        <div key={task.id} className="flex items-center justify-between p-3 bg-surface-2 rounded-lg border border-line group">
                                             <div className="flex-1">
-                                                <p className="text-slate-800 dark:text-slate-200 text-sm font-medium">{idx + 1}. {task.description}</p>
+                                                <p className="text-txt-2 text-sm font-medium">{idx + 1}. {task.description}</p>
                                                 <div className="flex flex-wrap gap-2 mt-1">
                                                     {task.assignedUserIds?.map(userId => {
                                                         const user = users.find(u => u.id === userId);
                                                         if (!user) return null;
                                                         return (
-                                                            <div key={user.id} className="flex items-center gap-1 text-xs bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                                            <div key={user.id} className="flex items-center gap-1 text-xs bg-surface-3 px-1.5 py-0.5 rounded text-txt-2">
                                                                 <UserIcon size={10} />
                                                                 <span>{user.name}</span>
                                                             </div>
@@ -293,7 +293,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={() => removeSubtask(task.id)}
-                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                className="p-1.5 text-txt-3 hover:text-ko hover:bg-ko-dim rounded-lg transition-colors"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -302,7 +302,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 })}
                             </div>
                         ) : (
-                            <div className="text-center py-6 text-slate-400 dark:text-slate-500 text-sm italic border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                            <div className="text-center py-6 text-txt-3 text-sm italic border-2 border-dashed border-line rounded-lg">
                                 No hay tareas añadidas. Añade al menos una tarea para crear la actuación.
                             </div>
                         )}
@@ -313,14 +313,14 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             <Modal.Footer>
                 <button
                     onClick={onClose}
-                    className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                    className="px-4 py-2 text-txt-2 hover:bg-surface-3 rounded-lg transition-colors font-medium"
                 >
                     Cancelar
                 </button>
                 <button
                     onClick={handleSubmit}
                     disabled={subtasks.length === 0 || !title.trim() || !equipmentId}
-                    className="px-6 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-lg shadow-orange-500/20 disabled:shadow-none transition-all flex items-center gap-2"
+                    className="px-6 py-2 bg-warn hover:bg-warn disabled:bg-warn/50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-lg shadow-warn/20 disabled:shadow-none transition-all flex items-center gap-2"
                 >
                     <Calendar size={18} /> Crear Actuación
                 </button>
