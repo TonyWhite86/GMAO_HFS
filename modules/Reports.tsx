@@ -23,18 +23,18 @@ type EntityType = 'worker' | 'machine' | 'inventory' | 'incident';
 const HistoryTable = ({ data, columns }: { data: any[], columns: { header: string, accessor: (item: any) => React.ReactNode, width?: string }[] }) => (
     <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <thead className="text-xs text-txt-2 uppercase bg-surface-2 border-b border-line">
                 <tr>
                     {columns.map((col, i) => (
                         <th key={i} className={`px-4 py-3 font-medium ${col.width || ''}`}>{col.header}</th>
                     ))}
                 </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody className="divide-y divide-line">
                 {data.map((item, i) => (
-                    <tr key={i} className="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <tr key={i} className="hover:bg-surface-2 transition-colors">
                         {columns.map((col, j) => (
-                            <td key={j} className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">
+                            <td key={j} className="px-4 py-3 whitespace-nowrap text-txt-2">
                                 {col.accessor(item)}
                             </td>
                         ))}
@@ -42,7 +42,7 @@ const HistoryTable = ({ data, columns }: { data: any[], columns: { header: strin
                 ))}
                 {data.length === 0 && (
                     <tr>
-                        <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-400 italic">
+                        <td colSpan={columns.length} className="px-4 py-8 text-center text-txt-3 italic">
                             No hay datos disponibles
                         </td>
                     </tr>
@@ -151,13 +151,13 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 text-xl font-bold">
+            <div className="flex items-center gap-4 pb-4 border-b border-line">
+                <div className="w-16 h-16 rounded-full bg-accent-dim flex items-center justify-center text-accent text-xl font-bold">
                     {worker.name.charAt(0)}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{worker.name}</h2>
-                    <p className="text-slate-500">{worker.role} • {worker.email}</p>
+                    <h2 className="text-2xl font-bold text-txt">{worker.name}</h2>
+                    <p className="text-txt-2">{worker.role} • {worker.email}</p>
                 </div>
             </div>
 
@@ -187,7 +187,7 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
                     icon={Activity}
                     color="purple"
                 />
-                <div className={stats.manualPct >= 50 ? 'ring-2 ring-amber-400 rounded-xl' : ''}>
+                <div className={stats.manualPct >= 50 ? 'ring-2 ring-warn rounded-xl' : ''}>
                     <StatCard
                         title="Tiempo a mano"
                         value={`${stats.manualPct.toFixed(0)}%`}
@@ -197,7 +197,7 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
                 </div>
             </div>
             {stats.manualPct >= 50 && stats.count > 0 && (
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm">
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-warn-dim border border-warn-border text-warn text-sm">
                     <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                     <p>
                         <strong>Atención:</strong> {stats.manualPct.toFixed(0)}% del tiempo de este trabajador
@@ -208,24 +208,24 @@ const WorkerDetails = ({ worker, workOrders, inventory }: { worker: User, workOr
             )}
 
             {/* History Table */}
-            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-white">
+            <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-line font-bold text-txt">
                     Historial de Trabajos Recientes
                 </div>
                 <HistoryTable
                     data={stats.history.slice(0, 10)}
                     columns={[
                         { header: 'Fecha', accessor: (wo) => new Date(wo.createdAt).toLocaleDateString() },
-                        { header: 'Orden', accessor: (wo) => <span className="font-medium text-blue-600 hover:underline cursor-pointer">{wo.id}</span> },
+                        { header: 'Orden', accessor: (wo) => <span className="font-medium text-accent hover:underline cursor-pointer">{wo.id}</span> },
                         { header: 'Tarea', accessor: (wo) => wo.title },
-                        { header: 'Tiempo', accessor: (wo) => <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs">{getDuration(wo)} min</span> },
+                        { header: 'Tiempo', accessor: (wo) => <span className="px-2 py-1 rounded bg-surface-2 text-xs">{getDuration(wo)} min</span> },
                         {
                             header: 'Origen',
                             accessor: (wo) => wo.timeSource === 'manual'
-                                ? <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase">Manual</span>
+                                ? <span className="px-2 py-1 rounded bg-warn-dim text-warn text-[10px] font-bold uppercase">Manual</span>
                                 : wo.timeSource === 'sesion'
-                                    ? <span className="px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase">Medido</span>
-                                    : <span className="text-slate-400 text-xs">—</span>
+                                    ? <span className="px-2 py-1 rounded bg-ok-dim text-ok text-[10px] font-bold uppercase">Medido</span>
+                                    : <span className="text-txt-3 text-xs">—</span>
                         },
                         {
                             header: 'Coste',
@@ -297,13 +297,13 @@ const MachineDetails = ({ machine, workOrders, inventory }: { machine: Equipment
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                <div className="w-16 h-16 rounded-lg bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-600 dark:text-orange-300 text-xl font-bold">
+            <div className="flex items-center gap-4 pb-4 border-b border-line">
+                <div className="w-16 h-16 rounded-lg bg-warn-dim flex items-center justify-center text-warn text-xl font-bold">
                     <Wrench size={32} />
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{machine.code ? `[${machine.code}] ` : ''}{machine.name}</h2>
-                    <p className="text-slate-500">{machine.location} • {machine.serialNumber}</p>
+                    <h2 className="text-2xl font-bold text-txt">{machine.code ? `[${machine.code}] ` : ''}{machine.name}</h2>
+                    <p className="text-txt-2">{machine.location} • {machine.serialNumber}</p>
                 </div>
             </div>
 
@@ -336,15 +336,15 @@ const MachineDetails = ({ machine, workOrders, inventory }: { machine: Equipment
             </div>
 
             {/* Breakdown History */}
-            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-white">
+            <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-line font-bold text-txt">
                     Historial de Intervenciones
                 </div>
                 <HistoryTable
                     data={stats.history.slice(0, 10)}
                     columns={[
                         { header: 'Fecha', accessor: (wo) => new Date(wo.createdAt).toLocaleDateString() },
-                        { header: 'Tipo', accessor: (wo) => <span className={`px-2 py-0.5 rounded text-xs font-medium ${wo.type === WOType.CORRECTIVE ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{wo.type}</span> },
+                        { header: 'Tipo', accessor: (wo) => <span className={`px-2 py-0.5 rounded text-xs font-medium ${wo.type === WOType.CORRECTIVE ? 'bg-ko-dim text-ko' : 'bg-accent-dim text-accent'}`}>{wo.type}</span> },
                         { header: 'Problema', accessor: (wo) => wo.title },
                         { header: 'Estado', accessor: (wo) => wo.status },
                         {
@@ -397,13 +397,13 @@ const InventoryDetails = ({ item, workOrders, inventory }: { item: InventoryItem
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                <div className="w-16 h-16 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-300 text-xl font-bold">
+            <div className="flex items-center gap-4 pb-4 border-b border-line">
+                <div className="w-16 h-16 rounded-lg bg-ok-dim flex items-center justify-center text-ok text-xl font-bold">
                     <Box size={32} />
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{item.name}</h2>
-                    <p className="text-slate-500">SKU: {item.sku} • {item.location}</p>
+                    <h2 className="text-2xl font-bold text-txt">{item.name}</h2>
+                    <p className="text-txt-2">SKU: {item.sku} • {item.location}</p>
                 </div>
             </div>
 
@@ -432,24 +432,24 @@ const InventoryDetails = ({ item, workOrders, inventory }: { item: InventoryItem
             </div>
 
             {/* Details Table mocked for movements */}
-            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-4">Detalles del Ítem</h3>
+            <div className="bg-surface rounded-xl border border-line shadow-sm p-6">
+                <h3 className="font-bold text-txt mb-4">Detalles del Ítem</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between border-b pb-2">
-                        <span className="text-slate-500">Categoría</span>
-                        <span className="font-medium text-slate-800 dark:text-white">{item.category}</span>
+                        <span className="text-txt-2">Categoría</span>
+                        <span className="font-medium text-txt">{item.category}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
-                        <span className="text-slate-500">Proveedor</span>
-                        <span className="font-medium text-slate-800 dark:text-white">{item.supplier}</span>
+                        <span className="text-txt-2">Proveedor</span>
+                        <span className="font-medium text-txt">{item.supplier}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
-                        <span className="text-slate-500">Precio Unitario</span>
-                        <span className="font-medium text-slate-800 dark:text-white">{item.price.toFixed(2)} €</span>
+                        <span className="text-txt-2">Precio Unitario</span>
+                        <span className="font-medium text-txt">{item.price.toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
-                        <span className="text-slate-500">Criticidad</span>
-                        <span className={`font-medium ${item.critic === 'Alta' ? 'text-red-600' : 'text-slate-800 dark:text-white'}`}>{item.critic}</span>
+                        <span className="text-txt-2">Criticidad</span>
+                        <span className={`font-medium ${item.critic === 'Alta' ? 'text-ko' : 'text-txt'}`}>{item.critic}</span>
                     </div>
                 </div>
             </div>
@@ -470,22 +470,22 @@ import { useAppStore } from '../store/useAppStore';
 const DistributionBars = ({ title, data }: { title: string, data: { value: string, count: number }[] }) => {
     const maxCount = Math.max(...data.map(d => d.count), 0);
     return (
-        <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-3">{title}</h3>
+        <div className="bg-surface rounded-xl border border-line shadow-sm p-4">
+            <h3 className="font-bold text-txt text-sm mb-3">{title}</h3>
             <div className="space-y-2">
                 {data.map(d => (
                     <div key={d.value} className="flex items-center gap-2 text-xs">
-                        <span className="w-32 truncate text-slate-500 dark:text-slate-400" title={d.value}>{d.value}</span>
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                        <span className="w-32 truncate text-txt-2" title={d.value}>{d.value}</span>
+                        <div className="flex-1 bg-surface-2 rounded-full h-2">
                             <div
-                                className="bg-blue-600 h-2 rounded-full"
+                                className="bg-accent h-2 rounded-full"
                                 style={{ width: `${maxCount > 0 ? (d.count / maxCount) * 100 : 0}%` }}
                             />
                         </div>
-                        <span className="w-8 text-right font-bold text-slate-600 dark:text-slate-300">{d.count}</span>
+                        <span className="w-8 text-right font-bold text-txt-2">{d.count}</span>
                     </div>
                 ))}
-                {data.length === 0 && <p className="text-xs text-slate-400">Sin datos</p>}
+                {data.length === 0 && <p className="text-xs text-txt-3">Sin datos</p>}
             </div>
         </div>
     );
@@ -534,12 +534,12 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
     return (
         <div className="p-6 space-y-6 overflow-y-auto h-full custom-scrollbar">
             <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                <div className="w-12 h-12 rounded-lg bg-accent-dim flex items-center justify-center text-accent">
                     <AlertCircle size={24} />
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{categoryName}</h2>
-                    <p className="text-slate-500 text-sm">Estadísticas de incidencias en el rango seleccionado</p>
+                    <h2 className="text-2xl font-bold text-txt">{categoryName}</h2>
+                    <p className="text-txt-2 text-sm">Estadísticas de incidencias en el rango seleccionado</p>
                 </div>
             </div>
 
@@ -558,14 +558,14 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
             </div>
 
             {/* Monthly trend */}
-            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
-                <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-3">Evolución mensual (últimos 12 meses)</h3>
+            <div className="bg-surface rounded-xl border border-line shadow-sm p-4">
+                <h3 className="font-bold text-txt text-sm mb-3">Evolución mensual (últimos 12 meses)</h3>
                 <div className="flex items-end gap-1.5 h-32">
                     {monthly.map(m => (
                         <div key={m.key} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                            <span className="text-[10px] font-bold text-slate-500">{m.count > 0 ? m.count : ''}</span>
-                            <div className="w-full bg-blue-600 rounded-t" style={{ height: `${maxMonthly > 0 ? Math.max((m.count / maxMonthly) * 90, m.count > 0 ? 6 : 2) : 2}%` }} />
-                            <span className="text-[10px] text-slate-400 truncate w-full text-center capitalize">{m.label}</span>
+                            <span className="text-[10px] font-bold text-txt-2">{m.count > 0 ? m.count : ''}</span>
+                            <div className="w-full bg-accent rounded-t" style={{ height: `${maxMonthly > 0 ? Math.max((m.count / maxMonthly) * 90, m.count > 0 ? 6 : 2) : 2}%` }} />
+                            <span className="text-[10px] text-txt-3 truncate w-full text-center capitalize">{m.label}</span>
                         </div>
                     ))}
                 </div>
@@ -579,8 +579,8 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
             </div>
 
             {/* Resolved table with reason & solution */}
-            <div className="bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-white">
+            <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-line font-bold text-txt">
                     Resueltas — motivo y solución
                 </div>
                 <HistoryTable
@@ -790,7 +790,7 @@ export const ReportsModule: React.FC = () => {
     }, [selectedId, listItems]);
 
     const renderDetailView = () => {
-        if (!selectedId) return <div className="flex items-center justify-center h-full text-slate-400">Selecciona un elemento</div>;
+        if (!selectedId) return <div className="flex items-center justify-center h-full text-txt-3">Selecciona un elemento</div>;
 
         if (activeType === 'worker') {
             const worker = users.find(u => u.id === selectedId);
@@ -821,27 +821,27 @@ export const ReportsModule: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] -m-6 text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800">
+        <div className="flex flex-col h-[calc(100vh-80px)] -m-6 text-txt-2 bg-surface-2">
             {/* Top Navigation Bar */}
-            <div className="bg-white dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700 px-6 py-3 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm z-10">
+            <div className="bg-surface border-b border-line px-6 py-3 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm z-10">
                 <div className="flex items-center gap-4 flex-1 w-full md:w-auto">
                     <div className="flex items-center gap-2">
-                        <LayoutDashboard className="text-blue-600" />
+                        <LayoutDashboard className="text-accent" />
                         <h1 className="text-xl font-bold">Dashboard</h1>
                     </div>
 
                     {/* Date Filters */}
-                    <div className="hidden md:flex items-center gap-2 text-sm bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                    <div className="hidden md:flex items-center gap-2 text-sm bg-surface-2 p-1 rounded-lg">
                         <input
                             type="date"
-                            className="bg-transparent border-none outline-none text-slate-600 dark:text-slate-300 px-2"
+                            className="bg-transparent border-none outline-none text-txt-2 px-2"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
-                        <span className="text-slate-400">→</span>
+                        <span className="text-txt-3">→</span>
                         <input
                             type="date"
-                            className="bg-transparent border-none outline-none text-slate-600 dark:text-slate-300 px-2"
+                            className="bg-transparent border-none outline-none text-txt-2 px-2"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                         />
@@ -850,7 +850,7 @@ export const ReportsModule: React.FC = () => {
 
                 <div className="flex items-center gap-3 w-full md:w-auto justify-between">
                     {/* Entity Switcher */}
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                    <div className="flex bg-surface-2 p-1 rounded-lg">
                         {[
                             { id: 'worker', label: 'Trabajadores', icon: Users },
                             { id: 'machine', label: 'Equipos', icon: Wrench },
@@ -861,8 +861,8 @@ export const ReportsModule: React.FC = () => {
                                 key={type.id}
                                 onClick={() => { setActiveType(type.id as EntityType); setSelectedId(null); setSearchTerm(''); }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeType === type.id
-                                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    ? 'bg-surface text-accent shadow-sm'
+                                    : 'text-txt-2 hover:text-txt-2 '
                                     }`}
                             >
                                 <type.icon size={16} />
@@ -875,7 +875,7 @@ export const ReportsModule: React.FC = () => {
                     <button
                         onClick={handleExport}
                         disabled={!selectedId}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-3 py-1.5 btn btn-primary text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Exportar datos visibles a CSV"
                     >
                         <Download size={16} />
@@ -888,12 +888,12 @@ export const ReportsModule: React.FC = () => {
             <div className="flex flex-1 overflow-hidden">
 
                 {/* Left Sidebar: Explorer */}
-                <div className="w-80 bg-white dark:bg-slate-700 border-r border-slate-200 dark:border-slate-700 flex flex-col z-0">
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                <div className="w-80 bg-surface border-r border-line flex flex-col z-0">
+                    <div className="p-4 border-b border-line">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={16} />
                             <input
-                                className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full bg-surface-2 border-none rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-accent outline-none"
                                 placeholder={`Buscar ${activeType === 'worker' ? 'trabajador' : activeType === 'machine' ? 'equipo' : 'repuesto'}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -906,25 +906,25 @@ export const ReportsModule: React.FC = () => {
                                 key={item.id}
                                 onClick={() => setSelectedId(item.id)}
                                 className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center justify-between group ${selectedId === item.id
-                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                                    : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                                    ? 'bg-accent-dim text-accent ring-1 ring-accent-border '
+                                    : 'hover:bg-surface-2 '
                                     }`}
                             >
                                 <div>
                                     <div className="font-medium">{item.name}</div>
-                                    <div className="text-xs text-slate-400 mt-0.5">{item.sub}</div>
+                                    <div className="text-xs text-txt-3 mt-0.5">{item.sub}</div>
                                 </div>
                                 {selectedId === item.id && <ChevronRight size={16} />}
                             </button>
                         ))}
                     </div>
-                    <div className="p-3 text-center text-xs text-slate-400 border-t border-slate-100 dark:border-slate-700">
+                    <div className="p-3 text-center text-xs text-txt-3 border-t border-line">
                         {listItems.length} elementos encontrados
                     </div>
                 </div>
 
                 {/* Right Panel: Deep Dive Details */}
-                <div className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-800 p-6 md:p-8">
+                <div className="flex-1 overflow-y-auto bg-surface-2 p-6 md:p-8">
                     <div className="max-w-6xl mx-auto">
                         {renderDetailView()}
                     </div>

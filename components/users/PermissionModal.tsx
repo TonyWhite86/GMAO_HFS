@@ -46,14 +46,14 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
         <Modal onClose={onClose} size="md">
             <Modal.Header
                 onClose={onClose}
-                icon={<div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400"><Shield size={20} /></div>}
+                icon={<div className="p-2 bg-accent-dim rounded-lg text-accent"><Shield size={20} /></div>}
             >
                 Permisos: {user.name}
             </Modal.Header>
 
             <Modal.Body>
                 {isAdmin ? (
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-sm text-blue-700 dark:text-blue-300 flex items-center gap-3">
+                    <div className="p-4 bg-accent-dim border border-accent-border rounded-xl text-sm text-accent flex items-center gap-3">
                         <Shield size={20} />
                         Los administradores tienen acceso total a todos los módulos.
                     </div>
@@ -64,10 +64,10 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
                                 const currentLevel = getLevel(mod.id);
                                 const isSaving = savingModule === mod.id;
                                 return (
-                                    <div key={mod.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-600">
+                                    <div key={mod.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-2 border border-line">
                                         <div>
-                                            <span className="font-medium text-slate-800 dark:text-white text-sm">{mod.label}</span>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            <span className="font-medium text-txt text-sm">{mod.label}</span>
+                                            <p className="text-xs text-txt-2 mt-0.5">
                                                 {PERMISSION_LEVELS.find(l => l.id === currentLevel)?.description}
                                             </p>
                                         </div>
@@ -81,13 +81,13 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
                                                         onClick={() => handleLevelChange(mod.id, pl.id)}
                                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${isActive
                                                             ? pl.id === 'sin_acceso'
-                                                                ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+                                                                ? 'bg-ko-dim text-ko border-ko-border  text-ko '
                                                                 : pl.id === 'consulta'
-                                                                    ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+                                                                    ? 'bg-accent-dim text-accent border-accent-border  text-accent '
                                                                     : pl.id === 'parcial'
-                                                                        ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800'
-                                                                        : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
-                                                            : 'bg-white dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                                                                        ? 'bg-warn-dim text-warn border-warn-border  text-warn '
+                                                                        : 'bg-ok-dim text-ok border-ok-border'
+                                                            : 'bg-surface text-txt-3 border-line hover:border-line-2'
                                                             } ${isSaving ? 'opacity-50 cursor-wait' : ''}`}
                                                     >
                                                         {pl.label}
@@ -100,13 +100,13 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
                             })}
                         </div>
 
-                        <div className="border-t border-slate-200 dark:border-slate-600 pt-4">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <div className="border-t border-line pt-4">
+                            <label className="block text-sm font-medium text-txt-2 mb-2">
                                 Copiar permisos de otro usuario
                             </label>
                             <div className="flex gap-2">
                                 <select
-                                    className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="flex-1 p-2 border border-line rounded-lg bg-surface text-txt focus:ring-2 focus:ring-accent outline-none text-sm"
                                     value={copyUserId}
                                     onChange={e => setCopyUserId(e.target.value)}
                                 >
@@ -120,7 +120,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
                                 <button
                                     disabled={!copyUserId}
                                     onClick={handleCopy}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2 text-sm shadow-lg shadow-blue-600/20"
+                                    className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-2 disabled:opacity-50 transition-colors flex items-center gap-2 text-sm shadow-lg shadow-accent/20"
                                 >
                                     <Copy size={16} />
                                     Copiar
@@ -134,7 +134,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ user, onClose 
             <Modal.Footer>
                 <button
                     onClick={onClose}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2"
+                    className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-2 transition-colors shadow-lg shadow-accent/20 flex items-center gap-2"
                 >
                     <Check size={16} />
                     Cerrar

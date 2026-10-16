@@ -76,52 +76,52 @@ export const SkillsManagementModal: React.FC<SkillsManagementModalProps> = ({ is
         <Modal onClose={onClose} size="lg">
             <Modal.Header
                 onClose={onClose}
-                icon={<div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400"><Book size={20} /></div>}
+                icon={<div className="p-2 bg-accent-dim rounded-lg text-accent"><Book size={20} /></div>}
             >
                 Gestión de Habilidades
             </Modal.Header>
 
             <Modal.Body>
                 {/* Create Form */}
-                <form onSubmit={handleCreateSkill} className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
-                    <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">Nueva Habilidad</h3>
+                <form onSubmit={handleCreateSkill} className="bg-surface-2 p-4 rounded-xl border border-line space-y-4">
+                    <h3 className="font-semibold text-sm text-txt-2">Nueva Habilidad</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Nombre</label>
+                            <label className="block text-xs font-medium text-txt-2 mb-1">Nombre</label>
                             <input
                                 type="text"
                                 value={newSkillName}
                                 onChange={(e) => setNewSkillName(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-accent outline-none"
                                 placeholder="Ej. Soldadura TIG"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Categoría</label>
+                            <label className="block text-xs font-medium text-txt-2 mb-1">Categoría</label>
                             <select
                                 value={newSkillCategory}
                                 onChange={(e) => setNewSkillCategory(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-accent outline-none"
                             >
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Descripción (Opcional)</label>
+                        <label className="block text-xs font-medium text-txt-2 mb-1">Descripción (Opcional)</label>
                         <input
                             type="text"
                             value={newSkillDesc}
                             onChange={(e) => setNewSkillDesc(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-accent outline-none"
                             placeholder="Breve descripción..."
                         />
                     </div>
                     <div className="flex justify-end">
                         <button
                             type="submit"
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                            className="btn btn-primary text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                         >
                             <Plus size={16} />
                             Añadir Habilidad
@@ -131,32 +131,32 @@ export const SkillsManagementModal: React.FC<SkillsManagementModalProps> = ({ is
 
                 {/* Skills List */}
                 <div className="space-y-4">
-                    <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">Habilidades Existentes ({skills.length})</h3>
+                    <h3 className="font-semibold text-sm text-txt-2">Habilidades Existentes ({skills.length})</h3>
                     {loading ? (
-                        <div className="text-center py-8 text-slate-500">Cargando...</div>
+                        <div className="text-center py-8 text-txt-2">Cargando...</div>
                     ) : skills.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                        <div className="text-center py-8 text-txt-2 border-2 border-dashed border-line rounded-xl">
                             No hay habilidades definidas
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-3">
                             {skills.map(skill => (
-                                <div key={skill.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-sm transition-shadow">
+                                <div key={skill.id} className="flex items-center justify-between p-3 bg-surface border border-line rounded-xl hover:shadow-sm transition-shadow">
                                     <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                                        <div className="p-2 bg-accent-dim text-accent rounded-lg">
                                             <Tag size={18} />
                                         </div>
                                         <div>
-                                            <div className="font-medium text-slate-900 dark:text-white">{skill.name}</div>
-                                            <div className="text-xs text-slate-500 dark:text-slate-400 flex gap-2">
-                                                <span className="font-semibold text-slate-600 dark:text-slate-300">{skill.category}</span>
+                                            <div className="font-medium text-txt">{skill.name}</div>
+                                            <div className="text-xs text-txt-2 flex gap-2">
+                                                <span className="font-semibold text-txt-2">{skill.category}</span>
                                                 {skill.description && <span>• {skill.description}</span>}
                                             </div>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => handleDeleteSkill(skill.id)}
-                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        className="p-2 text-txt-3 hover:text-ko hover:bg-ko-dim rounded-lg transition-colors"
                                         title="Eliminar"
                                     >
                                         <Trash2 size={18} />
