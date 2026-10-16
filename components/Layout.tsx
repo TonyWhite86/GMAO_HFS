@@ -1,25 +1,75 @@
-import React, { useState } from 'react';
-import { BRANDING } from '../branding';
-import { Menu, X, ClipboardList, Calendar, Box, Users, Wrench, LogOut, Sun, Moon, LayoutDashboard, ChevronLeft, ChevronRight, BarChart3, Plus, AlertCircle, CalendarClock } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ClipboardList, Calendar, Box, Users, Wrench, LogOut, LayoutDashboard, BarChart3, Plus, AlertCircle, CalendarClock, Sun, Moon, Palette } from 'lucide-react';
+import { BRANDING } from '../branding';
 import { useAppStore } from '../store/useAppStore';
-import { UserRole, WOStatus, IncidentStatus } from '../types';
+import { WOStatus, IncidentStatus } from '../types';
 import { useRestrictedItems } from '../hooks/useFilteredData';
 import { canSeeIncident } from '../utils/incidentVisibility';
 import { usePermissions } from '../hooks/usePermissions';
-import { useMemo } from 'react';
+import { ThemeId } from '../store/slices/createUISlice';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
+
+const THEME_OPTIONS: { id: ThemeId; label: string; swatch: string; ring: boolean }[] = [
+  { id: 'azul', label: 'Azul', swatch: '#2563eb', ring: true },
+  { id: 'claro', label: 'Claro', swatch: '#e9ecef', ring: true },
+  { id: 'oscuro', label: 'Oscuro', swatch: '#0f1117', ring: true },
+  { id: 'suave', label: 'Suave', swatch: '#c2764a', ring: true },
+];
+
+const Clock: React.FC = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div className="flex items-center gap-2.5 select-none">
+      <span className="text-[11px] font-medium" style={{ color: 'var(--topbar-sub)' }}>
+        {now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+      </span>
+      <span className="font-mono text-[13px] font-bold" style={{ color: 'var(--topbar-text)' }}>
+        {now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+      </span>
+    </div>
+  );
+};
+
+const ThemeSelector: React.FC<{ compact?: boolean }> = ({ compact }) => {
+  const theme = useAppStore(s => s.theme);
+  const setTheme = useAppStore(s => s.setTheme);
+  return (
+    <div className={`flex items-center gap-1.5 ${compact ? '' : 'mt-2.5'}`}>
+      {!compact && (
+        <Palette size={13} className="shrink-0" style={{ color: 'var(--sidebar-text3)' }} />
+      )}
+      {THEME_OPTIONS.map(t => (
+        <button
+          key={t.id}
+          onClick={() => setTheme(t.id)}
+          title={`Tema ${t.label}`}
+          aria-label={`Tema ${t.label}`}
+          aria-pressed={theme === t.id}
+          className="w-[18px] h-[18px] rounded-full border transition-transform hover:scale-110 active:scale-95"
+          style={{
+            background: t.swatch,
+            borderColor: 'rgba(255,255,255,.35)',
+            boxShadow: theme === t.id ? '0 0 0 2px var(--sidebar-logo-color)' : 'none',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const {
     currentUser,
     activeModule,
     setActiveModule,
-    isDarkMode,
-    toggleTheme,
     logout,
     setCreationMode
   } = useAppStore();
@@ -33,7 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const canAccessInventory = useMemo(() => {
     if (!currentUser) return false;
-    if (currentUser.role === UserRole.ADMIN) return true;
+    if (currentUser.role === 'Admin') return true;
     const perm = userPermissions.find(p => p.userId === currentUser.id && p.module === 'inventory');
     return (perm?.level ?? 'sin_acceso') !== 'sin_acceso';
   }, [userPermissions, currentUser?.id, currentUser?.role]);
@@ -65,233 +115,259 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     [visibleIncidents]
   );
 
-  const badgeCounts: Record<string, number> = useMemo(() => ({
-    maintenance: unassignedCount,
-    inventory: lowStockCount,
-    incidents: openIncidentCount,
-  }), [unassignedCount, lowStockCount, openIncidentCount]);
-
-  const badgeColors: Record<string, string> = {
-    maintenance: 'bg-red-500',
-    inventory: 'bg-amber-500',
-    incidents: 'bg-red-500',
-  };
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   // Safety check if user is null (should only happen if redirected to login)
   if (!currentUser) return null;
 
-  const navItems = [
+  const isObserver = currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2';
+
+  const navSections: { label: string; items: { id: string; label: string; icon: React.ElementType; restricted: boolean }[] }[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      restricted: currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
+      label: 'Principal',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, restricted: isObserver },
+      ],
     },
     {
-      id: 'maintenance',
-      label: 'Mantenimiento',
-      icon: ClipboardList,
-      restricted: currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
+      label: 'Operación',
+      items: [
+        { id: 'maintenance', label: 'Mantenimiento', icon: ClipboardList, restricted: isObserver },
+        { id: 'scheduler', label: 'Programador', icon: Calendar, restricted: isObserver },
+        { id: 'stoppages', label: 'Paradas', icon: CalendarClock, restricted: !canViewStoppages },
+        { id: 'incidents', label: 'Incidencias', icon: AlertCircle, restricted: false },
+      ],
     },
     {
-      id: 'scheduler',
-      label: 'Programador',
-      icon: Calendar,
-      restricted: currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
+      label: 'Activos',
+      items: [
+        { id: 'equipment', label: 'Equipos', icon: Wrench, restricted: isObserver },
+        { id: 'inventory', label: 'Inventario', icon: Box, restricted: !canAccessInventory },
+      ],
     },
     {
-      id: 'stoppages',
-      label: 'Paradas',
-      icon: CalendarClock,
-      restricted: !canViewStoppages
+      label: 'Gestión',
+      items: [
+        { id: 'reports', label: 'Informes', icon: BarChart3, restricted: currentUser.role === 'Técnico' || isObserver },
+        { id: 'users', label: 'Usuarios', icon: Users, restricted: currentUser.role !== 'Admin' },
+      ],
     },
-    {
-      id: 'equipment',
-      label: 'Equipos',
-      icon: Wrench,
-      restricted: currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
-    },
-    {
-      id: 'inventory',
-      label: 'Inventario',
-      icon: Box,
-      restricted: !canAccessInventory
-    },
-    {
-      id: 'reports',
-      label: 'Informes',
-      icon: BarChart3,
-      restricted: currentUser.role === 'Técnico' || currentUser.role === 'Observador N1' || currentUser.role === 'Observador N2'
-    },
-    { id: 'incidents', label: 'Incidencias', icon: AlertCircle },
-    { id: 'users', label: 'Usuarios', icon: Users, restricted: currentUser.role !== 'Admin' },
   ];
+
+  const badgeCounts: Record<string, number> = {
+    maintenance: unassignedCount,
+    inventory: lowStockCount,
+    incidents: openIncidentCount,
+  };
+  const badgeTone: Record<string, string> = {
+    maintenance: '',
+    inventory: 'amber',
+    incidents: '',
+  };
 
   const handleNavigate = (module: string) => {
     setActiveModule(module);
   };
 
   return (
-    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300 font-sans">
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 z-30 lg:hidden backdrop-blur-sm transition-opacity"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 transform transition-all duration-300 ease-in-out
-        bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800
-        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl w-72' : '-translate-x-full lg:translate-x-0'}
-        lg:shadow-none ${isCollapsed ? 'w-20' : 'w-72 lg:w-64'} flex flex-col
-      `}>
-        {/* Toggle Button (Desktop Only) */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 shadow-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors z-50 active:scale-95"
-          title={isCollapsed ? "Expandir menú" : "Contraer menú"}
-        >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-
-        {/* Logo Section */}
-        <div className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-between p-6'} mb-2`}>
-          <div className="flex items-center group min-w-0">
-            {BRANDING.logo ? (
-              <>
-                <img src={BRANDING.logo} alt="Logo" className={`${isCollapsed ? 'w-16' : 'w-40'} max-w-full h-auto object-contain dark:hidden`} />
-                {BRANDING.logoDark && (
-                  <img src={BRANDING.logoDark} alt="Logo" className={`${isCollapsed ? 'w-16' : 'w-40'} max-w-full h-auto object-contain hidden dark:block`} />
-                )}
-              </>
-            ) : (
-              <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/30 transition-shadow">
-                <Wrench size={20} />
-              </div>
-            )}
-          </div>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 space-y-1">
-          {!isCollapsed && (
-            <div className="px-3 mb-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider animate-fade-in">
-              Menú principal
+    <div className="flex h-[100dvh] overflow-hidden font-sans" style={{ background: 'var(--bg)' }}>
+      {/* Sidebar (escritorio) */}
+      <aside
+        className="hidden lg:flex flex-col flex-shrink-0 w-[230px] transition-colors duration-300"
+        style={{ background: 'var(--sidebar-bg)', boxShadow: 'var(--sidebar-shadow)' }}
+      >
+        {/* Logo */}
+        <div className="nav-logo">
+          {BRANDING.icon ? (
+            <img src={BRANDING.icon} alt="" className="nav-logo-icon object-cover" />
+          ) : (
+            <div className="nav-logo-icon">
+              <Wrench size={18} style={{ color: 'var(--sidebar-logo-color)' }} />
             </div>
           )}
-          {navItems.map((item) => {
-            if (item.restricted) return null;
-            const Icon = item.icon;
-            const isActive = activeModule === item.id;
-            const badge = badgeCounts[item.id] ?? 0;
-            const badgeColor = badgeColors[item.id] ?? 'bg-red-500';
+          <div className="min-w-0">
+            <h1 className="truncate">{BRANDING.appName}</h1>
+            <p className="truncate">{BRANDING.appSubtitle}</p>
+          </div>
+        </div>
+
+        {/* Navegación */}
+        <nav className="flex-1 overflow-y-auto py-1">
+          {navSections.map((section) => {
+            const items = section.items.filter(item => !item.restricted);
+            if (items.length === 0) return null;
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  handleNavigate(item.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`
-                  w-full flex items-center ${isCollapsed ? 'justify-center px-0 py-3' : 'space-x-3 px-3 py-2.5'} rounded-lg transition-all duration-200 group active:scale-[0.98]
-                  ${isActive
-                    ? 'bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-white font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}
-                `}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <span className="relative flex-shrink-0">
-                  <Icon size={20} className={`transition-colors ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
-                  {isCollapsed && badge > 0 && (
-                    <span className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full ${badgeColor} text-white text-[9px] font-bold flex items-center justify-center leading-none`}>
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                </span>
-                {!isCollapsed && <span className="whitespace-nowrap overflow-hidden animate-fade-in text-sm text-left">{item.label}</span>}
-                {!isCollapsed && badge > 0 && (
-                  <span className={`flex-shrink-0 ml-auto min-w-[20px] h-5 px-1.5 rounded-full ${badgeColor} text-white text-[11px] font-bold flex items-center justify-center leading-none`}>
-                    {badge > 99 ? '99+' : badge}
-                  </span>
-                )}
-              </button>
+              <div key={section.label}>
+                <div className="nav-section">{section.label}</div>
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeModule === item.id;
+                  const badge = badgeCounts[item.id] ?? 0;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavigate(item.id)}
+                      className={`nav-item w-[calc(100%-16px)] text-left ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon size={17} />
+                      <span className="truncate">{item.label}</span>
+                      {badge > 0 && (
+                        <span className={`nav-badge ${badgeTone[item.id] ?? ''}`}>
+                          {badge > 99 ? '99+' : badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
 
-        {/* Footer / User Profile */}
-        <div className={`p-3 m-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 ${isCollapsed ? 'flex flex-col items-center gap-2 p-2 mx-2' : ''}`}>
-
-          <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-3'}`}>
-            <div className="w-9 h-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 dark:from-slate-600 dark:to-slate-500 flex items-center justify-center text-sm font-bold text-white ring-2 ring-white dark:ring-slate-800">
-              {currentUser.name.charAt(0)}
-            </div>
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0 animate-fade-in">
-                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{currentUser.name}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentUser.role}</p>
+        {/* Pie: usuario + tema + logout */}
+        <div className="nav-user">
+          <div className="nav-user-card">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08))',
+                  border: '1px solid rgba(255,255,255,.2)',
+                  color: 'var(--sidebar-logo-color)',
+                }}
+              >
+                {currentUser.name.charAt(0)}
               </div>
-            )}
-            <button
-              onClick={toggleTheme}
-              className={`p-1.5 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-amber-500 dark:hover:text-amber-300 transition-colors active:scale-95 ${isCollapsed ? 'w-full flex justify-center' : ''}`}
-              title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
-            >
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <div className={`${isCollapsed ? 'w-6 h-px my-1' : 'w-px h-6 mx-1'} bg-slate-200 dark:bg-slate-700`}></div>
-            <button
-              onClick={logout}
-              className={`p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-300 transition-colors active:scale-95 ${isCollapsed ? 'w-full flex justify-center' : ''}`} title="Cerrar Sesión">
-              <LogOut size={16} />
-            </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold truncate" style={{ color: 'var(--sidebar-text)' }}>
+                  {currentUser.name}
+                </p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--sidebar-text2)' }}>
+                  {currentUser.role}
+                </p>
+              </div>
+              <button
+                onClick={logout}
+                title="Cerrar Sesión"
+                className="p-1.5 rounded-md transition-colors hover:bg-white/10"
+                style={{ color: 'var(--sidebar-text2)' }}
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+            <ThemeSelector />
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50 dark:bg-slate-950 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
-        <div className="flex-1 overflow-y-auto px-4 pb-32 pt-[calc(1rem+env(safe-area-inset-top))] lg:p-6 lg:pb-6 scroll-smooth relative">
+      {/* Columna principal */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-colors duration-300" style={{ background: 'var(--bg)' }}>
+        {/* Topbar */}
+        <header
+          className="flex-shrink-0 h-[54px] flex items-center gap-3 px-4 lg:px-5 transition-colors duration-300"
+          style={{
+            background: 'var(--topbar-bg)',
+            boxShadow: 'var(--topbar-shadow)',
+            paddingTop: 'env(safe-area-inset-top)',
+            height: 'calc(54px + env(safe-area-inset-top))',
+          }}
+        >
+          {/* Logo compacto en móvil */}
+          <div className="flex items-center gap-2 lg:hidden min-w-0">
+            {BRANDING.icon && (
+              <img src={BRANDING.icon} alt="" className="w-7 h-7 rounded-md object-cover" style={{ border: '1px solid rgba(255,255,255,.2)' }} />
+            )}
+            <span className="text-[13px] font-bold truncate" style={{ color: 'var(--topbar-text)' }}>
+              {BRANDING.appName}
+            </span>
+          </div>
+
+          {/* Badges de alerta */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {!isObserver && unassignedCount > 0 && (
+              <button
+                onClick={() => handleNavigate('maintenance')}
+                className="nav-badge flat whitespace-nowrap"
+                title="OTs sin asignar"
+              >
+                OTs sin asignar · {unassignedCount}
+              </button>
+            )}
+            {canAccessInventory && lowStockCount > 0 && (
+              <button
+                onClick={() => handleNavigate('inventory')}
+                className="nav-badge flat amber whitespace-nowrap"
+                title="Repuestos con stock bajo"
+              >
+                Stock bajo · {lowStockCount}
+              </button>
+            )}
+            {openIncidentCount > 0 && (
+              <button
+                onClick={() => handleNavigate('incidents')}
+                className="nav-badge flat whitespace-nowrap"
+                title="Incidencias abiertas"
+              >
+                Incidencias · {openIncidentCount}
+              </button>
+            )}
+          </div>
+
+          <div className="flex-1" />
+
+          <Clock />
+
+          {!isObserver && (
+            <button
+              onClick={() => {
+                handleNavigate('maintenance');
+                setCreationMode(true);
+              }}
+              className="btn btn-primary hidden sm:inline-flex"
+            >
+              <Plus size={14} />
+              <span className="hidden md:inline">Nueva OT</span>
+            </button>
+          )}
+        </header>
+
+        {/* Contenido */}
+        <main className="flex-1 overflow-y-auto px-4 pb-28 pt-[calc(1rem+env(safe-area-inset-top))] lg:p-6 lg:pt-6 lg:pb-6 scroll-smooth relative">
           <div className="w-full min-h-full animate-fade-in">
             {children}
-            {/* Spacer for mobile fixed bar */}
             <div className="lg:hidden h-24 w-full" aria-hidden="true" />
           </div>
-        </div>
+        </main>
 
-        <div className="lg:hidden fixed bottom-6 left-2 right-2 xs:left-4 xs:right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl rounded-2xl z-30 flex items-end gap-1 p-2 pb-3">
-
-          {/* Scrollable Navigation Items */}
+        {/* Barra inferior móvil */}
+        <div className="lg:hidden fixed bottom-6 left-2 right-2 rounded-2xl z-30 flex items-end gap-1 p-2 pb-3"
+          style={{
+            background: 'color-mix(in srgb, var(--surface) 92%, transparent)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-xl)',
+            backdropFilter: 'blur(16px)',
+          }}
+        >
           <div className="flex-1 flex items-end justify-between gap-1">
-            {(currentUser.role !== 'Observador N1' && currentUser.role !== 'Observador N2') && (
+            {!isObserver && (
               <button
                 onClick={() => handleNavigate('dashboard')}
-                className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
+                className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'dashboard' ? 'text-accent' : 'text-txt-3'}`}
               >
                 <LayoutDashboard size={20} />
                 <span className="text-[9px] sm:text-[10px] font-bold uppercase">Inicio</span>
               </button>
             )}
 
-            {(currentUser.role !== 'Observador N1' && currentUser.role !== 'Observador N2') && (
+            {!isObserver && (
               <button
                 onClick={() => handleNavigate('maintenance')}
-                className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'maintenance' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
+                className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'maintenance' ? 'text-accent' : 'text-txt-3'}`}
               >
                 <span className="relative">
                   <ClipboardList size={20} />
                   {unassignedCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none">{unassignedCount > 9 ? '9+' : unassignedCount}</span>
+                    <span className="nav-badge flat absolute -top-1.5 -right-2 !min-w-[14px] !h-3.5 !px-0.5 !text-[8px]">{unassignedCount > 9 ? '9+' : unassignedCount}</span>
                   )}
                 </span>
                 <span className="text-[9px] sm:text-[10px] font-bold uppercase">Tareas</span>
@@ -300,21 +376,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <button
               onClick={() => handleNavigate('incidents')}
-              className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'incidents' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
+              className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'incidents' ? 'text-accent' : 'text-txt-3'}`}
             >
               <span className="relative">
                 <AlertCircle size={20} />
                 {openIncidentCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none">{openIncidentCount > 9 ? '9+' : openIncidentCount}</span>
+                  <span className="nav-badge flat absolute -top-1.5 -right-2 !min-w-[14px] !h-3.5 !px-0.5 !text-[8px]">{openIncidentCount > 9 ? '9+' : openIncidentCount}</span>
                 )}
               </span>
               <span className="text-[9px] sm:text-[10px] font-bold uppercase">Incid.</span>
             </button>
 
-            {(currentUser.role !== 'Observador N1' && currentUser.role !== 'Observador N2') && (
+            {!isObserver && (
               <>
                 <button
-                  className="flex-shrink-0 flex flex-col items-center gap-1 p-3 -mt-8 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 hover:scale-110 transition-transform active:scale-95 z-40 mx-1"
+                  className="flex-shrink-0 flex flex-col items-center gap-1 p-3 -mt-8 text-white rounded-full transition-transform hover:scale-110 active:scale-95 z-40 mx-1"
+                  style={{ background: 'var(--btn-primary-bg)', boxShadow: '0 4px 14px rgba(0,0,0,.3)' }}
                   onClick={() => {
                     handleNavigate('maintenance');
                     setCreationMode(true);
@@ -323,25 +400,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Plus size={24} />
                 </button>
 
-                {/* Mobile Inventory Button */}
                 {canAccessInventory && (
-                    <button
-                      onClick={() => handleNavigate('inventory')}
-                      className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'inventory' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
-                    >
-                      <span className="relative">
-                        <Box size={20} />
-                        {lowStockCount > 0 && (
-                          <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold flex items-center justify-center leading-none">{lowStockCount > 9 ? '9+' : lowStockCount}</span>
-                        )}
-                      </span>
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase">Stock</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleNavigate('inventory')}
+                    className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'inventory' ? 'text-accent' : 'text-txt-3'}`}
+                  >
+                    <span className="relative">
+                      <Box size={20} />
+                      {lowStockCount > 0 && (
+                        <span className="nav-badge flat amber absolute -top-1.5 -right-2 !min-w-[14px] !h-3.5 !px-0.5 !text-[8px]">{lowStockCount > 9 ? '9+' : lowStockCount}</span>
+                      )}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase">Stock</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => handleNavigate('equipment')}
-                  className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'equipment' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
+                  className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${activeModule === 'equipment' ? 'text-accent' : 'text-txt-3'}`}
                 >
                   <Wrench size={20} />
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase">Equipos</span>
@@ -350,7 +426,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             )}
           </div>
 
-          {/* Account Button (Fixed outside scrollable area) */}
+          {/* Menú de cuenta */}
           <div className="relative flex-shrink-0">
             <AnimatePresence>
               {isAccountMenuOpen && (
@@ -358,25 +434,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-full mb-4 right-0 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 overflow-hidden"
+                  className="absolute bottom-full mb-4 right-0 w-52 rounded-2xl p-2 z-50 overflow-hidden"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)' }}
                 >
-                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 mb-1">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Usuario</p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</p>
+                  <div className="px-4 py-3 mb-1" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text3)' }}>Usuario</p>
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--text)' }}>{currentUser.name}</p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text2)' }}>{currentUser.role}</p>
                   </div>
-                  <button
-                    onClick={toggleTheme}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors font-medium border-b border-slate-100 dark:border-slate-800"
-                  >
-                    {isDarkMode ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-indigo-400" />}
-                    <span>Modo {isDarkMode ? 'Claro' : 'Oscuro'}</span>
-                  </button>
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text2)' }}>Tema</span>
+                    <ThemeSelector compact />
+                  </div>
                   <button
                     onClick={() => {
                       logout();
                       setIsAccountMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors font-medium "
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium btn-danger"
                   >
                     <LogOut size={18} />
                     <span>Cerrar Sesión</span>
@@ -386,14 +461,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </AnimatePresence>
             <button
               onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-              className={`flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${isAccountMenuOpen ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
+              className={`flex flex-col items-center gap-1 p-1 sm:p-2 rounded-xl transition-all ${isAccountMenuOpen ? 'text-accent' : 'text-txt-3'}`}
             >
               <Users size={20} />
               <span className="text-[9px] sm:text-[10px] font-bold uppercase">Cuenta</span>
             </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

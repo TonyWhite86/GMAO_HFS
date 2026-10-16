@@ -1,6 +1,30 @@
 import { StateCreator } from 'zustand';
 
+export type ThemeId = 'azul' | 'claro' | 'oscuro' | 'suave';
+
+export const THEME_IDS: ThemeId[] = ['azul', 'claro', 'oscuro', 'suave'];
+const THEME_STORAGE_KEY = 'gmao-theme';
+
+function readStoredTheme(): ThemeId | null {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return null;
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return THEME_IDS.includes(stored as ThemeId) ? (stored as ThemeId) : null;
+}
+
+function detectInitialTheme(): ThemeId {
+    const stored = readStoredTheme();
+    if (stored) return stored;
+    // Sin preferencia guardada: el sistema decide entre azul (día) y oscuro (noche).
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'oscuro';
+    }
+    return 'azul';
+}
+
 export interface UISlice {
+    theme: ThemeId;
+    setTheme: (theme: ThemeId) => void;
     isDarkMode: boolean;
     toggleTheme: () => void;
     activeModule: string;
@@ -13,13 +37,20 @@ export interface UISlice {
     setError: (error: string | null) => void;
 }
 
-export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set) => ({
-    // matchMedia is not implemented in every environment (jsdom, SSR), so fall
-    // back to light mode when it is unavailable.
-    isDarkMode: typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-        ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        : false,
-    toggleTheme: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set, get) => ({
+    theme: detectInitialTheme(),
+    setTheme: (theme) => {
+        if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+            window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+        }
+        set({ theme, isDarkMode: theme === 'oscuro' });
+    },
+    // Compatibilidad: "modo oscuro" = tema oscuro.
+    isDarkMode: detectInitialTheme() === 'oscuro',
+    toggleTheme: () => {
+        const next: ThemeId = get().isDarkMode ? 'azul' : 'oscuro';
+        get().setTheme(next);
+    },
     activeModule: 'dashboard',
     setActiveModule: (module) => set({ activeModule: module }),
     creationMode: false,

@@ -11,32 +11,61 @@ export default {
     theme: {
         extend: {
             colors: {
-                primary: {
-                    DEFAULT: '#1e293b', // Slate 800
-                    50: '#f8fafc',
-                    100: '#f1f5f9',
-                    200: '#e2e8f0',
-                    300: '#cbd5e1',
-                    400: '#94a3b8',
-                    500: '#64748b',
-                    600: '#475569',
-                    700: '#334155',
-                    800: '#1e293b',
-                    900: '#0f172a',
-                    950: '#020617',
-                },
-                secondary: '#475569',
-                accent: {
-                    DEFAULT: '#3b82f6', // Blue 500
-                    hover: '#2563eb',   // Blue 600
-                },
+                // Tokens del sistema visual Pulso (ver docs/referencia-pulso/01-sistema-visual.md).
+                // Cada color apunta a una CSS variable que cambia con el tema activo.
+                bg: 'var(--bg)',
                 surface: {
-                    DEFAULT: '#ffffff',
-                    dark: '#334155', // Slate 700
-                }
+                    DEFAULT: 'var(--surface)',
+                    2: 'var(--surface2)',
+                    3: 'var(--surface3)',
+                },
+                // "border" choca con la utilidad border-*; usamos "line".
+                line: {
+                    DEFAULT: 'var(--border)',
+                    2: 'var(--border2)',
+                },
+                txt: {
+                    DEFAULT: 'var(--text)',
+                    2: 'var(--text2)',
+                    3: 'var(--text3)',
+                },
+                accent: {
+                    DEFAULT: 'var(--accent)',
+                    2: 'var(--accent2)',
+                    dim: 'var(--accentdim)',
+                    border: 'var(--accentborder)',
+                },
+                // Semánticos de estado (verde/ámbar/rojo/púrpura de Pulso)
+                ok: {
+                    DEFAULT: 'var(--green)',
+                    dim: 'var(--greendim)',
+                    border: 'var(--greenborder)',
+                },
+                warn: {
+                    DEFAULT: 'var(--amber)',
+                    dim: 'var(--amberdim)',
+                    border: 'var(--amberborder)',
+                },
+                ko: {
+                    DEFAULT: 'var(--red)',
+                    dim: 'var(--reddim)',
+                    border: 'var(--redborder)',
+                },
+                spec: {
+                    DEFAULT: 'var(--purple)',
+                    dim: 'var(--purpledim)',
+                    border: 'var(--purpleborder)',
+                },
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],
+                mono: ['Consolas', 'Courier New', 'monospace'],
+            },
+            boxShadow: {
+                DEFAULT: 'var(--shadow)',
+                md: 'var(--shadow-md)',
+                lg: 'var(--shadow-lg)',
+                xl: 'var(--shadow-xl)',
             },
             animation: {
                 'fade-in': 'fadeIn 0.3s ease-out',

@@ -38,8 +38,8 @@ export const Modal = ({ children, onClose, size = 'xl' }: ModalProps) => {
     const headingId = useId();
     return (
         <ModalContext.Provider value={headingId}>
-            <div role="dialog" aria-modal="true" aria-labelledby={headingId} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-1 sm:p-4 animate-in fade-in duration-300">
-                <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${SIZE_CLASSES[size]} border border-slate-200 dark:border-slate-800 flex flex-col max-h-[98dvh] sm:max-h-[90vh] overflow-hidden`}>
+            <div role="dialog" aria-modal="true" aria-labelledby={headingId} className="modal-bg">
+                <div className={`modal !w-full !max-h-[98dvh] sm:!max-h-[90vh] !flex !flex-col ${SIZE_CLASSES[size]}`}>
                     {children}
                 </div>
             </div>
@@ -51,22 +51,22 @@ export const Modal = ({ children, onClose, size = 'xl' }: ModalProps) => {
 const Header = ({ children, onClose, icon, subtitle, subtitleColor }: ModalHeaderProps) => {
     const titleId = React.useContext(ModalContext);
     return (
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 sticky top-0 z-10">
+        <div className="modal-hdr !static !rounded-none">
             <div className="flex items-center gap-3">
                 {icon}
-                <h2 id={titleId} className="text-xl font-bold text-slate-900 dark:text-white">{children}</h2>
+                <h2 id={titleId} className="!text-xl font-bold text-txt">{children}</h2>
                 {subtitle && (
-                    <span className={`text-sm px-2 py-1 rounded-lg font-bold uppercase tracking-wider text-[10px] ${subtitleColor || 'bg-slate-100 text-slate-600'}`}>
+                    <span className={`bdg !text-[10px] !uppercase !tracking-wider ${subtitleColor || 'bdg-gray'}`}>
                         {subtitle}
                     </span>
                 )}
             </div>
-            <button 
-                onClick={onClose} 
-                className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-sm"
+            <button
+                onClick={onClose}
+                className="btn btn-ghost btn-icon"
                 aria-label="Cerrar"
             >
-                <X size={20} className="sm:size-6" />
+                <X size={18} />
             </button>
         </div>
     );
@@ -84,7 +84,7 @@ const Body = ({ children, className = '' }: ModalBodyProps) => {
 // 4. Footer Sub-component
 const Footer = ({ children }: ModalFooterProps) => {
     return (
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 flex justify-end gap-3 sticky bottom-0 z-10">
+        <div className="p-4 border-t border-line flex justify-end gap-3 sticky bottom-0 z-10" style={{ background: 'var(--surface2)' }}>
             {children}
         </div>
     );

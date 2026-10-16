@@ -19,7 +19,7 @@ export const SchedulerCard: React.FC<SchedulerCardProps> = ({ wo, techId, viewMo
     const typeCfg = WO_TYPE_CONFIG[wo.type as WOType] || WO_TYPE_CONFIG[WOType.CORRECTIVE];
     const PriorityIcon = priorityCfg.icon;
     const statusCfg = WO_STATUS_CONFIG[wo.status as WOStatus];
-    const borderLeftColor = statusCfg?.bgClass?.includes('yellow') ? '#eab308' : statusCfg?.bgClass?.includes('blue') ? '#3b82f6' : statusCfg?.bgClass?.includes('purple') ? '#a855f7' : statusCfg?.bgClass?.includes('green') ? '#22c55e' : undefined;
+    const borderLeftColor = statusCfg?.dotColor;
 
     return (
         <div

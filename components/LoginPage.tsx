@@ -71,16 +71,21 @@ export const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden">
+        <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 transition-colors duration-300 relative overflow-hidden"
+            style={{ background: 'var(--bg)' }}>
             {/* Background Patterns */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[30%] -right-[10%] w-[70%] h-[70%] rounded-full bg-blue-500/5 blur-3xl"></div>
-                <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-indigo-500/5 blur-3xl"></div>
+                <div className="absolute -top-[30%] -right-[10%] w-[70%] h-[70%] rounded-full blur-3xl" style={{ background: 'var(--accentdim)' }}></div>
+                <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full blur-3xl" style={{ background: 'var(--accentdim)' }}></div>
             </div>
 
             <div className="sm:mx-auto sm:w-full sm:max-w-md z-10">
                 <div className="flex justify-center mb-6">
-                    {BRANDING.logo ? (
+                    {BRANDING.icon ? (
+                        <div className="nav-logo-icon !w-[72px] !h-[72px] !rounded-[18px]">
+                            <img src={BRANDING.icon} alt="" className="w-full h-full object-cover rounded-[16px]" />
+                        </div>
+                    ) : BRANDING.logo ? (
                         <>
                             <img src={BRANDING.logo} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg dark:hidden" />
                             {BRANDING.logoDark && (
@@ -88,98 +93,90 @@ export const LoginPage: React.FC = () => {
                             )}
                         </>
                     ) : (
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 transform rotate-3">
-                            <Wrench size={32} />
+                        <div className="nav-logo-icon !w-[72px] !h-[72px] !rounded-[18px]">
+                            <Wrench size={32} style={{ color: 'var(--sidebar-logo-color)' }} />
                         </div>
                     )}
                 </div>
-                <h2 className="mt-2 text-center text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                <h2 className="mt-2 text-center text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
                     {BRANDING.loginTitle}
                 </h2>
-                <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-center text-sm" style={{ color: 'var(--text2)' }}>
                     {BRANDING.loginSubtitle}
                 </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md z-10">
-                <div className="bg-white dark:bg-slate-700 py-8 px-4 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 sm:rounded-2xl sm:px-10 border border-slate-100 dark:border-slate-700/50 backdrop-blur-sm">
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Correo Electrónico
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <UserIcon className="h-5 w-5 text-slate-400" aria-hidden="true" />
-                                </div>
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    className="appearance-none block w-full pl-10 px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700/50 placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
-                                    placeholder="usuario@healthy-foodsolutions.com"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Contraseña
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-slate-400" aria-hidden="true" />
-                                </div>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    autoComplete="current-password"
-                                    required
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    className="appearance-none block w-full pl-10 pr-10 px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700/50 placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
-                                    placeholder="••••••••"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {error && (
-                            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30 animate-fade-in">
-                                <div className="flex">
-                                    <div className="flex-shrink-0">
-                                        <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" aria-hidden="true" />
+                <div className="modal !w-full !max-w-md !animate-none">
+                    <div className="modal-body">
+                        <form className="space-y-5" onSubmit={handleSubmit}>
+                            <div className="fld">
+                                <label htmlFor="email">Correo Electrónico</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <UserIcon className="h-4 w-4" style={{ color: 'var(--text3)' }} aria-hidden="true" />
                                     </div>
-                                    <div className="ml-3">
-                                        <h3 className="text-sm font-medium text-red-800 dark:text-red-300">{error}</h3>
-                                    </div>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        className="!pl-9"
+                                        placeholder="usuario@healthy-foodsolutions.com"
+                                    />
                                 </div>
                             </div>
-                        )}
 
-                        <div>
+                            <div className="fld">
+                                <label htmlFor="password">Contraseña</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-4 w-4" style={{ color: 'var(--text3)' }} aria-hidden="true" />
+                                    </div>
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? "text" : "password"}
+                                        autoComplete="current-password"
+                                        required
+                                        value={password}
+                                        onChange={e => setPassword(e.target.value)}
+                                        className="!pl-9 !pr-10"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center transition-colors"
+                                        style={{ color: 'var(--text3)' }}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="rounded-[10px] p-3.5 border animate-fade-in flex items-start gap-2.5"
+                                    style={{ background: 'var(--reddim)', borderColor: 'var(--redborder)' }}>
+                                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--red)' }} aria-hidden="true" />
+                                    <h3 className="text-sm font-medium" style={{ color: 'var(--red)' }}>{error}</h3>
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-lg shadow-blue-500/30 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                className="btn btn-primary btn-full !py-3 !text-[13px] !font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99]"
                             >
                                 {isLoading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : "Iniciar Sesión"}
+                                ) : "Entrar →"}
                             </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

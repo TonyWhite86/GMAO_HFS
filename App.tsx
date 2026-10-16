@@ -29,7 +29,7 @@ const App: React.FC = () => {
   // Global Store State
   const {
     currentUser,
-    isDarkMode,
+    theme,
     activeModule,
     setActiveModule,
     fetchInitialData,
@@ -74,24 +74,15 @@ const App: React.FC = () => {
     setCurrentModule('inventory');
   };
 
-  // Sync dark class with isDarkMode
+  // Sync theme class with store theme
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
-  // Listen for system color scheme changes (with cleanup, unlike previous implementation in the store)
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      useAppStore.setState({ isDarkMode: e.matches });
-    };
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+    const root = document.documentElement;
+    root.classList.remove('theme-azul', 'theme-claro', 'theme-oscuro', 'theme-suave');
+    root.classList.add(`theme-${theme}`);
+    // Puente: mientras queden utilidades dark: sin migrar, el tema oscuro
+    // también activa la clase .dark (se retira al terminar la migración visual).
+    root.classList.toggle('dark', theme === 'oscuro');
+  }, [theme]);
 
   // Restore Supabase Auth session and load user data
   useEffect(() => {

@@ -24,7 +24,7 @@ export const PriorityIndicator: React.FC<PriorityIndicatorProps> = ({
                 <Icon size={14} />
             </div>
             {showLabel && (
-                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold">
+                <span className="text-sm text-txt-2 font-bold">
                     {config.label}
                 </span>
             )}

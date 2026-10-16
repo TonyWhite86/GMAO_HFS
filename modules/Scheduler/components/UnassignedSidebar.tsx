@@ -54,7 +54,7 @@ export const UnassignedSidebar: React.FC<UnassignedSidebarProps> = ({
                             onDragStart={(e) => onDragStart(e, wo)}
                             onClick={() => onSelectWO(wo)}
                             className="bg-white dark:bg-slate-700 p-3 rounded shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 group transition-colors active:cursor-grabbing border-l-4"
-                            style={{ borderLeftColor: statusCfg?.bgClass?.includes('yellow') ? '#eab308' : statusCfg?.bgClass?.includes('blue') ? '#3b82f6' : statusCfg?.bgClass?.includes('purple') ? '#a855f7' : statusCfg?.bgClass?.includes('green') ? '#22c55e' : undefined }}
+                            style={{ borderLeftColor: statusCfg?.dotColor }}
                         >
                             <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${statusCfg?.bgClass || ''}`}>
