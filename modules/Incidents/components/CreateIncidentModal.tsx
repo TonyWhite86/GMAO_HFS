@@ -157,7 +157,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
         <Modal onClose={handleCancel}>
             <Modal.Header
                 onClose={handleCancel}
-                icon={<AlertCircle size={24} className="text-amber-500" />}
+                icon={<AlertCircle size={24} className="text-warn" />}
             >
                 Reportar Nueva Incidencia
             </Modal.Header>
@@ -181,7 +181,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                                 onChange={(val) => setFormData({ ...formData, section: val })}
                                 options={sectionOptions}
                             />
-                            <p className="text-[11px] text-slate-400 mt-1">
+                            <p className="text-[11px] text-txt-3 mt-1">
                                 Sin sección = la ve todo el mundo. Al elegir una, solo la ve esa sección.
                             </p>
                         </div>
@@ -208,7 +208,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
                     {/* Equipment Selector (Optional) */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Equipo Relacionado *</label>
+                        <label className="block text-sm font-medium text-txt-2 mb-1">Equipo Relacionado *</label>
                         <EquipmentSelector
                             equipment={equipment}
                             selectedId={formData.equipmentId}
@@ -220,7 +220,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                     {/* Description */}
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">Detalles del problema *</label>
+                            <label className="block text-sm font-medium text-txt-2">Detalles del problema *</label>
                             <VoiceInputButton
                                 onTranscript={(text) => setFormData(prev => ({ ...prev, description: prev.description ? prev.description + ' ' + text : text }))}
                             />
@@ -236,19 +236,19 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
                     {/* Parada de equipo (opcional) */}
                     {(
-                        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-900/10 p-4 space-y-4">
+                        <div className="rounded-2xl border border-warn-border/60 bg-warn-dim/60 p-4 space-y-4">
                             <label className="flex items-start gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={withStoppage}
                                     onChange={(e) => setWithStoppage(e.target.checked)}
-                                    className="mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                                    className="mt-1 rounded border-warn-border text-warn focus:ring-warn w-4 h-4"
                                 />
                                 <span>
-                                    <span className="block text-sm font-bold text-amber-900 dark:text-amber-200">
+                                    <span className="block text-sm font-bold text-warn">
                                         Este equipo está parado ahora mismo
                                     </span>
-                                    <span className="block text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                                    <span className="block text-xs text-warn/80 mt-0.5">
                                         Registra la parada junto a la incidencia. La duración se apuntará
                                         cuando el equipo vuelva a estar operativo.
                                     </span>
@@ -258,16 +258,16 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                             {withStoppage && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Inicio de la parada *</label>
+                                        <label className="block text-sm font-medium text-txt-2 mb-1">Inicio de la parada *</label>
                                         <input
                                             type="datetime-local"
                                             value={stoppageStartAt}
                                             onChange={(e) => setStoppageStartAt(e.target.value)}
-                                            className="w-full px-4 py-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                                            className="w-full px-4 py-2 rounded-lg border border-warn-border bg-surface text-txt focus:ring-2 focus:ring-warn outline-none"
                                         />
                                     </div>
                                     <div className="flex items-end">
-                                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 pb-2">
+                                        <p className="text-xs text-warn/80 pb-2">
                                             El motivo de la parada es el de la categoría de la incidencia.
                                         </p>
                                     </div>
@@ -287,25 +287,25 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
                     {/* Attachments */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                        <label className="block text-sm font-medium text-txt-2 mb-2 flex items-center gap-2">
                             <Camera size={16} />
                             Fotos o Documentos
                         </label>
 
                         <div className="flex flex-wrap gap-3">
                             {attachments.map((att, idx) => (
-                                <div key={idx} className="relative group w-20 h-20 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-700 shadow-sm animate-in zoom-in-75">
+                                <div key={idx} className="relative group w-20 h-20 rounded-xl border border-line overflow-hidden bg-surface shadow-sm animate-in zoom-in-75">
                                     {att.type === 'image' ? (
                                         <img src={att.url} alt="" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
-                                            <FileText size={24} className="text-slate-300" />
+                                            <FileText size={24} className="text-txt-3" />
                                         </div>
                                     )}
                                     <button
                                         type="button"
                                         onClick={() => removeAttachment(idx)}
-                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                                        className="absolute -top-1 -right-1 bg-ko text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
                                     >
                                         <X size={12} />
                                     </button>
@@ -316,7 +316,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUploading}
-                                className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all gap-1"
+                                className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-line rounded-xl text-txt-3 hover:text-accent hover:border-accent hover:bg-accent-dim transition-all gap-1"
                             >
                                 {isUploading ? <Loader2 size={24} className="animate-spin" /> : <Plus size={24} />}
                                 <span className="text-[10px] font-bold">Añadir</span>
@@ -338,14 +338,14 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                 <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-6 py-2.5 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    className="px-6 py-2.5 text-txt-2 font-bold text-sm hover:bg-surface-2 rounded-xl transition-colors"
                 >
                     Cancelar
                 </button>
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || isUploading}
-                    className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-600/25 transition-all active:scale-95 flex items-center gap-2"
+                    className="px-8 py-2.5 bg-accent hover:bg-accent-2 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-xl shadow-accent/25 transition-all active:scale-95 flex items-center gap-2"
                 >
                     {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
                     Enviar Incidencia
