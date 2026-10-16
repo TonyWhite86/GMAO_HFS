@@ -212,7 +212,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         header: "SKU",
         sortKey: "sku",
         render: (item: InventoryItem) => (
-          <span className="font-mono text-slate-600 dark:text-slate-400 text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+          <span className="font-mono text-txt-2 text-xs bg-surface-2 px-2 py-1 rounded">
             {item.sku}
           </span>
         )
@@ -222,9 +222,9 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         sortKey: "name",
         render: (item: InventoryItem) => (
           <div>
-            <div className="font-bold text-slate-800 dark:text-white">{item.name}</div>
+            <div className="font-bold text-txt">{item.name}</div>
             {item.quantity <= item.minStock && (
-              <div className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+              <div className="text-xs text-ko mt-1 flex items-center gap-1">
                 <AlertTriangle size={12} /> Stock Bajo
               </div>
             )}
@@ -240,7 +240,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         header: "Stock",
         sortKey: "quantity",
         render: (item: InventoryItem) => (
-          <span className={`font-bold ${item.quantity <= item.minStock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+          <span className={`font-bold ${item.quantity <= item.minStock ? 'text-ko' : 'text-txt-2'}`}>
             {item.quantity} un.
           </span>
         )
@@ -253,7 +253,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         header: "Precio",
         sortKey: "price",
         render: (item: InventoryItem) => (
-          <span className="font-medium text-slate-700 dark:text-slate-200">
+          <span className="font-medium text-txt-2">
             {item.price.toFixed(2)} €
           </span>
         )
@@ -266,31 +266,31 @@ export const InventoryModule: React.FC<InventoryProps> = ({
   // Mobile Card Renderer
   const renderCard = (item: InventoryItem) => {
     return (
-      <div className="bg-white dark:bg-slate-700 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200">
+      <div className="bg-surface p-5 rounded-xl shadow-sm border border-line flex flex-col justify-between hover:border-accent transition-all duration-200">
         <div>
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300">{item.sku}</span>
+            <span className="text-xs font-mono bg-surface-2 px-2 py-1 rounded text-txt-2">{item.sku}</span>
             {item.quantity <= item.minStock && (
-              <span className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">
+              <span className="text-xs font-bold text-ko flex items-center gap-1 bg-ko-dim px-2 py-1 rounded">
                 <AlertTriangle size={12} /> Stock Bajo
               </span>
             )}
           </div>
-          <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">{item.name}</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{item.location}</p>
+          <h3 className="font-bold text-txt text-lg mb-1">{item.name}</h3>
+          <p className="text-sm text-txt-2 mb-4">{item.location}</p>
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500 dark:text-slate-400">Stock Actual:</span>
-            <span className={`font-bold ${item.quantity <= item.minStock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+            <span className="text-txt-2">Stock Actual:</span>
+            <span className={`font-bold ${item.quantity <= item.minStock ? 'text-ko' : 'text-txt-2'}`}>
               {item.quantity} un.
             </span>
           </div>
           {canViewPrice && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500 dark:text-slate-400">Precio:</span>
-              <span className="font-medium text-slate-700 dark:text-slate-200">{item.price.toFixed(2)} €</span>
+              <span className="text-txt-2">Precio:</span>
+              <span className="font-medium text-txt-2">{item.price.toFixed(2)} €</span>
             </div>
           )}
         </div>
@@ -313,46 +313,46 @@ export const InventoryModule: React.FC<InventoryProps> = ({
   if (showMobileMenu && window.innerWidth < 1024) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Inventario</h1>
+        <h1 className="text-2xl font-bold text-txt">Inventario</h1>
         <div className="grid grid-cols-2 gap-4">
           <button
             onClick={() => { setActiveTab('inventory'); setShowMobileMenu(false); }}
-            className="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-4 hover:border-blue-500 transition-all aspect-square"
+            className="bg-surface p-6 rounded-2xl shadow-sm border border-line flex flex-col items-center justify-center gap-4 hover:border-accent transition-all aspect-square"
           >
-            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 dark:text-blue-400">
+            <div className="p-4 bg-accent-dim rounded-full text-accent">
               <Package size={32} />
             </div>
-            <span className="font-bold text-slate-700 dark:text-white">Stock</span>
+            <span className="font-bold text-txt-2 text-txt">Stock</span>
           </button>
 
           <button
             onClick={() => { setActiveTab('requests'); setShowMobileMenu(false); }}
-            className="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-4 hover:border-amber-500 transition-all aspect-square"
+            className="bg-surface p-6 rounded-2xl shadow-sm border border-line flex flex-col items-center justify-center gap-4 hover:border-warn transition-all aspect-square"
           >
-            <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400">
+            <div className="p-4 bg-warn-dim rounded-full text-warn">
               <ListPlus size={32} />
             </div>
-            <span className="font-bold text-slate-700 dark:text-white">Solicitudes</span>
+            <span className="font-bold text-txt-2 text-txt">Solicitudes</span>
           </button>
 
           <button
             onClick={() => { setActiveTab('orders'); setShowMobileMenu(false); }}
-            className="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-4 hover:border-indigo-500 transition-all aspect-square"
+            className="bg-surface p-6 rounded-2xl shadow-sm border border-line flex flex-col items-center justify-center gap-4 hover:border-accent transition-all aspect-square"
           >
-            <div className="p-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400">
+            <div className="p-4 bg-accent-dim rounded-full text-accent">
               <ListOrdered size={32} />
             </div>
-            <span className="font-bold text-slate-700 dark:text-white">Pedidos</span>
+            <span className="font-bold text-txt-2 text-txt">Pedidos</span>
           </button>
 
           <button
             onClick={() => { setActiveTab('movements'); setShowMobileMenu(false); }}
-            className="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-4 hover:border-purple-500 transition-all aspect-square"
+            className="bg-surface p-6 rounded-2xl shadow-sm border border-line flex flex-col items-center justify-center gap-4 hover:border-spec transition-all aspect-square"
           >
-            <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
+            <div className="p-4 bg-spec-dim rounded-full text-spec">
               <ArrowRightLeft size={32} />
             </div>
-            <span className="font-bold text-slate-700 dark:text-white">Movimientos</span>
+            <span className="font-bold text-txt-2 text-txt">Movimientos</span>
           </button>
         </div>
       </div>
@@ -366,11 +366,11 @@ export const InventoryModule: React.FC<InventoryProps> = ({
           {/* Mobile Back Button */}
           <button
             onClick={() => setShowMobileMenu(true)}
-            className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+            className="lg:hidden p-2 -ml-2 text-txt-2 hover:text-txt-3"
           >
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
+          <h1 className="text-2xl font-bold text-txt">
             {activeTab === 'inventory' && 'Stock e Inventario'}
             {activeTab === 'requests' && 'Solicitudes de Compra'}
             {activeTab === 'orders' && 'Pedidos y Compras'}
@@ -383,7 +383,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
           {cart.length > 0 && (
             <button
               onClick={() => setShowCheckout(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-ok text-white rounded-lg shadow-lg hover:bg-ok transition-all flex items-center gap-2"
             >
               <ShoppingCart size={18} />
               <span className="font-bold">{totalCartItems} en cesta</span>
@@ -392,7 +392,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
 
           {activeTab === 'inventory' && (
             <button
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20 ${isWithdrawalMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-accent/20 ${isWithdrawalMode ? 'bg-ko text-white hover:bg-ko hover:brightness-110' : 'bg-accent text-white hover:bg-accent-2'}`}
               onClick={() => setIsWithdrawalMode(!isWithdrawalMode)}
             >
               {isWithdrawalMode ? <ListOrdered size={18} /> : <ShoppingCart size={18} />}
@@ -403,7 +403,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
           {activeTab === 'inventory' && canManageInventory && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-indigo-600/20"
+              className="px-4 py-2 bg-accent text-white rounded-lg shadow-lg hover:bg-accent-2 transition-all flex items-center gap-2 shadow-accent/20"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Añadir Artículo</span>
@@ -413,7 +413,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
           {activeTab === 'requests' && (
             <button
               onClick={() => setShowRequestModal(true)}
-              className="px-4 py-2 bg-amber-600 text-white rounded-lg shadow-lg hover:bg-amber-700 transition-all flex items-center gap-2 shadow-amber-600/20"
+              className="px-4 py-2 bg-warn text-white rounded-lg shadow-lg hover:bg-warn hover:brightness-110 transition-all flex items-center gap-2 shadow-warn/20"
             >
               <ListPlus size={18} />
               <span className="">Solicitar Material</span>
@@ -423,10 +423,10 @@ export const InventoryModule: React.FC<InventoryProps> = ({
       </div>
 
       {/* Tabs (Desktop Only) */}
-      <div className="hidden lg:flex border-b border-slate-200 dark:border-slate-700 mb-4">
+      <div className="hidden lg:flex border-b border-line mb-4">
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'inventory' ? 'border-blue-600 text-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'inventory' ? 'border-accent text-accent bg-accent-dim/50 ' : 'border-transparent text-txt-2 hover:text-txt-2 '}`}
         >
           <div className="flex items-center gap-2">
             <Package size={18} />
@@ -435,7 +435,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('requests')}
-          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'requests' ? 'border-amber-600 text-amber-600 bg-amber-50/50 dark:bg-amber-900/20' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'requests' ? 'border-warn text-warn bg-warn-dim/50 ' : 'border-transparent text-txt-2 hover:text-txt-2 '}`}
         >
           <div className="flex items-center gap-2">
             <ShoppingCart size={18} />
@@ -444,7 +444,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('orders')}
-          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'orders' ? 'border-accent text-accent bg-accent-dim/50 ' : 'border-transparent text-txt-2 hover:text-txt-2 '}`}
         >
           <div className="flex items-center gap-2">
             <ListOrdered size={18} />
@@ -453,7 +453,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('movements')}
-          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'movements' ? 'border-purple-600 text-purple-600 bg-purple-50/50 dark:bg-purple-900/20' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'movements' ? 'border-spec text-spec bg-spec-dim/50 ' : 'border-transparent text-txt-2 hover:text-txt-2 '}`}
         >
           <div className="flex items-center gap-2">
             <ListOrdered size={18} />
@@ -463,7 +463,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
         {canManageInventory && (
           <button
             onClick={() => setActiveTab('drafts')}
-            className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'drafts' ? 'border-orange-600 text-orange-600 bg-orange-50/50 dark:bg-orange-900/20' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'drafts' ? 'border-warn text-warn bg-warn-dim/50' : 'border-transparent text-txt-2 hover:text-txt-2 '}`}
           >
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} />
@@ -474,7 +474,7 @@ export const InventoryModule: React.FC<InventoryProps> = ({
       </div>
 
       {isWithdrawalMode && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-4 rounded-xl flex items-center gap-3 text-red-800 dark:text-red-300">
+        <div className="bg-ko-dim border border-ko-border p-4 rounded-xl flex items-center gap-3 text-ko">
           <ShoppingCart className="hidden sm:block" />
           <div>
             <h3 className="font-bold text-sm">Modo Retirada de Material Activo</h3>
