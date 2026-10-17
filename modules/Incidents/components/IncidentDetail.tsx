@@ -83,11 +83,16 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const canConvert = canConvertIncident(currentUser, sections) && isActive(incident.status);
 
     // Estados alcanzables desde el estado actual (para el selector).
+    // El creador no propone cierre pendiente: para él "Cerrar incidencia" cierra
+    // directo; la confirmación solo aplica a cierres ajenos.
+    const isCreator = !!currentUser && incident.createdBy === currentUser.id;
     const reachableStatuses = (Object.values(IncidentStatus) as IncidentStatus[])
-        .filter(s => s !== incident.status && (isActive(s) || (s === IncidentStatus.PENDING_CLOSE && isActive(incident.status))));
+        .filter(s => s !== incident.status
+            && (isActive(s)
+                || (s === IncidentStatus.PENDING_CLOSE && isActive(incident.status) && !isCreator)));
     // Confirmación de cierre: sólo el creador (o Admin) sobre una propuesta pendiente.
     const canConfirmClose = incident.status === IncidentStatus.PENDING_CLOSE
-        && (isAdmin || (!!currentUser && incident.createdBy === currentUser.id));
+        && (isAdmin || isCreator);
 
     const handleTransition = async (status: IncidentStatus) => {
         if (isSavingTransition) return;
