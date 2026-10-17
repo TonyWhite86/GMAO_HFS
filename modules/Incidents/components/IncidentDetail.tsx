@@ -27,6 +27,8 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const [reasonText, setReasonText] = useState('');
     const [solutionText, setSolutionText] = useState('');
     const [isSavingTransition, setIsSavingTransition] = useState(false);
+    const [isEditingDate, setIsEditingDate] = useState(false);
+    const [dateValue, setDateValue] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -80,11 +82,57 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const isDirty = reasonText !== (incident.reason || '')
         || solutionText !== (incident.solution || '');
 
+    // Admin: puede reabrir incidencias terminales y corregir la fecha de creación.
+    const isAdmin = currentUser?.role === 'Admin';
+    const canReopen = isAdmin
+        && (incident.status === IncidentStatus.RESOLVED || incident.status === IncidentStatus.CANCELLED);
+
     const handleTransition = async (status: IncidentStatus) => {
         if (isSavingTransition) return;
         setIsSavingTransition(true);
         try {
             await transitionIncidentStatus(incident.id, status, reasonText, solutionText);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
+
+    const handleReopen = async () => {
+        if (isSavingTransition) return;
+        setIsSavingTransition(true);
+        try {
+            await transitionIncidentStatus(incident.id, IncidentStatus.OPEN);
+            await addIncidentComment({
+                incidentId: incident.id,
+                userId: currentUser?.id,
+                userName: 'Sistema',
+                text: 'Incidencia reabierta por un administrador',
+                isSystem: true
+            });
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
+
+    const handleSaveDate = async () => {
+        if (!dateValue || isSavingTransition) return;
+        setIsSavingTransition(true);
+        try {
+            const newDate = new Date(dateValue).toISOString();
+            await updateIncident(incident.id, { createdAt: newDate });
+            await addIncidentComment({
+                incidentId: incident.id,
+                userId: currentUser?.id,
+                userName: 'Sistema',
+                text: `Fecha de la incidencia corregida: ${new Date(incident.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} → ${new Date(newDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                isSystem: true
+            });
+            toast.success('Fecha actualizada');
+            setIsEditingDate(false);
         } catch (error) {
             console.error(error);
         } finally {
@@ -128,6 +176,16 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                     </button>
 
                     <div className="flex flex-wrap gap-2 ml-auto">
+                        {canReopen && (
+                            <button
+                                onClick={handleReopen}
+                                disabled={isSavingTransition}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 sm:py-2 btn btn-accent-ghost rounded-xl font-bold text-sm transition-all active:scale-95"
+                            >
+                                <AlertCircle size={16} />
+                                Reabrir
+                            </button>
+                        )}
                         {canConvert && (
                             <button
                                 onClick={() => setIsConvertModalOpen(true)}
@@ -187,7 +245,47 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                         </div>
                         <div className="flex items-center gap-1.5 border-l border-line pl-4">
                             <Calendar size={16} className="text-warn" />
-                            <span>{new Date(incident.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                            {isAdmin && isEditingDate ? (
+                                <span className="flex items-center gap-1.5">
+                                    <input
+                                        type="datetime-local"
+                                        value={dateValue}
+                                        onChange={(e) => setDateValue(e.target.value)}
+                                        className="fld-input px-2 py-1 rounded-md text-xs"
+                                    />
+                                    <button
+                                        onClick={handleSaveDate}
+                                        disabled={isSavingTransition || !dateValue}
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        <Save size={12} />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingDate(false)}
+                                        className="btn btn-ghost btn-sm"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5">
+                                    <span>{new Date(incident.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => {
+                                                const d = new Date(incident.createdAt);
+                                                const pad = (n: number) => String(n).padStart(2, '0');
+                                                setDateValue(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+                                                setIsEditingDate(true);
+                                            }}
+                                            title="Editar fecha"
+                                            className="p-1 rounded transition-colors text-txt-3 hover:text-accent hover:bg-accent-dim"
+                                        >
+                                            <Calendar size={12} />
+                                        </button>
+                                    )}
+                                </span>
+                            )}
                         </div>
                         {incident.creatorName && (
                             <div className="flex items-center gap-1.5 border-l border-line pl-4">

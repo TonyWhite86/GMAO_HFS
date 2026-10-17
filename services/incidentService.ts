@@ -55,6 +55,7 @@ export const incidentService = {
         if (updates.workOrderId !== undefined) rawUpdates.work_order_id = updates.workOrderId;
         if (updates.attachments !== undefined) rawUpdates.attachments = updates.attachments;
         if (updates.section !== undefined) rawUpdates.section = updates.section;
+        if (updates.createdAt !== undefined) rawUpdates.created_at = updates.createdAt;
 
         const { data, error } = await supabase
             .from('incidents')

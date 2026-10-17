@@ -1622,23 +1622,41 @@ DECLARE
   v_new_solution TEXT;
   v_sealing BOOLEAN := false;  -- esta UPDATE es la que resuelve/cancela
 BEGIN
-  IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
-    -- Terminales
-    IF OLD.status IN ('Resuelta', 'Cancelada') THEN
-      RAISE EXCEPTION 'Una incidencia % no puede cambiar de estado', OLD.status;
+  -- created_at sólo lo edita un Admin (corrección de fecha de registro)
+  IF TG_OP = 'UPDATE' AND NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+    IF v_role IS DISTINCT FROM 'Admin' THEN
+      RAISE EXCEPTION 'Solo un Admin puede cambiar la fecha de una incidencia';
     END IF;
+  END IF;
 
-    -- Transiciones legales
-    IF OLD.status = 'Abierta' AND NEW.status NOT IN
-       ('En Revisión', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-    END IF;
-    IF OLD.status = 'En Revisión' AND NEW.status NOT IN
-       ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-    END IF;
-    IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN ('Resuelta', 'Cancelada') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+  IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+    -- Terminales: sólo un Admin puede reabrir, y sólo a Abierta/En Revisión
+    IF OLD.status IN ('Resuelta', 'Cancelada') THEN
+      SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+      IF v_role IS DISTINCT FROM 'Admin' THEN
+        RAISE EXCEPTION 'Una incidencia % no puede cambiar de estado', OLD.status;
+      END IF;
+      IF NEW.status NOT IN ('Abierta', 'En Revisión') THEN
+        RAISE EXCEPTION 'Una incidencia % sólo puede reabrirse a Abierta o En Revisión', OLD.status;
+      END IF;
+      -- Reabrir deja sin efecto la resolución anterior
+      NEW.resolved_at := NULL;
+      NEW.resolved_by := NULL;
+      v_sealing := true;
+    ELSE
+      -- Transiciones legales
+      IF OLD.status = 'Abierta' AND NEW.status NOT IN
+         ('En Revisión', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+      IF OLD.status = 'En Revisión' AND NEW.status NOT IN
+         ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+      IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN ('Resuelta', 'Cancelada') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
     END IF;
 
     v_new_reason   := coalesce(nullif(trim(NEW.reason), ''), nullif(trim(OLD.reason), ''));
