@@ -1913,7 +1913,7 @@ BEGIN
 
   RETURN v_wo_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- 3bis. Confirmación de cierre por el creador ---------------------------------
 -- Al resolver una incidencia ajena, queda en 'Pendiente de Confirmación': el
