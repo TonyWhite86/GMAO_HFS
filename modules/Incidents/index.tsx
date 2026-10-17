@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { Incident, IncidentStatus, Section } from '../../types';
 import { Plus, Search, Filter } from 'lucide-react';
@@ -16,11 +16,23 @@ import { PageHeader } from '../../components/ui/PageHeader';
 
 import { CustomSelect } from '../../components/ui/CustomSelect';
 
-export const IncidentsModule: React.FC = () => {
+interface IncidentsModuleProps {
+    initialCreate?: boolean;
+    onCreateHandled?: () => void;
+}
+
+export const IncidentsModule: React.FC<IncidentsModuleProps> = ({ initialCreate, onCreateHandled }) => {
     const { incidents, incidentCategories, currentUser, sections } = useAppStore();
     const visibleCategories = useVisibleCategories(currentUser);
     const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (initialCreate) {
+            setIsCreateModalOpen(true);
+            onCreateHandled?.();
+        }
+    }, [initialCreate, onCreateHandled]);
 
     // 1. Security Filtering (espejo de incident_visible_to_me en RLS:
     //    sección de la incidencia + visibilidad de categoría + comodín/observador)

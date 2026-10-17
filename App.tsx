@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Layout } from './components/Layout';
 import { LoginPage } from './components/LoginPage';
@@ -9,6 +9,7 @@ import { MaintenanceSkeleton } from './components/MaintenanceSkeleton';
 import { GenericSkeleton } from './components/GenericSkeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
+import { QRScannerModal } from './components/QRScannerModal';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { WOStatus, WOPriority } from './types';
 import { useAppStore } from './store/useAppStore';
@@ -36,7 +37,9 @@ const App: React.FC = () => {
     initializeSubscription,
     login,
     isLoading,
-    error
+    error,
+    equipment,
+    inventory
   } = useAppStore();
 
   const { isOffline } = useNetworkStatus();
@@ -49,6 +52,10 @@ const App: React.FC = () => {
   const [maintenanceInitialFilters, setMaintenanceInitialFilters] = useState<{ status?: WOStatus[], unassigned?: boolean, priority?: WOPriority[], section?: string[] } | null>(null);
   const [inventoryInitialMode, setInventoryInitialMode] = useState<'withdrawal' | null>(null);
   const [inventoryInitialTab, setInventoryInitialTab] = useState<'requests' | null>(null);
+  const [incidentsInitialMode, setIncidentsInitialMode] = useState<'create' | null>(null);
+  const [stoppagesInitialMode, setStoppagesInitialMode] = useState<'create' | null>(null);
+  const [pendingEquipmentId, setPendingEquipmentId] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const handleCreateWorkOrderRequest = () => {
     setMaintenanceInitialMode('create');
@@ -67,6 +74,33 @@ const App: React.FC = () => {
   const handleRequestWithdrawal = () => {
     setInventoryInitialMode('withdrawal');
     setCurrentModule('inventory');
+  };
+
+  const handleCreateIncidentRequest = () => {
+    setIncidentsInitialMode('create');
+    setCurrentModule('incidents');
+  };
+
+  const handleCreateStoppageRequest = () => {
+    setStoppagesInitialMode('create');
+    setCurrentModule('stoppages');
+  };
+
+  // Escáner QR: busca el código en equipos y repuestos y navega a su módulo.
+  const handleScanResult = (result: string) => {
+    setIsScannerOpen(false);
+    const eq = equipment.find(e => e.qrCode === result || e.code === result || e.serialNumber === result);
+    if (eq) {
+      setPendingEquipmentId(eq.id);
+      setCurrentModule('equipment');
+      return;
+    }
+    const item = inventory.find(i => i.qrCode === result || i.sku === result);
+    if (item) {
+      setCurrentModule('inventory');
+      return;
+    }
+    toast.error('Código QR no reconocido');
   };
 
   const handleRequestPurchase = () => {
@@ -154,8 +188,11 @@ const App: React.FC = () => {
             onNavigate={setCurrentModule}
             onNavigateWithFilter={handleNavigateWithFilter}
             onCreateWorkOrder={handleCreateWorkOrderRequest}
+            onCreateIncident={handleCreateIncidentRequest}
+            onCreateStoppage={handleCreateStoppageRequest}
             onRequestWithdrawal={handleRequestWithdrawal}
             onRequestPurchase={handleRequestPurchase}
+            onScanQR={() => setIsScannerOpen(true)}
           />
         );
       case 'maintenance':
@@ -186,9 +223,19 @@ const App: React.FC = () => {
       case 'reports':
         return <ReportsModule />;
       case 'incidents':
-        return <IncidentsModule />;
+        return (
+          <IncidentsModule
+            initialCreate={incidentsInitialMode === 'create'}
+            onCreateHandled={() => setIncidentsInitialMode(null)}
+          />
+        );
       case 'stoppages':
-        return <StoppagesModule />;
+        return (
+          <StoppagesModule
+            initialCreate={stoppagesInitialMode === 'create'}
+            onCreateHandled={() => setStoppagesInitialMode(null)}
+          />
+        );
       default:
         return <div className="text-txt">Módulo no encontrado</div>;
     }
@@ -209,6 +256,12 @@ const App: React.FC = () => {
     <>
       {isOffline && <OfflineBanner onRetry={() => fetchInitialData()} />}
       <Toaster position="top-right" richColors expand gap={14} visibleToasts={5} />
+      {isScannerOpen && (
+        <QRScannerModal
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScanResult}
+        />
+      )}
       {!currentUser ? (
         <LoginPage />
       ) : isLoading ? (

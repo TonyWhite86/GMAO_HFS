@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useRestrictedEquipment } from '../../hooks/useFilteredData';
 import { InventoryItem } from '../../types';
@@ -16,7 +16,12 @@ import { GenericSkeleton } from '../../components/GenericSkeleton';
 import { useSearchFilter } from '../../hooks/useSearchFilter';
 import { PageHeader } from '../../components/ui/PageHeader';
 
-export const EquipmentModule: React.FC = () => {
+interface EquipmentModuleProps {
+    initialSelectedEqId?: string | null;
+    onSelectedHandled?: () => void;
+}
+
+export const EquipmentModule: React.FC<EquipmentModuleProps> = ({ initialSelectedEqId, onSelectedHandled }) => {
     // Store
     const {
         equipment: equipmentList,
@@ -34,6 +39,14 @@ export const EquipmentModule: React.FC = () => {
 
     // State
     const [selectedEqId, setSelectedEqId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (initialSelectedEqId) {
+            setSelectedEqId(initialSelectedEqId);
+            onSelectedHandled?.();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialSelectedEqId]);
     // Filtered Data (Security)
     const searchableEquipment = useRestrictedEquipment(equipmentList, currentUser);
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { EquipmentStoppage, StoppageStatus } from '../../types';
 import { ChevronLeft, ChevronRight, CalendarPlus, Calendar as CalendarIcon, Search, X, AlertTriangle } from 'lucide-react';
@@ -33,7 +33,12 @@ const elapsedLabel = (startAt: string): string => {
     return `desde hace ${m}m`;
 };
 
-export const StoppagesModule: React.FC = () => {
+interface StoppagesModuleProps {
+    initialCreate?: boolean;
+    onCreateHandled?: () => void;
+}
+
+export const StoppagesModule: React.FC<StoppagesModuleProps> = ({ initialCreate, onCreateHandled }) => {
     const {
         stoppages, equipment, currentUser,
         addStoppage, updateStoppage, deleteStoppage
@@ -47,6 +52,14 @@ export const StoppagesModule: React.FC = () => {
     const [initialEquipmentId, setInitialEquipmentId] = useState<string | undefined>();
     const [initialStartAt, setInitialStartAt] = useState<string | undefined>();
     const [filters, setFilters] = useState<StoppageFilters>(EMPTY_STOPPAGE_FILTERS);
+
+    useEffect(() => {
+        if (initialCreate) {
+            openCreate();
+            onCreateHandled?.();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialCreate]);
 
     const setFilter = <K extends keyof StoppageFilters>(key: K, value: StoppageFilters[K]) =>
         setFilters(prev => ({ ...prev, [key]: value }));
