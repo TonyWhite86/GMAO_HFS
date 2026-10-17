@@ -1,20 +1,26 @@
 import { StateCreator } from 'zustand';
 
-export type ThemeId = 'azul' | 'claro' | 'oscuro' | 'suave';
+export type ThemeId = 'azul' | 'oscuro';
 
-export const THEME_IDS: ThemeId[] = ['azul', 'claro', 'oscuro', 'suave'];
+export const THEME_IDS: ThemeId[] = ['azul', 'oscuro'];
 const THEME_STORAGE_KEY = 'gmao-theme';
+
+// Migración: en versiones previas existían 'claro' y 'suave'.
+function normalizeTheme(value: string | null): ThemeId | null {
+    if (value === 'azul' || value === 'oscuro') return value;
+    if (value === 'claro' || value === 'suave') return 'azul';
+    return null;
+}
 
 function readStoredTheme(): ThemeId | null {
     if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return null;
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return THEME_IDS.includes(stored as ThemeId) ? (stored as ThemeId) : null;
+    return normalizeTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
 }
 
 function detectInitialTheme(): ThemeId {
     const stored = readStoredTheme();
     if (stored) return stored;
-    // Sin preferencia guardada: el sistema decide entre azul (día) y oscuro (noche).
+    // Sin preferencia guardada: el sistema decide entre claro (día) y oscuro (noche).
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
         && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         return 'oscuro';
@@ -45,7 +51,6 @@ export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set, get) 
         }
         set({ theme, isDarkMode: theme === 'oscuro' });
     },
-    // Compatibilidad: "modo oscuro" = tema oscuro.
     isDarkMode: detectInitialTheme() === 'oscuro',
     toggleTheme: () => {
         const next: ThemeId = get().isDarkMode ? 'azul' : 'oscuro';

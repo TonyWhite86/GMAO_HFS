@@ -1,67 +1,51 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, Calendar, Box, Users, Wrench, LogOut, LayoutDashboard, BarChart3, Plus, AlertCircle, CalendarClock, Sun, Moon, Palette } from 'lucide-react';
+import { ClipboardList, Calendar, Box, Users, Wrench, LogOut, LayoutDashboard, BarChart3, Plus, AlertCircle, CalendarClock, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BRANDING } from '../branding';
 import { useAppStore } from '../store/useAppStore';
 import { WOStatus, IncidentStatus } from '../types';
 import { useRestrictedItems } from '../hooks/useFilteredData';
 import { canSeeIncident } from '../utils/incidentVisibility';
 import { usePermissions } from '../hooks/usePermissions';
-import { ThemeId } from '../store/slices/createUISlice';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const THEME_OPTIONS: { id: ThemeId; label: string; swatch: string; ring: boolean }[] = [
-  { id: 'azul', label: 'Azul', swatch: '#2563eb', ring: true },
-  { id: 'claro', label: 'Claro', swatch: '#e9ecef', ring: true },
-  { id: 'oscuro', label: 'Oscuro', swatch: '#0f1117', ring: true },
-  { id: 'suave', label: 'Suave', swatch: '#c2764a', ring: true },
-];
-
-const Clock: React.FC = () => {
+const Clock: React.FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div className="flex items-center gap-2.5 select-none">
-      <span className="text-[11px] font-medium" style={{ color: 'var(--topbar-sub)' }}>
-        {now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-      </span>
-      <span className="font-mono text-[13px] font-bold" style={{ color: 'var(--topbar-text)' }}>
+    <div className={`select-none ${collapsed ? 'flex justify-center' : 'flex items-center justify-between gap-2 px-1'}`}>
+      {!collapsed && (
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--sidebar-text3)' }}>
+          {now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+        </span>
+      )}
+      <span className="font-mono text-[12px] font-bold" style={{ color: 'var(--sidebar-text)' }}>
         {now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
       </span>
     </div>
   );
 };
 
-const ThemeSelector: React.FC<{ compact?: boolean }> = ({ compact }) => {
-  const theme = useAppStore(s => s.theme);
-  const setTheme = useAppStore(s => s.setTheme);
+const ThemeToggle: React.FC<{ collapsed?: boolean }> = ({ collapsed }) => {
+  const isDarkMode = useAppStore(s => s.isDarkMode);
+  const toggleTheme = useAppStore(s => s.toggleTheme);
   return (
-    <div className={`flex items-center gap-1.5 ${compact ? '' : 'mt-2.5'}`}>
-      {!compact && (
-        <Palette size={13} className="shrink-0" style={{ color: 'var(--sidebar-text3)' }} />
-      )}
-      {THEME_OPTIONS.map(t => (
-        <button
-          key={t.id}
-          onClick={() => setTheme(t.id)}
-          title={`Tema ${t.label}`}
-          aria-label={`Tema ${t.label}`}
-          aria-pressed={theme === t.id}
-          className="w-[18px] h-[18px] rounded-full border transition-transform hover:scale-110 active:scale-95"
-          style={{
-            background: t.swatch,
-            borderColor: 'rgba(255,255,255,.35)',
-            boxShadow: theme === t.id ? '0 0 0 2px var(--sidebar-logo-color)' : 'none',
-          }}
-        />
-      ))}
-    </div>
+    <button
+      onClick={toggleTheme}
+      title={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
+      aria-label={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
+      className={`flex items-center gap-2 p-1.5 rounded-md transition-colors hover:bg-white/10 ${collapsed ? 'justify-center w-full' : ''}`}
+      style={{ color: 'var(--sidebar-text2)' }}
+    >
+      {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+      {!collapsed && <span className="text-[11px] font-medium">{isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>}
+    </button>
   );
 };
 
@@ -115,6 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     [visibleIncidents]
   );
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   // Safety check if user is null (should only happen if redirected to login)
@@ -173,11 +158,26 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-[100dvh] overflow-hidden font-sans" style={{ background: 'var(--bg)' }}>
       {/* Sidebar (escritorio) */}
       <aside
-        className="hidden lg:flex flex-col flex-shrink-0 w-[230px] transition-colors duration-300"
+        className={`hidden lg:flex flex-col flex-shrink-0 relative transition-all duration-300 ${isCollapsed ? 'w-[68px]' : 'w-[230px]'}`}
         style={{ background: 'var(--sidebar-bg)', boxShadow: 'var(--sidebar-shadow)' }}
       >
+        {/* Botón colapsar/expandir */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
+          className="absolute -right-3 top-9 z-50 rounded-full p-1 transition-colors active:scale-95"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text2)',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
         {/* Logo */}
-        <div className="nav-logo">
+        <div className="nav-logo" style={isCollapsed ? { justifyContent: 'center', padding: '16px 8px' } : undefined}>
           {BRANDING.icon ? (
             <img src={BRANDING.icon} alt="" className="nav-logo-icon object-cover" />
           ) : (
@@ -185,10 +185,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Wrench size={18} style={{ color: 'var(--sidebar-logo-color)' }} />
             </div>
           )}
-          <div className="min-w-0">
-            <h1 className="truncate">{BRANDING.appName}</h1>
-            <p className="truncate">{BRANDING.appSubtitle}</p>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <h1 className="truncate">{BRANDING.appName}</h1>
+              <p className="truncate">{BRANDING.appSubtitle}</p>
+            </div>
+          )}
         </div>
 
         {/* Navegación */}
@@ -198,7 +200,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             if (items.length === 0) return null;
             return (
               <div key={section.label}>
-                <div className="nav-section">{section.label}</div>
+                {!isCollapsed && <div className="nav-section">{section.label}</div>}
                 {items.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeModule === item.id;
@@ -207,11 +209,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <button
                       key={item.id}
                       onClick={() => handleNavigate(item.id)}
-                      className={`nav-item w-[calc(100%-16px)] text-left ${isActive ? 'active' : ''}`}
+                      title={isCollapsed ? item.label : undefined}
+                      className={`nav-item text-left ${isCollapsed ? 'w-[calc(100%-16px)] justify-center !px-0 !py-2.5 mx-auto' : 'w-[calc(100%-16px)]'} ${isActive ? 'active' : ''}`}
                     >
-                      <Icon size={17} />
-                      <span className="truncate">{item.label}</span>
-                      {badge > 0 && (
+                      <span className="relative shrink-0">
+                        <Icon size={17} />
+                        {isCollapsed && badge > 0 && (
+                          <span className={`nav-badge flat absolute -top-1 -right-1.5 !min-w-[13px] !h-[13px] !px-0.5 !text-[8px] !leading-none ${badgeTone[item.id] ?? ''}`}>
+                            {badge > 9 ? '9+' : badge}
+                          </span>
+                        )}
+                      </span>
+                      {!isCollapsed && <span className="truncate">{item.label}</span>}
+                      {!isCollapsed && badge > 0 && (
                         <span className={`nav-badge ${badgeTone[item.id] ?? ''}`}>
                           {badge > 99 ? '99+' : badge}
                         </span>
@@ -224,114 +234,74 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* Pie: usuario + tema + logout */}
+        {/* Pie: reloj + usuario + tema + logout */}
         <div className="nav-user">
-          <div className="nav-user-card">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08))',
-                  border: '1px solid rgba(255,255,255,.2)',
-                  color: 'var(--sidebar-logo-color)',
-                }}
-              >
-                {currentUser.name.charAt(0)}
+          <div className={isCollapsed ? 'px-1' : 'px-1 pb-2'}>
+            <Clock collapsed={isCollapsed} />
+          </div>
+          <div className={`nav-user-card ${isCollapsed ? '!p-1.5 !border-0 !bg-transparent' : ''}`}>
+            {isCollapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08))',
+                    border: '1px solid rgba(255,255,255,.2)',
+                    color: 'var(--sidebar-logo-color)',
+                  }}
+                  title={currentUser.name}
+                >
+                  {currentUser.name.charAt(0)}
+                </div>
+                <ThemeToggle collapsed />
+                <button
+                  onClick={logout}
+                  title="Cerrar Sesión"
+                  className="p-1.5 rounded-md transition-colors hover:bg-white/10"
+                  style={{ color: 'var(--sidebar-text2)' }}
+                >
+                  <LogOut size={15} />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold truncate" style={{ color: 'var(--sidebar-text)' }}>
-                  {currentUser.name}
-                </p>
-                <p className="text-[10px] truncate" style={{ color: 'var(--sidebar-text2)' }}>
-                  {currentUser.role}
-                </p>
-              </div>
-              <button
-                onClick={logout}
-                title="Cerrar Sesión"
-                className="p-1.5 rounded-md transition-colors hover:bg-white/10"
-                style={{ color: 'var(--sidebar-text2)' }}
-              >
-                <LogOut size={15} />
-              </button>
-            </div>
-            <ThemeSelector />
+            ) : (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08))',
+                      border: '1px solid rgba(255,255,255,.2)',
+                      color: 'var(--sidebar-logo-color)',
+                    }}
+                  >
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold truncate" style={{ color: 'var(--sidebar-text)' }}>
+                      {currentUser.name}
+                    </p>
+                    <p className="text-[10px] truncate" style={{ color: 'var(--sidebar-text2)' }}>
+                      {currentUser.role}
+                    </p>
+                  </div>
+                  <button
+                    onClick={logout}
+                    title="Cerrar Sesión"
+                    className="p-1.5 rounded-md transition-colors hover:bg-white/10"
+                    style={{ color: 'var(--sidebar-text2)' }}
+                  >
+                    <LogOut size={15} />
+                  </button>
+                </div>
+                <ThemeToggle />
+              </>
+            )}
           </div>
         </div>
       </aside>
 
-      {/* Columna principal */}
+      {/* Columna principal (sin topbar: el contenido ocupa todo el alto) */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-colors duration-300" style={{ background: 'var(--bg)' }}>
-        {/* Topbar */}
-        <header
-          className="flex-shrink-0 h-[54px] flex items-center gap-3 px-4 lg:px-5 transition-colors duration-300"
-          style={{
-            background: 'var(--topbar-bg)',
-            boxShadow: 'var(--topbar-shadow)',
-            paddingTop: 'env(safe-area-inset-top)',
-            height: 'calc(54px + env(safe-area-inset-top))',
-          }}
-        >
-          {/* Logo compacto en móvil */}
-          <div className="flex items-center gap-2 lg:hidden min-w-0">
-            {BRANDING.icon && (
-              <img src={BRANDING.icon} alt="" className="w-7 h-7 rounded-md object-cover" style={{ border: '1px solid rgba(255,255,255,.2)' }} />
-            )}
-            <span className="text-[13px] font-bold truncate" style={{ color: 'var(--topbar-text)' }}>
-              {BRANDING.appName}
-            </span>
-          </div>
-
-          {/* Badges de alerta */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {!isObserver && unassignedCount > 0 && (
-              <button
-                onClick={() => handleNavigate('maintenance')}
-                className="nav-badge flat whitespace-nowrap"
-                title="OTs sin asignar"
-              >
-                OTs sin asignar · {unassignedCount}
-              </button>
-            )}
-            {canAccessInventory && lowStockCount > 0 && (
-              <button
-                onClick={() => handleNavigate('inventory')}
-                className="nav-badge flat amber whitespace-nowrap"
-                title="Repuestos con stock bajo"
-              >
-                Stock bajo · {lowStockCount}
-              </button>
-            )}
-            {openIncidentCount > 0 && (
-              <button
-                onClick={() => handleNavigate('incidents')}
-                className="nav-badge flat whitespace-nowrap"
-                title="Incidencias abiertas"
-              >
-                Incidencias · {openIncidentCount}
-              </button>
-            )}
-          </div>
-
-          <div className="flex-1" />
-
-          <Clock />
-
-          {!isObserver && (
-            <button
-              onClick={() => {
-                handleNavigate('maintenance');
-                setCreationMode(true);
-              }}
-              className="btn btn-primary hidden sm:inline-flex"
-            >
-              <Plus size={14} />
-              <span className="hidden md:inline">Nueva OT</span>
-            </button>
-          )}
-        </header>
-
-        {/* Contenido */}
         <main className="flex-1 overflow-y-auto px-4 pb-28 pt-[calc(1rem+env(safe-area-inset-top))] lg:p-6 lg:pt-6 lg:pb-6 scroll-smooth relative">
           <div className="w-full min-h-full animate-fade-in">
             {children}
@@ -408,7 +378,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <span className="relative">
                       <Box size={20} />
                       {lowStockCount > 0 && (
-                        <span className="nav-badge flat amber absolute -top-1.5 -right-2 !min-w-[14px] !h-3.5 !px-0.5 !text-[8px]">{lowStockCount > 9 ? '9+' : lowStockCount}</span>
+                        <span className="nav-badge amber absolute -top-1.5 -right-2 !min-w-[14px] !h-3.5 !px-0.5 !text-[8px]">{lowStockCount > 9 ? '9+' : lowStockCount}</span>
                       )}
                     </span>
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase">Stock</span>
@@ -442,9 +412,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <p className="text-sm font-bold truncate" style={{ color: 'var(--text)' }}>{currentUser.name}</p>
                     <p className="text-xs truncate" style={{ color: 'var(--text2)' }}>{currentUser.role}</p>
                   </div>
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text2)' }}>Tema</span>
-                    <ThemeSelector compact />
+                  <div className="px-2 py-2">
+                    <ThemeToggle />
                   </div>
                   <button
                     onClick={() => {
