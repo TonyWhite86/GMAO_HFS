@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Incident, IncidentStatus, UserRole, WOPriority, Attachment } from '../../../types';
+import { Incident, IncidentStatus, Attachment } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import {
     X, AlertCircle, Clock, CheckCircle2, XCircle, FileText,
@@ -10,6 +10,7 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ConvertIncidentModal } from './ConvertIncidentModal';
 import { CommentTimeline, SharedComment } from '../../../components/common/CommentTimeline';
 import { CommentInput } from '../../../components/common/CommentInput';
+import { canConvertIncident, canManageIncident } from '../../../utils/incidentVisibility';
 
 interface IncidentDetailProps {
     incident: Incident | null;
@@ -20,7 +21,7 @@ interface IncidentDetailProps {
 
 
 export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClose, onNavigateToWorkOrder }) => {
-    const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, updateIncident, stoppages } = useAppStore();
+    const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, updateIncident, stoppages, sections, incidentCategories } = useAppStore();
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
     const [viewMedia, setViewMedia] = useState<{ type: 'image' | 'video' | 'pdf' | 'file'; url: string; name: string } | null>(null);
     const [reasonText, setReasonText] = useState('');
@@ -66,9 +67,13 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
         }
     };
 
-    const isManagerOrAdmin = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SECTION_MANAGER;
+    // Convertir a OT: solo Admin o personal de sección comodín (Mantenimiento/Ingeniería).
+    const canConvert = canConvertIncident(currentUser, sections)
+        && incident.status !== IncidentStatus.CONVERTED
+        && incident.status !== IncidentStatus.RESOLVED
+        && incident.status !== IncidentStatus.CANCELLED;
     const linkedWO = incident.workOrderId ? workOrders.find(wo => wo.id === incident.workOrderId) : null;
-    const canManageStatus = isManagerOrAdmin
+    const canManageStatus = canManageIncident(incident, currentUser, incidentCategories, sections)
         && incident.status !== IncidentStatus.RESOLVED
         && incident.status !== IncidentStatus.CANCELLED;
     const incidentStoppage = stoppages.find(st => st.incidentId === incident.id);
@@ -122,11 +127,11 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                         <X size={24} />
                     </button>
 
-                    <div className="flex gap-2 ml-auto">
-                        {isManagerOrAdmin && incident.status !== IncidentStatus.CONVERTED && incident.status !== IncidentStatus.RESOLVED && (
+                    <div className="flex flex-wrap gap-2 ml-auto">
+                        {canConvert && (
                             <button
                                 onClick={() => setIsConvertModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 btn btn-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-accent/20 transition-all active:scale-95"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 sm:py-2 btn btn-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-accent/20 transition-all active:scale-95"
                             >
                                 <Wrench size={16} />
                                 Gestionar a OT

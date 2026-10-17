@@ -1774,8 +1774,9 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Incidencia no encontrada';
   END IF;
-  IF NOT public.can_manage_incident(v_inc.section, v_inc.category_id) THEN
-    RAISE EXCEPTION 'No tienes permiso para gestionar esta incidencia';
+  -- Convertir a OT: sólo Admin o personal de sección comodín (Mantenimiento/Ingeniería)
+  IF NOT (public.is_admin() OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'Solo Mantenimiento/Ingeniería o un admin pueden convertir una incidencia a OT';
   END IF;
   IF v_inc.status IN ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
     RAISE EXCEPTION 'La incidencia está en estado % y no se puede convertir', v_inc.status;
