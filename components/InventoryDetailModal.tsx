@@ -3,6 +3,7 @@ import { InventoryItem, SupplierInfo, Equipment, User, UserRole } from '../types
 import { X, AlertTriangle, MapPin, Tag, Package, Printer, Save, Edit2, Upload, Trash2, Image as ImageIcon, Plus, DollarSign, Calendar, Boxes, Link2, Search, ArrowRightLeft, ArrowRight } from 'lucide-react';
 import { normalizeForSearch } from '../utils/searchUtils';
 import { QRCodeSVG } from 'qrcode.react';
+import { QRLabel } from './common/QRLabel';
 
 interface InventoryDetailModalProps {
     item: InventoryItem;
@@ -66,63 +67,6 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
     const [mergeSearchTerm, setMergeSearchTerm] = useState('');
     const [confirmingMergeId, setConfirmingMergeId] = useState<string | null>(null);
     const [isProcessingMerge, setIsProcessingMerge] = useState(false);
-
-    const handlePrint = () => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-
-        const qrSvg = document.getElementById(`qr-code-${item.id}`);
-        const qrHtml = qrSvg ? qrSvg.outerHTML : '';
-
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Imprimir Etiqueta - ${item.name}</title>
-                    <style>
-                        body { 
-                            font-family: sans-serif; 
-                            display: flex; 
-                            flex-direction: column; 
-                            align-items: center; 
-                            justify-content: center;
-                            padding: 20px;
-                            text-align: center;
-                        }
-                        .label-container {
-                            border: 2px solid #000;
-                            padding: 15px;
-                            width: 250px;
-                            border-radius: 10px;
-                        }
-                        .sku { font-family: monospace; font-size: 14px; margin-bottom: 5px; font-weight: bold; }
-                        .name { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-                        .qr-container { margin: 10px 0; }
-                        .qr-container svg { width: 150px; height: 150px; }
-                        .footer { font-size: 10px; color: #666; margin-top: 10px; }
-                        @media print {
-                            body { padding: 0; }
-                            .label-container { border: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="label-container">
-                        <div class="sku">${item.sku}</div>
-                        <div class="name">${item.name}</div>
-                        <div class="qr-container">${qrHtml}</div>
-                        <div class="footer">GMAO HFS - Sistema de Gestión</div>
-                    </div>
-                    <script>
-                        setTimeout(() => {
-                            window.print();
-                            window.close();
-                        }, 500);
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
 
     const handleSave = () => {
         const safeItem = {
@@ -519,13 +463,13 @@ export const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                                     </div>
                                 </div>
                                 {!isEditing && (
-                                    <button
-                                        onClick={handlePrint}
-                                        className="text-accent hover:text-accent p-2 hover:bg-accent-dim rounded-lg transition-colors"
-                                        title="Imprimir Etiqueta"
-                                    >
-                                        <Printer size={20} />
-                                    </button>
+                                    <QRLabel
+                                        compact
+                                        value={item.qrCode || item.sku}
+                                        code={item.sku}
+                                        name={item.name}
+                                        stock={item.quantity}
+                                    />
                                 )}
                             </div>
                         </>

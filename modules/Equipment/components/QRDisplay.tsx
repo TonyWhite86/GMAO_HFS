@@ -1,7 +1,7 @@
 import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { X, Printer, Download } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Equipment } from '../../../types';
+import { QRLabel } from '../../../components/common/QRLabel';
 
 interface QRDisplayProps {
     equipment: Equipment;
@@ -9,57 +9,6 @@ interface QRDisplayProps {
 }
 
 export const QRDisplay: React.FC<QRDisplayProps> = ({ equipment, onClose }) => {
-    const downloadQR = () => {
-        const svg = document.getElementById('qr-code-svg');
-        if (svg) {
-            const svgData = new XMLSerializer().serializeToString(svg);
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx?.drawImage(img, 0, 0);
-                const pngFile = canvas.toDataURL('image/png');
-                const downloadLink = document.createElement('a');
-                downloadLink.download = `QR-${equipment.code || equipment.name}.png`;
-                downloadLink.href = pngFile;
-                downloadLink.click();
-            };
-            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-        }
-    };
-
-    const printQR = () => {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-        <html>
-          <head>
-            <title>Imprimir QR - ${equipment.name}</title>
-            <style>
-              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-              .qr-container { text-align: center; border: 2px solid #000; padding: 20px; border-radius: 10px; }
-              h2 { font-family: sans-serif; margin-bottom: 20px; }
-              p { font-family: sans-serif; margin-top: 10px; color: #666; }
-            </style>
-          </head>
-          <body>
-            <div class="qr-container">
-              <h2>${equipment.name}</h2>
-              ${document.getElementById('qr-code-container')?.innerHTML}
-              <p>${equipment.code || equipment.qrCode}</p>
-            </div>
-            <script>
-              window.onload = () => { window.print(); window.close(); }
-            </script>
-          </body>
-        </html>
-      `);
-            printWindow.document.close();
-        }
-    };
-
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-surface rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center relative animate-fade-in">
@@ -73,32 +22,19 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ equipment, onClose }) => {
                 <h3 className="text-xl font-bold text-txt mb-2">{equipment.name}</h3>
                 <p className="text-sm text-txt-2 mb-6 font-mono">{equipment.code || equipment.qrCode}</p>
 
-                <div className="bg-surface p-4 rounded-xl shadow-inner inline-block mb-6" id="qr-code-container">
-                    <QRCodeSVG
-                        id="qr-code-svg"
-                        value={equipment.qrCode}
-                        size={200}
-                        level="H"
-                        includeMargin={true}
-                    />
+                <div className="flex justify-center mb-6">
+                    <div className="bg-surface p-4 rounded-xl shadow-inner border border-line">
+                        <QRLabel
+                            value={equipment.qrCode}
+                            code={equipment.code || equipment.qrCode}
+                            name={equipment.name}
+                        />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={printQR}
-                        className="flex items-center justify-center gap-2 py-2.5 px-4 bg-surface-2 hover:bg-surface-3 text-txt-2 rounded-lg font-medium transition-colors"
-                    >
-                        <Printer size={18} />
-                        Imprimir
-                    </button>
-                    <button
-                        onClick={downloadQR}
-                        className="flex items-center justify-center gap-2 py-2.5 px-4 btn btn-primary text-white rounded-lg font-medium transition-colors shadow-sm"
-                    >
-                        <Download size={18} />
-                        Descargar
-                    </button>
-                </div>
+                <p className="text-xs text-txt-3">
+                    La etiqueta incluye QR, código y nombre — cópiala como imagen, descárgala en PNG o imprímela.
+                </p>
             </div>
         </div>
     );
