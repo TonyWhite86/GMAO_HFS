@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 /* ════════════════════════════════════════════════════════
-   TEMAS — se activan con clase en <html>: theme-azul (default),
-   theme-claro, theme-oscuro, theme-suave.
+   TEMAS — se activan con clase en <html>: theme-azul (claro, default),
+   theme-oscuro.
    ════════════════════════════════════════════════════════ */
 
 /* ── TEMA AZUL (default) ── */
@@ -43,40 +43,6 @@
   --input-focus-border: #2563eb; --input-focus-shadow: rgba(37, 99, 235, .12);
 }
 
-/* ── TEMA CLARO ── */
-html.theme-claro {
-  --finde: rgba(15, 23, 42, .06); --festivo: rgba(220, 53, 69, .10); --hoy: rgba(255, 255, 255, .70);
-  --cab: #e8ebef; --cab-claro: #fafbfc;
-  --bg: #e9ecef; --surface: #f3f4f6; --surface2: #e5e7eb; --surface3: #dadde1;
-  --border: #d1d5db; --border2: #c1c6cc;
-  --text: #212529; --text2: #495057; --text3: #8b939b;
-  --accent: #0d6efd; --accent2: #3d8bfd; --accentdim: #e7f1ff; --accentborder: #b6d4fe;
-  --blue-mid: #0d6efd; --blue-bright: #3d8bfd; --blue-frost: #e7f1ff; --blue-ghost: #b6d4fe; --blue-pale: #84b7fe;
-  --navy3: #0a58ca;
-  --green: #198754; --greendim: #d1e7dd; --greenborder: #a3cfbb;
-  --amber: #fd7e14; --amberdim: #fff3cd; --amberborder: #ffe69c;
-  --red: #dc3545; --reddim: #f8d7da; --redborder: #f5c2c7;
-  --purple: #6f42c1; --purpledim: #e8d9f7; --purpleborder: #c9a9e9;
-  --shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06);
-  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, .13), 0 4px 8px -2px rgba(0, 0, 0, .08);
-  --shadow-xl: 0 20px 35px -5px rgba(0, 0, 0, .15), 0 10px 15px -5px rgba(0, 0, 0, .09);
-  --sidebar-bg: #eef0f2;
-  --sidebar-border: #d1d5db;
-  --sidebar-text: #212529; --sidebar-text2: #6c757d; --sidebar-text3: #9aa1a8;
-  --sidebar-active-bg: #e7f1ff; --sidebar-active-border: #b6d4fe; --sidebar-hover-bg: #e5e7eb;
-  --sidebar-logo-color: #0d6efd; --sidebar-user-bg: #e5e7eb; --sidebar-user-border: #d1d5db;
-  --topbar-bg: #eef0f2;
-  --topbar-text: #212529; --topbar-sub: #6c757d;
-  --topbar-shadow: 0 1px 4px rgba(0, 0, 0, .1); --sidebar-shadow: 1px 0 4px rgba(0, 0, 0, .08);
-  --nav-icon-color: #6c757d;
-  --btn-primary-bg: linear-gradient(135deg, #0a58ca, #0d6efd);
-  --btn-primary-hover: linear-gradient(135deg, #0d6efd, #3d8bfd);
-  --scrollbar-thumb: #c1c6cc; --scrollbar-hover: #9aa1a8;
-  --table-hover: #e7f1ff;
-  --input-focus-border: #0d6efd; --input-focus-shadow: rgba(13, 110, 253, .12);
-}
-
 /* ── TEMA OSCURO ── */
 html.theme-oscuro {
   --finde: rgba(0, 0, 0, .26); --festivo: rgba(239, 68, 68, .16); --hoy: rgba(255, 255, 255, .06);
@@ -111,40 +77,6 @@ html.theme-oscuro {
   --input-focus-border: #6366f1; --input-focus-shadow: rgba(99, 102, 241, .2);
 }
 
-/* ── TEMA SUAVE ── */
-html.theme-suave {
-  --finde: rgba(61, 46, 30, .06); --festivo: rgba(184, 92, 92, .13); --hoy: rgba(255, 255, 255, .60);
-  --cab: #f3e9d8; --cab-claro: #fffaf1;
-  --bg: #f5ede1; --surface: #fbf5ec; --surface2: #f4ead9; --surface3: #ecdec7;
-  --border: #e0cba9; --border2: #d1b68a;
-  --text: #3d2e1e; --text2: #7a6655; --text3: #b8a898;
-  --accent: #c2764a; --accent2: #d4916a; --accentdim: #fdf0e8; --accentborder: #f0c9a8;
-  --blue-mid: #c2764a; --blue-bright: #d4916a; --blue-frost: #fdf0e8; --blue-ghost: #f0c9a8; --blue-pale: #e8b48a;
-  --navy3: #9a5535;
-  --green: #6b8f5e; --greendim: #edf4e9; --greenborder: #c3dab9;
-  --amber: #c9963a; --amberdim: #fdf6e3; --amberborder: #f0d89a;
-  --red: #b85c5c; --reddim: #fbeaea; --redborder: #e8b4b4;
-  --purple: #8b6fb5; --purpledim: #f0eaf8; --purpleborder: #d0b8ec;
-  --shadow: 0 1px 3px rgba(61, 46, 30, .08), 0 1px 2px rgba(61, 46, 30, .05);
-  --shadow-md: 0 4px 8px -1px rgba(61, 46, 30, .1), 0 2px 4px -1px rgba(61, 46, 30, .06);
-  --shadow-lg: 0 10px 20px -3px rgba(61, 46, 30, .12), 0 4px 8px -2px rgba(61, 46, 30, .08);
-  --shadow-xl: 0 20px 35px -5px rgba(61, 46, 30, .15), 0 10px 15px -5px rgba(61, 46, 30, .1);
-  --sidebar-bg: linear-gradient(175deg, #3d2e1e 0%, #6b4a32 50%, #c2764a 100%);
-  --sidebar-border: rgba(240, 201, 168, .15);
-  --sidebar-text: rgba(253, 240, 232, .9); --sidebar-text2: rgba(240, 201, 168, .75); --sidebar-text3: rgba(240, 201, 168, .4);
-  --sidebar-active-bg: rgba(255, 255, 255, .14); --sidebar-active-border: rgba(240, 201, 168, .4); --sidebar-hover-bg: rgba(255, 255, 255, .07);
-  --sidebar-logo-color: #fdf0e8; --sidebar-user-bg: rgba(255, 255, 255, .08); --sidebar-user-border: rgba(240, 201, 168, .15);
-  --topbar-bg: linear-gradient(90deg, #6b4a32 0%, #c2764a 60%, #d4916a 100%);
-  --topbar-text: #fdf0e8; --topbar-sub: rgba(240, 201, 168, .85);
-  --topbar-shadow: 0 2px 16px rgba(61, 46, 30, .25); --sidebar-shadow: 4px 0 24px rgba(61, 46, 30, .25);
-  --nav-icon-color: rgba(240, 201, 168, .65);
-  --btn-primary-bg: linear-gradient(135deg, #9a5535, #c2764a);
-  --btn-primary-hover: linear-gradient(135deg, #c2764a, #d4916a);
-  --scrollbar-thumb: #e8e0d5; --scrollbar-hover: #d9cfbf;
-  --table-hover: #fdf0e8;
-  --input-focus-border: #c2764a; --input-focus-shadow: rgba(194, 118, 74, .15);
-}
-
 @layer base {
     html {
         font-family: 'Inter', sans-serif;
@@ -155,6 +87,7 @@ html.theme-suave {
         background: var(--bg);
         color: var(--text);
         font-family: 'Inter', sans-serif;
+        font-size: 13px;
         transition: background .25s, color .25s;
     }
 
@@ -596,14 +529,6 @@ html.theme-suave {
         padding: 10px 11px;
         border: 1px solid var(--sidebar-user-border);
     }
-
-    /* Claro: sidebar con fondo claro necesita ajuste de color */
-    html.theme-claro .nav-item { color: var(--text2); }
-    html.theme-claro .nav-item:hover { color: var(--accent); background: var(--accentdim); }
-    html.theme-claro .nav-item:hover svg { stroke: var(--accent); }
-    html.theme-claro .nav-item.active { color: var(--accent); }
-    html.theme-claro .nav-item.active svg { stroke: var(--accent); }
-    html.theme-claro .nav-logo h1 { color: var(--text); }
 
     /* ── ÁRBOL ── */
     .tree-item {

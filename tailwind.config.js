@@ -61,6 +61,17 @@ export default {
                 sans: ['Inter', 'system-ui', 'sans-serif'],
                 mono: ['Consolas', 'Courier New', 'monospace'],
             },
+            // Escala tipográfica Pulso (10/12/13/15/16/20/24/28)
+            fontSize: {
+                xs: ['10px', '14px'],
+                sm: ['12px', '16px'],
+                base: ['13px', '18px'],
+                lg: ['15px', '20px'],
+                xl: ['16px', '22px'],
+                '2xl': ['20px', '26px'],
+                '3xl': ['24px', '30px'],
+                '4xl': ['28px', '34px'],
+            },
             boxShadow: {
                 DEFAULT: 'var(--shadow)',
                 md: 'var(--shadow-md)',
