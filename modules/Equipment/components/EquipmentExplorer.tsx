@@ -1,12 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Equipment } from '../../../types';
-import { Search, QrCode, ArrowLeft, Box, Folder, ChevronRight, FolderOpen } from 'lucide-react';
+import { Search, QrCode, Box, Folder, ChevronRight, Layers } from 'lucide-react';
+import {
+    buildEquipmentTree, defaultExpandedIds, getAncestorIds, getEquipmentPath,
+    EquipmentTreeNode
+} from '../../../utils/equipmentTree';
 
 interface EquipmentExplorerProps {
     equipmentList: Equipment[];
     filteredEquipment: Equipment[];
-    viewRootId: string | undefined;
-    setViewRootId: (id: string | undefined) => void;
     selectedEqId: string | null;
     setSelectedEqId: (id: string | null) => void;
     equipmentSearch: string;
@@ -14,43 +16,124 @@ interface EquipmentExplorerProps {
     onQRScan: () => void;
 }
 
+interface TreeNodeProps {
+    node: EquipmentTreeNode;
+    expandedIds: Set<string>;
+    onToggle: (id: string) => void;
+    selectedEqId: string | null;
+    onSelect: (id: string) => void;
+    pathOf: (id: string) => string;
+}
+
+const TreeNodeRow: React.FC<TreeNodeProps> = ({ node, expandedIds, onToggle, selectedEqId, onSelect, pathOf }) => {
+    const { equipment: eq, children } = node;
+    const hasChildren = children.length > 0;
+    const isExpanded = hasChildren && expandedIds.has(eq.id);
+    const isSelected = selectedEqId === eq.id;
+
+    return (
+        <div className="tree-node">
+            <div
+                className={`tree-row ${isSelected ? 'active' : ''}`}
+                onClick={() => onSelect(eq.id)}
+                title={pathOf(eq.id)}
+            >
+                {hasChildren ? (
+                    <button
+                        className={`tree-toggle ${isExpanded ? 'open' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggle(eq.id);
+                        }}
+                        aria-label={isExpanded ? 'Contraer' : 'Expandir'}
+                    >
+                        <ChevronRight size={14} />
+                    </button>
+                ) : (
+                    <span className="w-4 shrink-0" />
+                )}
+                <span className="tree-icon" style={{ background: hasChildren ? 'var(--amberdim)' : 'var(--surface2)', color: hasChildren ? 'var(--amber)' : 'var(--text3)' }}>
+                    {hasChildren ? <Folder size={14} /> : <Box size={14} />}
+                </span>
+                <span className={`text-sm truncate ${isSelected ? 'font-semibold' : 'font-medium text-txt'}`}>
+                    {eq.name}
+                </span>
+                {hasChildren && (
+                    <span className="text-[10px] text-txt-3 shrink-0 ml-auto">
+                        {children.length}
+                    </span>
+                )}
+            </div>
+            {isExpanded && children.length > 0 && (
+                <div className="tree-children">
+                    {children.map(child => (
+                        <TreeNodeRow
+                            key={child.equipment.id}
+                            node={child}
+                            expandedIds={expandedIds}
+                            onToggle={onToggle}
+                            selectedEqId={selectedEqId}
+                            onSelect={onSelect}
+                            pathOf={pathOf}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
     equipmentList,
     filteredEquipment,
-    viewRootId,
-    setViewRootId,
     selectedEqId,
     setSelectedEqId,
     equipmentSearch,
     setEquipmentSearch,
     onQRScan
 }) => {
+    const tree = useMemo(() => buildEquipmentTree(equipmentList), [equipmentList]);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(
+        () => defaultExpandedIds(equipmentList, selectedEqId)
+    );
 
-    const currentLevelItems = useMemo(() => {
-        if (viewRootId) {
-            return filteredEquipment.filter(e => e.parentId === viewRootId);
-        } else {
-            const visibleIds = new Set(filteredEquipment.map(e => e.id));
-            return filteredEquipment.filter(e => {
-                if (!e.parentId) return true;
-                return !visibleIds.has(e.parentId);
-            });
-        }
-    }, [filteredEquipment, viewRootId]);
-
-    const currentRoot = viewRootId ? equipmentList.find(e => e.id === viewRootId) : null;
-
-    const handleNavigateUp = () => {
-        if (currentRoot && currentRoot.parentId) {
-            const parentIsVisible = filteredEquipment.some(e => e.id === currentRoot.parentId);
-            if (parentIsVisible) {
-                setViewRootId(currentRoot.parentId);
-            } else {
-                setViewRootId(undefined);
+    // Auto-expandir la rama del equipo seleccionado (p.ej. desde búsqueda o QR).
+    useEffect(() => {
+        if (!selectedEqId) return;
+        const ancestors = getAncestorIds(equipmentList, selectedEqId);
+        if (ancestors.length === 0) return;
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            let changed = false;
+            for (const id of ancestors) {
+                if (!next.has(id)) {
+                    next.add(id);
+                    changed = true;
+                }
             }
-        } else {
-            setViewRootId(undefined);
-        }
+            return changed ? next : prev;
+        });
+    }, [selectedEqId, equipmentList]);
+
+    const toggle = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const pathOf = (id: string) => getEquipmentPath(equipmentList, id);
+
+    const handleSelect = (id: string) => {
+        setSelectedEqId(id);
+        // Al elegir desde el árbol no hay búsqueda activa que limpiar.
+    };
+
+    const handleSelectFromSearch = (id: string) => {
+        setSelectedEqId(id);
+        setEquipmentSearch('');
     };
 
     return (
@@ -59,24 +142,10 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
             <div className="p-4 border-b border-line bg-surface-2 rounded-t-lg flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <h2 className="font-bold text-txt-2">Explorador</h2>
-                    {currentRoot && (
-                        <span className="text-xs text-txt-3 bg-surface-2 px-2 py-0.5 rounded-full border border-line truncate max-w-[120px]">
-                            {currentRoot.name}
-                        </span>
-                    )}
+                    <span className="text-xs text-txt-3 bg-surface-2 px-2 py-0.5 rounded-full border border-line">
+                        {equipmentList.length} equipos
+                    </span>
                 </div>
-
-                {/* UP BUTTON - Opposite Side */}
-                {viewRootId && (
-                    <button
-                        onClick={handleNavigateUp}
-                        className="flex items-center gap-2 px-4 py-2 bg-accent-dim hover:bg-accent-dim text-accent rounded-xl text-sm font-bold transition-all border border-accent-border active:scale-95 shadow-sm"
-                        title="Subir de nivel"
-                    >
-                        <ArrowLeft size={18} />
-                        <span>Subir Nivel</span>
-                    </button>
-                )}
             </div>
 
             {/* Search Bar */}
@@ -119,18 +188,15 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                             : 'border-transparent hover:bg-surface-2 '
                                         }
                   `}
-                                    onClick={() => {
-                                        setSelectedEqId(item.id);
-                                    }}
+                                    onClick={() => handleSelectFromSearch(item.id)}
                                 >
-                                    <div className={`p-2 rounded-lg flex-shrink-0 ${item.parentId ? 'bg-surface-2 text-txt-2 bg-surface text-txt-3' : 'bg-warn-dim text-warn'}`}>
+                                    <div className={`p-2 rounded-lg flex-shrink-0 ${item.parentId ? 'bg-surface-2 text-txt-2' : 'bg-warn-dim text-warn'}`}>
                                         {item.parentId ? <Box size={18} /> : <Folder size={18} />}
                                     </div>
                                     <div className="min-w-0">
                                         <div className="font-medium text-txt truncate">{item.name}</div>
-                                        <div className="text-xs text-txt-2 truncate flex items-center gap-1">
-                                            <QrCode size={12} />
-                                            {item.qrCode}
+                                        <div className="text-xs text-txt-2 truncate">
+                                            {getEquipmentPath(equipmentList, item.id)}
                                         </div>
                                     </div>
                                 </div>
@@ -143,64 +209,35 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                         )}
                     </div>
                 ) : (
-                    // Standard Drill-Down Tree
-                    <div className="space-y-1">
-                        {currentLevelItems.length > 0 ? (
-                            currentLevelItems.map(item => {
-                                const hasChildren = equipmentList.some(e => e.parentId === item.id);
-                                const isSelected = selectedEqId === item.id;
-
-                                return (
-                                    <div
-                                        key={item.id}
-                                        className={`
-                        flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border
-                        ${selectedEqId === item.id ? 'bg-accent-dim border-accent shadow-sm'
-                                                : 'bg-surface border-transparent hover:bg-surface-2  hover:border-line '
-                                            }
-`}
-                                        onClick={() => setSelectedEqId(item.id)}
-                                    >
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            {/* Icon Indicator */}
-                                            <div className={`
-                    w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
-                            ${hasChildren
-                                                    ? 'bg-warn-dim text-warn'
-                                                    : 'bg-surface-2 text-txt-2 bg-surface text-txt-3'
-                                                }
-                          `}>
-                                                {hasChildren ? <Folder size={20} /> : <Box size={20} />}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className={`font-medium truncate ${isSelected ? 'text-accent' : 'text-txt-2'}`}>{item.name}</h3>
-                                                <p className="text-xs text-txt-2 truncate">
-                                                    {hasChildren ? 'Contiene sub-equipos' : (item.serialNumber || 'Item final')}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Drill Down or Select Action */}
-                                        {hasChildren && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setViewRootId(item.id);
-                                                }}
-                                                className="ml-2 p-3 text-txt-2 hover:text-accent hover:bg-accent-dim rounded-xl transition-all border border-line bg-surface-2/30 active:scale-90"
-                                                title="Entrar en carpeta"
-                                            >
-                                                <ChevronRight size={24} />
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })
+                    // Árbol expandible con conectores curvos
+                    <div className="tree-root">
+                        <div
+                            className={`tree-row ${selectedEqId === null ? '' : ''}`}
+                            style={{ paddingLeft: 8 }}
+                        >
+                            <span className="tree-icon" style={{ background: 'var(--accentdim)', color: 'var(--accent)' }}>
+                                <Layers size={14} />
+                            </span>
+                            <span className="text-sm font-semibold text-txt-2">Todos los equipos</span>
+                        </div>
+                        {tree.length > 0 ? (
+                            <div className="tree-children">
+                                {tree.map(node => (
+                                    <TreeNodeRow
+                                        key={node.equipment.id}
+                                        node={node}
+                                        expandedIds={expandedIds}
+                                        onToggle={toggle}
+                                        selectedEqId={selectedEqId}
+                                        onSelect={handleSelect}
+                                        pathOf={pathOf}
+                                    />
+                                ))}
+                            </div>
                         ) : (
                             <div className="p-8 text-center text-txt-2">
-                                <FolderOpen size={32} className="mx-auto mb-2 opacity-50" />
-                                <p>Carpeta vacía</p>
+                                <Box size={32} className="mx-auto mb-2 opacity-50" />
+                                <p>No hay equipos registrados</p>
                             </div>
                         )}
                     </div>

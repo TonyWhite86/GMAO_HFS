@@ -530,19 +530,61 @@ html.theme-oscuro {
         border: 1px solid var(--sidebar-user-border);
     }
 
-    /* ── ÁRBOL ── */
-    .tree-item {
+    /* ── ÁRBOL (conectores curvos tipo organigrama) ──
+       Estructura: .tree-children > .tree-node > .tree-row + .tree-children…
+       Cada nodo traza su troncal (vertical) y su codo curvo hacia el contenido. */
+    .tree-children {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+    .tree-node {
+        position: relative;
+        padding-left: 24px;
+    }
+    /* Troncal: línea vertical de la que cuelga el nodo y su subrama */
+    .tree-node::before {
+        content: '';
+        position: absolute;
+        left: 1px;
+        top: 0;
+        bottom: 0;
+        border-left: 2px solid var(--border);
+        transition: border-color .2s;
+    }
+    /* El último hijo corta la troncal en su curva */
+    .tree-node:last-child::before {
+        bottom: auto;
+        height: 18px;
+    }
+    /* Codo curvo: de la troncal al centro del nodo */
+    .tree-row::after {
+        content: '';
+        position: absolute;
+        left: -23px;
+        top: calc(50% - 16px);
+        width: 23px;
+        height: 16px;
+        border-left: 2px solid var(--border);
+        border-bottom: 2px solid var(--border);
+        border-bottom-left-radius: 999px;
+        transition: border-color .2s;
+        pointer-events: none;
+    }
+    .tree-row {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 5px 8px;
+        min-height: 36px;
+        padding: 5px 8px 5px 0;
         border-radius: 6px;
         cursor: pointer;
         user-select: none;
         transition: background .1s;
     }
-    .tree-item:hover { background: var(--surface2); }
-    .tree-item.active { background: var(--accentdim); color: var(--accent); }
+    .tree-row:hover { background: var(--surface2); }
+    .tree-row.active { background: var(--accentdim); color: var(--accent); }
     .tree-toggle {
         width: 16px;
         height: 16px;
@@ -552,7 +594,9 @@ html.theme-oscuro {
         flex-shrink: 0;
         border-radius: 3px;
         color: var(--text3);
+        transition: transform .15s, background .1s;
     }
+    .tree-toggle.open { transform: rotate(90deg); }
     .tree-toggle:hover { background: var(--border); color: var(--text); }
     .tree-icon {
         width: 18px;
@@ -563,8 +607,13 @@ html.theme-oscuro {
         justify-content: center;
         flex-shrink: 0;
     }
-    .tree-children {
-        padding-left: 20px;
+    /* Raíz virtual: la troncal cuelga de la fila raíz */
+    .tree-root > .tree-children::before {
+        content: '';
+        position: absolute;
+        left: 1px;
+        top: -18px;
+        height: 18px;
         border-left: 2px solid var(--border);
     }
 

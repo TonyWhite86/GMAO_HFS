@@ -33,7 +33,6 @@ export const EquipmentModule: React.FC = () => {
     } = useAppStore();
 
     // State
-    const [viewRootId, setViewRootId] = useState<string | undefined>(undefined);
     const [selectedEqId, setSelectedEqId] = useState<string | null>(null);
     // Filtered Data (Security)
     const searchableEquipment = useRestrictedEquipment(equipmentList, currentUser);
@@ -90,8 +89,6 @@ export const EquipmentModule: React.FC = () => {
                 <EquipmentExplorer
                     equipmentList={equipmentList}
                     filteredEquipment={filteredEquipment}
-                    viewRootId={viewRootId}
-                    setViewRootId={setViewRootId}
                     selectedEqId={selectedEqId}
                     setSelectedEqId={setSelectedEqId}
                     equipmentSearch={equipmentSearch}
