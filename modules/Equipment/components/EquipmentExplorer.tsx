@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Equipment } from '../../../types';
-import { Search, QrCode, Box, Folder, ChevronRight, Layers } from 'lucide-react';
+import { Search, QrCode, Cog, Building2, ChevronRight, Factory } from 'lucide-react';
 import {
     buildEquipmentTree, defaultExpandedIds, getAncestorIds, getEquipmentPath,
     EquipmentTreeNode
 } from '../../../utils/equipmentTree';
+import { EQUIPMENT_STATUS_DOT } from '../../../constants';
 
 interface EquipmentExplorerProps {
     equipmentList: Equipment[];
@@ -53,11 +54,16 @@ const TreeNodeRow: React.FC<TreeNodeProps> = ({ node, expandedIds, onToggle, sel
                     <span className="w-4 shrink-0" />
                 )}
                 <span className="tree-icon" style={{ background: hasChildren ? 'var(--amberdim)' : 'var(--surface2)', color: hasChildren ? 'var(--amber)' : 'var(--text3)' }}>
-                    {hasChildren ? <Folder size={14} /> : <Box size={14} />}
+                    {hasChildren ? <Building2 size={14} /> : <Cog size={14} />}
                 </span>
                 <span className={`text-sm truncate ${isSelected ? 'font-semibold' : 'font-medium text-txt'}`}>
                     {eq.name}
                 </span>
+                <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: EQUIPMENT_STATUS_DOT[eq.status] || 'var(--text3)' }}
+                    title={eq.status}
+                />
                 {hasChildren && (
                     <span className="text-[10px] text-txt-3 shrink-0 ml-auto">
                         {children.length}
@@ -191,10 +197,17 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                                     onClick={() => handleSelectFromSearch(item.id)}
                                 >
                                     <div className={`p-2 rounded-lg flex-shrink-0 ${item.parentId ? 'bg-surface-2 text-txt-2' : 'bg-warn-dim text-warn'}`}>
-                                        {item.parentId ? <Box size={18} /> : <Folder size={18} />}
+                                        {item.parentId ? <Cog size={18} /> : <Building2 size={18} />}
                                     </div>
-                                    <div className="min-w-0">
-                                        <div className="font-medium text-txt truncate">{item.name}</div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-txt truncate flex items-center gap-2">
+                                            <span className="truncate">{item.name}</span>
+                                            <span
+                                                className="w-2 h-2 rounded-full shrink-0"
+                                                style={{ background: EQUIPMENT_STATUS_DOT[item.status] || 'var(--text3)' }}
+                                                title={item.status}
+                                            />
+                                        </div>
                                         <div className="text-xs text-txt-2 truncate">
                                             {getEquipmentPath(equipmentList, item.id)}
                                         </div>
@@ -216,7 +229,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                             style={{ paddingLeft: 8 }}
                         >
                             <span className="tree-icon" style={{ background: 'var(--accentdim)', color: 'var(--accent)' }}>
-                                <Layers size={14} />
+                                <Factory size={14} />
                             </span>
                             <span className="text-sm font-semibold text-txt-2">Todos los equipos</span>
                         </div>
@@ -236,7 +249,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                             </div>
                         ) : (
                             <div className="p-8 text-center text-txt-2">
-                                <Box size={32} className="mx-auto mb-2 opacity-50" />
+                                <Building2 size={32} className="mx-auto mb-2 opacity-50" />
                                 <p>No hay equipos registrados</p>
                             </div>
                         )}

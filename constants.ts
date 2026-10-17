@@ -215,3 +215,14 @@ export const STOPPAGE_STATUS_CONFIG = {
         bgClass: 'bdg-red'
     }
 };
+
+// Punto de color por estado de equipo (árbol de Equipos). Colores = variables del tema.
+export const EQUIPMENT_STATUS_DOT: Record<string, string> = {
+    'Nuevo': 'var(--accent)',
+    'En Producción': 'var(--green)',
+    'Almacén': 'var(--accent2)',
+    'Reparación': 'var(--amber)',
+    'Averiado': 'var(--red)',
+    'Inactivo': 'var(--text3)',
+    'Baja': 'var(--text3)'
+};
