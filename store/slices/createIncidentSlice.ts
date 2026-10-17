@@ -143,47 +143,29 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
             throw new Error('Incidencia no encontrada');
         }
 
-        const finalReason = reason !== undefined ? reason : (incident.reason || undefined);
-
-        // Validación optimista para el toast inmediato; la BD vuelve a validar.
-        if (status === IncidentStatus.IN_REVIEW && !finalReason?.trim()) {
-            toast.error('Indica el motivo para pasar a En Revisión');
-            throw new Error('Falta motivo');
-        }
-        if (status === IncidentStatus.RESOLVED || status === IncidentStatus.PENDING_CLOSE) {
-            if (!finalReason?.trim()) {
-                toast.error('Indica el motivo antes de resolver la incidencia');
-                throw new Error('Falta motivo');
-            }
-            if (!solution?.trim()) {
-                toast.error('Indica la solución para resolver la incidencia');
-                throw new Error('Falta solución');
-            }
-        }
-
-        // Misma regla que la BD: si quien resuelve NO es el creador, el cierre
-        // queda Pendiente de Confirmación (la BD manda; realtime refresca).
+        // Misma regla que la BD: si quien cierra NO es el creador, el cierre
+        // queda Pendiente de Confirmación de Cierre (la BD manda; realtime refresca).
         const currentUser = get().currentUser;
-        const closesDirectly = status === IncidentStatus.RESOLVED
+        const closesDirectly = status === IncidentStatus.CLOSED
             && incident.createdBy === currentUser?.id;
-        const effectiveStatus = status === IncidentStatus.RESOLVED && !closesDirectly
+        const effectiveStatus = status === IncidentStatus.CLOSED && !closesDirectly
             ? IncidentStatus.PENDING_CLOSE
             : status;
-        const sealsResolution = effectiveStatus === IncidentStatus.RESOLVED
+        const sealsResolution = effectiveStatus === IncidentStatus.CLOSED
             || effectiveStatus === IncidentStatus.PENDING_CLOSE;
         const resolvedAt = sealsResolution ? new Date().toISOString() : null;
         const resolvedBy = sealsResolution ? currentUser?.id : null;
 
         try {
-            // RPC atómica: valida transiciones, exige motivo/solución y sella
-            // resolved_at/resolved_by en la BD (no falsificables desde el cliente).
-            await incidentService.transition(id, status, finalReason ?? null, solution ?? null);
+            // RPC atómica: valida la transición y sella resolved_at/resolved_by
+            // en la BD (no falsificables desde el cliente).
+            await incidentService.transition(id, status, reason ?? null, solution ?? null);
             set((state) => ({
                 incidents: state.incidents.map(inc => inc.id === id ? {
                     ...inc,
                     status: effectiveStatus,
-                    reason: finalReason ?? inc.reason,
-                    solution: solution !== undefined ? solution : inc.solution,
+                    reason: reason !== undefined ? (reason || null) : inc.reason,
+                    solution: solution !== undefined ? (solution || null) : inc.solution,
                     resolvedAt,
                     resolvedBy,
                     resolvedByName: resolvedBy ? currentUser?.name : undefined
@@ -191,10 +173,8 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
             }));
             if (effectiveStatus === IncidentStatus.PENDING_CLOSE) {
                 toast.success('Cierre propuesto — pendiente de confirmación del creador');
-            } else if (effectiveStatus === IncidentStatus.RESOLVED) {
-                toast.success('Incidencia resuelta');
             } else {
-                toast.success(`Incidencia ${status.toLowerCase()}`);
+                toast.success(`Incidencia: ${effectiveStatus.toLowerCase()}`);
             }
         } catch (error) {
             throw error;
@@ -216,7 +196,7 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
             set((state) => ({
                 incidents: state.incidents.map(inc => inc.id === id ? {
                     ...inc,
-                    status: accept ? IncidentStatus.RESOLVED : IncidentStatus.OPEN,
+                    status: accept ? IncidentStatus.CLOSED : IncidentStatus.OPEN,
                     resolvedAt: accept ? inc.resolvedAt : null,
                     resolvedBy: accept ? inc.resolvedBy : null,
                     resolvedByName: accept ? inc.resolvedByName : undefined
@@ -265,13 +245,16 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
                 assignedUserId: woData.assignedUserId,
                 scheduledDate: woData.scheduledDate,
                 subtasks: woData.subtasks || [],
-                attachments: (woData.attachments?.length ? woData.attachments : [])
+                attachments: (woData.attachments?.length ? woData.attachments : []),
+                isExternal: woData.isExternal || false,
+                contractorId: woData.contractorId || null,
+                externalPrice: woData.externalPrice ?? null
             });
 
             set((state) => ({
                 incidents: state.incidents.map(inc => inc.id === incidentId ? {
                     ...inc,
-                    status: IncidentStatus.CONVERTED,
+                    status: IncidentStatus.SCHEDULED,
                     workOrderId,
                     section: woData.section
                 } : inc)

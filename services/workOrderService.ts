@@ -60,7 +60,10 @@ export const workOrderService = {
             collaborating_sections: wo.collaboratingSections || [],
             used_parts: wo.usedParts || [],
             related_plan_id: wo.relatedPlanId || null,
-            related_incident_id: wo.relatedIncidentId || null
+            related_incident_id: wo.relatedIncidentId || null,
+            is_external: wo.isExternal ?? false,
+            contractor_id: wo.isExternal ? (wo.contractorId || null) : null,
+            external_price: wo.isExternal ? (wo.externalPrice ?? null) : null
         };
 
         const { data: woData, error: woError } = await supabase
@@ -125,7 +128,10 @@ export const workOrderService = {
             collaborating_sections: wo.collaboratingSections || [],
             used_parts: wo.usedParts || [],
             related_plan_id: wo.relatedPlanId || null,
-            related_incident_id: wo.relatedIncidentId || null
+            related_incident_id: wo.relatedIncidentId || null,
+            is_external: wo.isExternal ?? false,
+            contractor_id: wo.isExternal ? (wo.contractorId || null) : null,
+            external_price: wo.isExternal ? (wo.externalPrice ?? null) : null
         };
 
         const { data, error: woError } = await supabase

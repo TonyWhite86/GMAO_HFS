@@ -14,7 +14,7 @@ interface ConvertIncidentModalProps {
 }
 
 export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOpen, onClose, incident }) => {
-    const { users, equipment, sections, convertToWorkOrder, currentUser } = useAppStore();
+    const { users, equipment, sections, convertToWorkOrder, currentUser, contractors } = useAppStore();
 
     const [woData, setWoData] = useState({
         id: '', // Empty to trigger DB sequence
@@ -28,6 +28,9 @@ export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOp
         assignedUserId: '',
         createdBy: '',
         createdAt: new Date().toISOString(),
+        isExternal: false,
+        contractorId: '',
+        externalPrice: '',
     });
 
     useEffect(() => {
@@ -52,9 +55,17 @@ export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOp
             toast.error('Por favor, asigna una sección a la OT');
             return;
         }
+        if (woData.isExternal && !woData.contractorId) {
+            toast.error('Una OT externa necesita una contrata');
+            return;
+        }
 
         try {
-            await convertToWorkOrder(incident.id, woData);
+            await convertToWorkOrder(incident.id, {
+                ...woData,
+                assignedUserId: woData.isExternal ? '' : woData.assignedUserId,
+                externalPrice: woData.isExternal && woData.externalPrice ? Number(woData.externalPrice) : null
+            });
             onClose();
         } catch (error) {
             console.error(error);
@@ -111,8 +122,48 @@ export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOp
                         />
                     </div>
 
-                    {/* Responsible */}
+                    {/* Trabajo externo */}
                     <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-txt-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={woData.isExternal}
+                                onChange={(e) => setWoData({ ...woData, isExternal: e.target.checked })}
+                                className="w-4 h-4"
+                            />
+                            Trabajo externo (lo realiza una contrata)
+                        </label>
+                        {woData.isExternal && (
+                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-spec-border bg-spec-dim">
+                                <div>
+                                    <label className="block text-[10px] font-black text-txt-3 uppercase tracking-widest mb-1.5 ml-1">Contrata *</label>
+                                    <CustomSelect
+                                        value={woData.contractorId}
+                                        onChange={(val) => setWoData({ ...woData, contractorId: val })}
+                                        options={contractors
+                                            .filter(c => c.active)
+                                            .map(c => ({ value: c.id, label: c.name }))}
+                                        placeholder="Selecciona la contrata…"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-txt-3 uppercase tracking-widest mb-1.5 ml-1">Precio (€)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={woData.externalPrice}
+                                        onChange={(e) => setWoData({ ...woData, externalPrice: e.target.value })}
+                                        placeholder="0.00"
+                                        className="fld-input w-full p-2.5 rounded-[6px] outline-none"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Responsible */}
+                    <div style={woData.isExternal ? { display: 'none' } : undefined}>
                         <label className="block text-[10px] font-black text-txt-3 uppercase tracking-widest mb-1.5 ml-1">Responsable OT (Opcional)</label>
                         <CustomSelect
                             value={woData.assignedUserId}

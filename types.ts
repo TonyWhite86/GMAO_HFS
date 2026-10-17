@@ -70,6 +70,17 @@ export interface EquipmentDocument {
   date: string;
 }
 
+export interface Contractor {
+  id: string;
+  name: string;
+  contact?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
 export interface SupplierInfo {
   id: string;
   name: string;
@@ -192,6 +203,10 @@ export interface WorkOrder {
   assignedUserId?: string; // Main responsible
   collaborators?: string[]; // Additional assigned technicians
   assignedGroupId?: string; // Group assignment
+  isExternal?: boolean; // Trabajo encargado a una contrata (sin técnico ni tiempo)
+  contractorId?: string | null;
+  contractorName?: string | null; // Loaded via join
+  externalPrice?: number | null;
   createdBy: string;
   createdAt: string;
   scheduledDate?: string;
@@ -262,11 +277,13 @@ export interface PurchaseOrder {
 
 export enum IncidentStatus {
   OPEN = 'Abierta',
-  IN_REVIEW = 'En Revisión',
-  CONVERTED = 'Convertida a OT',
-  PENDING_CLOSE = 'Pendiente de Confirmación',
-  RESOLVED = 'Resuelta',
-  CANCELLED = 'Cancelada',
+  IN_PROGRESS = 'En Curso',
+  PAUSED_MATERIAL = 'Pausada Material',
+  PAUSED_BUDGET = 'Pausada Presupuesto',
+  PAUSED_EXTERNAL = 'Pausada Externos',
+  SCHEDULED = 'Programada Intervención',
+  PENDING_CLOSE = 'Pendiente de Confirmación de Cierre',
+  CLOSED = 'Cerrada',
 }
 
 export interface IncidentComment {

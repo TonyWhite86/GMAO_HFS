@@ -12,41 +12,45 @@ describe('computeIncidentStats', () => {
     it('cuenta por estado y tasas', () => {
         const stats = computeIncidentStats([
             inc({ status: IncidentStatus.OPEN }),
-            inc({ status: IncidentStatus.IN_REVIEW, reason: 'falta material' }),
-            inc({ status: IncidentStatus.RESOLVED, reason: 'r', solution: 's', resolvedAt: '2026-07-17T10:00:00Z' }),
-            inc({ status: IncidentStatus.CANCELLED }),
-            inc({ status: IncidentStatus.CONVERTED, workOrderId: 'OT-1' })
+            inc({ status: IncidentStatus.IN_PROGRESS }),
+            inc({ status: IncidentStatus.PAUSED_MATERIAL }),
+            inc({ status: IncidentStatus.PAUSED_BUDGET }),
+            inc({ status: IncidentStatus.PAUSED_EXTERNAL }),
+            inc({ status: IncidentStatus.SCHEDULED, workOrderId: 'OT-1' }),
+            inc({ status: IncidentStatus.PENDING_CLOSE, resolvedAt: '2026-07-16T10:00:00Z' }),
+            inc({ status: IncidentStatus.CLOSED, resolvedAt: '2026-07-17T10:00:00Z' })
         ]);
-        expect(stats.total).toBe(5);
+        expect(stats.total).toBe(8);
         expect(stats.open).toBe(1);
-        expect(stats.inReview).toBe(1);
-        expect(stats.resolved).toBe(1);
-        expect(stats.cancelled).toBe(1);
-        expect(stats.converted).toBe(1);
-        expect(stats.resolutionRate).toBe(20);
-        expect(stats.reasonsFilled).toBe(2);
-        expect(stats.solutionsFilled).toBe(1);
+        expect(stats.inProgress).toBe(1);
+        expect(stats.pausedMaterial).toBe(1);
+        expect(stats.pausedBudget).toBe(1);
+        expect(stats.pausedExternal).toBe(1);
+        expect(stats.scheduled).toBe(1);
+        expect(stats.pendingClose).toBe(1);
+        expect(stats.closed).toBe(1);
+        expect(stats.resolutionRate).toBe(13);
     });
 
     it('tiempo medio de resolución en días', () => {
         const stats = computeIncidentStats([
-            inc({ status: IncidentStatus.RESOLVED, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-17T10:00:00Z' }),
-            inc({ status: IncidentStatus.RESOLVED, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-16T10:00:00Z' })
+            inc({ status: IncidentStatus.CLOSED, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-17T10:00:00Z' }),
+            inc({ status: IncidentStatus.CLOSED, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-16T10:00:00Z' })
         ]);
         expect(stats.avgResolutionDays).toBe(1.5);
     });
 
-    it('sin resueltas con fechas no hay media', () => {
+    it('sin fechas de resolución no hay media', () => {
         expect(computeIncidentStats([inc({})]).avgResolutionDays).toBeNull();
     });
 
-    it('cuenta Pendiente de Confirmación y usa su resolved_at en la media', () => {
+    it('una propuesta pendiente usa su resolved_at en la media', () => {
         const stats = computeIncidentStats([
             inc({ status: IncidentStatus.PENDING_CLOSE, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-16T10:00:00Z' }),
             inc({ status: IncidentStatus.PENDING_CLOSE })
         ]);
         expect(stats.pendingClose).toBe(2);
-        expect(stats.resolved).toBe(0);
+        expect(stats.closed).toBe(0);
         expect(stats.avgResolutionDays).toBe(1);
     });
 

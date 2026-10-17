@@ -95,7 +95,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     [inventory]
   );
   const openIncidentCount = useMemo(
-    () => visibleIncidents.filter(i => i.status === IncidentStatus.OPEN).length,
+    () => visibleIncidents.filter(i => i.status !== IncidentStatus.CLOSED).length,
     [visibleIncidents]
   );
 

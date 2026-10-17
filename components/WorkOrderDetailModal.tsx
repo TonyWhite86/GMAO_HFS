@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Edit2, PlayCircle, PauseCircle, Plus, X, Search, QrCode, Mic, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Package, CheckSquare, Paperclip, ZoomIn, FileText, User as UserIcon, MessageSquare, Send, Save, Eye, Check, Clock, AlertTriangle, Calendar, Users as UsersIcon, ListTodo, UserPlus } from 'lucide-react';
+import { Trash2, Edit2, PlayCircle, PauseCircle, Plus, X, Search, QrCode, Mic, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Package, CheckSquare, Paperclip, ZoomIn, FileText, User as UserIcon, MessageSquare, Send, Save, Eye, Check, Clock, AlertTriangle, Calendar, Users as UsersIcon, ListTodo, UserPlus, Building2 } from 'lucide-react';
 import { StatusBadge } from './common/StatusBadge';
 import { PriorityIndicator } from './common/PriorityIndicator';
 import { normalizeForSearch } from '../utils/searchUtils';
@@ -527,8 +527,15 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                             {isEditing ? 'Modifique los campos para actualizar la incidencia' : 'Consulte el historial y detalles del mantenimiento'}
                         </p>
                         {!isEditing && (
-                            <div className="flex items-center justify-start gap-3 mt-3 w-full">
+                            <div className="flex items-center justify-start gap-3 mt-3 w-full flex-wrap">
                                 <StatusBadge status={editedWO.status} type="workOrder" />
+                                {editedWO.isExternal && (
+                                    <span className="bdg bdg-purple gap-1">
+                                        <Building2 size={12} />
+                                        Externa{editedWO.contractorName ? ` · ${editedWO.contractorName}` : ''}
+                                        {editedWO.externalPrice != null ? ` · ${editedWO.externalPrice.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}` : ''}
+                                    </span>
+                                )}
                                 <span className="text-xs font-mono text-txt-2 bg-surface-2 px-2 py-0.5 rounded border border-line">
                                     {editedWO.id}
                                 </span>
@@ -539,7 +546,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                     <div className="flex items-center w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-line sm:self-center">
                         {!isEditing && !statusUpdateMode && (
                             <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto mt-2 sm:mt-0 sm:mr-12">
-                                {(editedWO.status === WOStatus.PENDING || editedWO.status === WOStatus.SCHEDULED) && (
+                                {!editedWO.isExternal && (editedWO.status === WOStatus.PENDING || editedWO.status === WOStatus.SCHEDULED) && (
                                     <button
                                         onClick={() => setStatusActionWO({ wo: editedWO, nextStatus: WOStatus.IN_PROGRESS })}
                                         className="flex-1 sm:flex-none w-full sm:w-36 flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-2 transition-all font-bold text-xs shadow-lg shadow-accent/20 active:scale-95"
@@ -547,7 +554,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                         <PlayCircle size={14} className="shrink-0" /> <span>Iniciar</span>
                                     </button>
                                 )}
-                                {editedWO.status === WOStatus.IN_PROGRESS && (
+                                {!editedWO.isExternal && editedWO.status === WOStatus.IN_PROGRESS && (
                                     <button
                                         onClick={() => setStatusActionWO({ wo: editedWO, nextStatus: isRunning ? WOStatus.PENDING : WOStatus.IN_PROGRESS })}
                                         className={`flex-1 sm:flex-none w-full sm:w-36 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2.5 text-white rounded-lg hover:bg-warn transition-all font-bold text-xs shadow-lg shadow-warn/20 active:scale-95 ${isRunning ? 'bg-warn' : 'bg-accent hover:bg-accent-2 shadow-accent/20'}`}
@@ -798,7 +805,14 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                         {/* Responsible */}
                         <div>
                             {isEditing ? (
-                                <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</label>
+                                <>
+                                    {editedWO.isExternal && (
+                                        <div className="mb-2 p-2 rounded-lg bg-spec-dim border border-spec-border text-xs text-spec">
+                                            OT externa{editedWO.contractorName ? ` — ${editedWO.contractorName}` : ''}: sin responsable interno.
+                                        </div>
+                                    )}
+                                    <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</label>
+                                </>
                             ) : (
                                 <span className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</span>
                             )}

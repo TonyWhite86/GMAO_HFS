@@ -1614,13 +1614,28 @@ CREATE SEQUENCE IF NOT EXISTS public.purchase_order_number_seq;
 
 -- 1. Máquina de estados de INCIDENCIAS (trigger de blindaje) -------------------
 
+-- Migración de estados antiguos de incidencia → nueva máquina de 8 estados.
+-- (idempotente: solo reescribe los valores retirados)
+UPDATE public.incidents SET status = CASE status
+  WHEN 'En Revisión'        THEN 'En Curso'
+  WHEN 'Convertida a OT'    THEN 'Programada Intervención'
+  WHEN 'Pendiente de Confirmación' THEN 'Pendiente de Confirmación de Cierre'
+  WHEN 'Resuelta'           THEN 'Cerrada'
+  WHEN 'Cancelada'          THEN 'Cerrada'
+  ELSE status
+END
+WHERE status IN ('En Revisión', 'Convertida a OT', 'Pendiente de Confirmación', 'Resuelta', 'Cancelada');
+
 CREATE OR REPLACE FUNCTION public.enforce_incident_transition()
 RETURNS TRIGGER AS $$
 DECLARE
   v_role TEXT;
-  v_new_reason TEXT;
-  v_new_solution TEXT;
-  v_sealing BOOLEAN := false;  -- esta UPDATE es la que resuelve/cancela
+  v_sealing BOOLEAN := false;  -- esta UPDATE es la que cierra/reabre la resolución
+  v_active TEXT[] := ARRAY[
+    'Abierta', 'En Curso',
+    'Pausada Material', 'Pausada Presupuesto', 'Pausada Externos',
+    'Programada Intervención'
+  ];
 BEGIN
   -- created_at sólo lo edita un Admin (corrección de fecha de registro)
   IF TG_OP = 'UPDATE' AND NEW.created_at IS DISTINCT FROM OLD.created_at THEN
@@ -1631,90 +1646,66 @@ BEGIN
   END IF;
 
   IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
-    -- Terminales: sólo un Admin puede reabrir, y sólo a Abierta/En Revisión
-    IF OLD.status IN ('Resuelta', 'Cancelada') THEN
+    IF OLD.status = 'Cerrada' THEN
+      -- Terminal: sólo un Admin puede reabrir, y sólo a Abierta/En Curso
       SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
       IF v_role IS DISTINCT FROM 'Admin' THEN
-        RAISE EXCEPTION 'Una incidencia % no puede cambiar de estado', OLD.status;
+        RAISE EXCEPTION 'Una incidencia Cerrada no puede cambiar de estado';
       END IF;
-      IF NEW.status NOT IN ('Abierta', 'En Revisión') THEN
-        RAISE EXCEPTION 'Una incidencia % sólo puede reabrirse a Abierta o En Revisión', OLD.status;
+      IF NEW.status NOT IN ('Abierta', 'En Curso') THEN
+        RAISE EXCEPTION 'Una incidencia Cerrada sólo puede reabrirse a Abierta o En Curso';
       END IF;
-      -- Reabrir deja sin efecto la resolución anterior
       NEW.resolved_at := NULL;
       NEW.resolved_by := NULL;
       v_sealing := true;
+
+    ELSIF OLD.status = 'Pendiente de Confirmación de Cierre' THEN
+      -- Confirmar (→ Cerrada) o rechazar (→ Abierta): sólo el creador o un Admin
+      IF NEW.status NOT IN ('Cerrada', 'Abierta') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+      IF auth.uid() IS NOT NULL AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
+        SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+        IF v_role IS DISTINCT FROM 'Admin' THEN
+          RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar o rechazar el cierre';
+        END IF;
+      END IF;
+      IF NEW.status = 'Cerrada' THEN
+        NEW.resolved_at := coalesce(NEW.resolved_at, now());
+        NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
+      ELSE
+        -- Rechazo del creador: la resolución propuesta queda sin efecto
+        NEW.resolved_at := NULL;
+        NEW.resolved_by := NULL;
+      END IF;
+      v_sealing := true;
+
     ELSE
-      -- Cierre directo: si quien resuelve NO es el creador, el cierre queda
-      -- pendiente de confirmación del creador (5 días y se auto-confirma).
-      IF NEW.status = 'Resuelta' AND OLD.status <> 'Pendiente de Confirmación'
+      -- Estados activos: intercambiables libremente entre sí, más el cierre
+      IF NOT (OLD.status = ANY(v_active)) THEN
+        RAISE EXCEPTION 'Estado de incidencia desconocido: %', OLD.status;
+      END IF;
+
+      -- Cierre ajeno: redirige a Pendiente de Confirmación de Cierre
+      IF NEW.status = 'Cerrada'
          AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
-        NEW.status := 'Pendiente de Confirmación';
+        NEW.status := 'Pendiente de Confirmación de Cierre';
       END IF;
 
-      -- Transiciones legales
-      IF OLD.status = 'Abierta' AND NEW.status NOT IN
-         ('En Revisión', 'Pendiente de Confirmación', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
+      IF NOT (NEW.status = ANY(v_active))
+         AND NEW.status NOT IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
         RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
       END IF;
-      IF OLD.status = 'En Revisión' AND NEW.status NOT IN
-         ('Pendiente de Confirmación', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
-        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-      END IF;
-      IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN
-         ('Pendiente de Confirmación', 'Resuelta', 'Cancelada') THEN
-        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-      END IF;
-      IF OLD.status = 'Pendiente de Confirmación' THEN
-        IF NEW.status NOT IN ('Resuelta', 'Abierta', 'Cancelada') THEN
-          RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-        END IF;
-        -- Confirmar o rechazar el cierre: sólo el creador o un Admin
-        IF NEW.status IN ('Resuelta', 'Abierta')
-           AND auth.uid() IS NOT NULL
-           AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
-          SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
-          IF v_role IS DISTINCT FROM 'Admin' THEN
-            RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar o rechazar el cierre';
-          END IF;
-        END IF;
-      END IF;
-    END IF;
 
-    v_new_reason   := coalesce(nullif(trim(NEW.reason), ''), nullif(trim(OLD.reason), ''));
-    v_new_solution := coalesce(nullif(trim(NEW.solution), ''), nullif(trim(OLD.solution), ''));
-
-    IF NEW.status = 'En Revisión' AND v_new_reason IS NULL THEN
-      RAISE EXCEPTION 'Indica el motivo para pasar a En Revisión';
-    END IF;
-    IF NEW.status IN ('Pendiente de Confirmación', 'Resuelta') THEN
-      IF v_new_reason IS NULL THEN
-        RAISE EXCEPTION 'Indica el motivo antes de resolver la incidencia';
+      IF NEW.status IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
+        NEW.resolved_at := coalesce(NEW.resolved_at, now());
+        NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
+        v_sealing := true;
       END IF;
-      IF v_new_solution IS NULL THEN
-        RAISE EXCEPTION 'Indica la solución para resolver la incidencia';
-      END IF;
-      NEW.resolved_at := coalesce(NEW.resolved_at, now());
-      NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
-      v_sealing := true;
-    END IF;
-    IF NEW.status = 'Cancelada' THEN
-      NEW.resolved_at := NULL;
-      NEW.resolved_by := NULL;
-      v_sealing := true;
-    END IF;
-    IF NEW.status = 'Abierta' AND OLD.status = 'Pendiente de Confirmación' THEN
-      -- Rechazo del creador: la resolución propuesta queda sin efecto
-      NEW.resolved_at := NULL;
-      NEW.resolved_by := NULL;
-      v_sealing := true;
-    END IF;
-    IF NEW.status = 'Convertida a OT' AND NEW.work_order_id IS NULL THEN
-      RAISE EXCEPTION 'La conversión a OT debe indicar work_order_id';
     END IF;
   END IF;
 
-  -- Fuera de la transición que resuelve/cancela, resolved_at/resolved_by no se
+  -- Fuera de la transición que cierra/reabre, resolved_at/resolved_by no se
   -- tocan (salvo Admin).
   IF TG_OP = 'UPDATE' AND NOT v_sealing THEN
     IF NEW.resolved_at IS DISTINCT FROM OLD.resolved_at
@@ -1768,13 +1759,13 @@ BEGIN
   v_final_reason   := coalesce(nullif(trim(coalesce(p_reason, '')), ''), v_inc.reason);
   v_final_solution := coalesce(nullif(trim(coalesce(p_solution, '')), ''), v_inc.solution);
 
-  -- El trigger puede redirigir 'Resuelta' a 'Pendiente de Confirmación'
+  -- El trigger puede redirigir 'Cerrada' a 'Pendiente de Confirmación de Cierre'
   -- (cierre propuesto por alguien que no es el creador).
   v_effective := p_status;
-  IF p_status = 'Resuelta'
-     AND v_inc.status <> 'Pendiente de Confirmación'
+  IF p_status = 'Cerrada'
+     AND v_inc.status <> 'Pendiente de Confirmación de Cierre'
      AND v_inc.created_by IS DISTINCT FROM auth.uid() THEN
-    v_effective := 'Pendiente de Confirmación';
+    v_effective := 'Pendiente de Confirmación de Cierre';
   END IF;
 
   UPDATE public.incidents
@@ -1811,7 +1802,10 @@ CREATE OR REPLACE FUNCTION public.convert_incident_to_wo(
   p_assigned_user_id UUID DEFAULT NULL,
   p_scheduled_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
   p_subtasks JSONB DEFAULT '[]'::jsonb,
-  p_attachments JSONB DEFAULT '[]'::jsonb
+  p_attachments JSONB DEFAULT '[]'::jsonb,
+  p_is_external BOOLEAN DEFAULT false,
+  p_contractor_id UUID DEFAULT NULL,
+  p_external_price NUMERIC DEFAULT NULL
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -1840,11 +1834,14 @@ BEGIN
   IF NOT (public.is_admin() OR public.is_wildcard_staff()) THEN
     RAISE EXCEPTION 'Solo Mantenimiento/Ingeniería o un admin pueden convertir una incidencia a OT';
   END IF;
-  IF v_inc.status IN ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
+  IF v_inc.status IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
     RAISE EXCEPTION 'La incidencia está en estado % y no se puede convertir', v_inc.status;
   END IF;
   IF p_title IS NULL OR trim(p_title) = '' OR p_section IS NULL OR trim(p_section) = '' THEN
     RAISE EXCEPTION 'La OT necesita título y sección';
+  END IF;
+  IF coalesce(p_is_external, false) AND p_contractor_id IS NULL THEN
+    RAISE EXCEPTION 'Una OT externa necesita una contrata';
   END IF;
 
   v_hist := jsonb_build_array(jsonb_build_object(
@@ -1859,7 +1856,8 @@ BEGIN
   INSERT INTO public.work_orders (
     title, description, type, status, priority, equipment_id, assigned_user_id,
     collaborators, section, created_by, created_at, scheduled_date,
-    status_history, collaborating_sections, used_parts, related_incident_id
+    status_history, collaborating_sections, used_parts, related_incident_id,
+    is_external, contractor_id, external_price
   ) VALUES (
     p_title,
     p_description,
@@ -1876,7 +1874,10 @@ BEGIN
     v_hist,
     '{}'::text[],
     '[]'::jsonb,
-    p_incident_id
+    p_incident_id,
+    coalesce(p_is_external, false),
+    p_contractor_id,
+    p_external_price
   )
   RETURNING id INTO v_wo_id;
 
@@ -1901,7 +1902,7 @@ BEGIN
   END LOOP;
 
   UPDATE public.incidents
-  SET status = 'Convertida a OT',
+  SET status = 'Programada Intervención',
       work_order_id = v_wo_id,
       section = p_section
   WHERE id = p_incident_id;
@@ -1912,7 +1913,7 @@ BEGIN
 
   RETURN v_wo_id;
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3bis. Confirmación de cierre por el creador ---------------------------------
 -- Al resolver una incidencia ajena, queda en 'Pendiente de Confirmación': el
@@ -1938,7 +1939,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Incidencia no encontrada';
   END IF;
-  IF v_inc.status <> 'Pendiente de Confirmación' THEN
+  IF v_inc.status <> 'Pendiente de Confirmación de Cierre' THEN
     RAISE EXCEPTION 'La incidencia no está pendiente de confirmación de cierre';
   END IF;
   -- Confirmar o rechazar: sólo el creador o un Admin
@@ -1953,7 +1954,7 @@ BEGIN
 
   IF p_accept THEN
     UPDATE public.incidents
-    SET status = 'Resuelta'
+    SET status = 'Cerrada'
     WHERE id = p_id;
     v_note := 'Cierre confirmado por el creador';
   ELSE
@@ -1987,12 +1988,12 @@ DECLARE
 BEGIN
   FOR v_rec IN
     SELECT id FROM public.incidents
-    WHERE status = 'Pendiente de Confirmación'
+    WHERE status = 'Pendiente de Confirmación de Cierre'
       AND resolved_at IS NOT NULL
       AND resolved_at < now() - interval '5 days'
   LOOP
     UPDATE public.incidents
-    SET status = 'Resuelta'
+    SET status = 'Cerrada'
     WHERE id = v_rec.id;
 
     INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
@@ -3911,16 +3912,16 @@ CREATE VIEW public.report_incident_stats AS
 SELECT
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
-  -- Postgres no tiene round(double precision, integer): hay que castear a numeric
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
+  -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
@@ -3984,16 +3985,16 @@ SELECT
   category_id,
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
   -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
@@ -4057,16 +4058,16 @@ SELECT
   category_id,
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
   -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
@@ -4244,6 +4245,52 @@ $$;
 -- 4. create_incident_with_stoppage: sin cambios de permisos --------------------
 -- Ya es SECURITY DEFINER, así que quien reporta una incidencia puede registrar
 -- su parada aunque no sea Admin. No se toca.
+
+-- ============================================================================
+-- CONTRATAS Y ÓRDENES DE TRABAJO EXTERNAS
+-- ============================================================================
+-- Una OT externa no se asigna a un técnico interno: se encarga a una contrata
+-- (catálogo `contractors`) y su `external_price` es el coste del trabajo.
+
+-- 1. Catálogo de contratas ----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.contractors (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  contact TEXT,
+  phone TEXT,
+  email TEXT,
+  notes TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.contractors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Contractors" ON public.contractors;
+DROP POLICY IF EXISTS "Manage Contractors" ON public.contractors;
+CREATE POLICY "Read Contractors" ON public.contractors
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Contractors" ON public.contractors
+  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+ALTER TABLE public.contractors REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'contractors'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE contractors;
+  END IF;
+END $$;
+
+-- 2. Columnas de trabajo externo en work_orders --------------------------------
+
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS is_external BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS contractor_id UUID REFERENCES public.contractors(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS external_price NUMERIC(12, 2);
 
 -- ============================================================================
 -- DIAGNÓSTICO — revisa la salida de este bloque

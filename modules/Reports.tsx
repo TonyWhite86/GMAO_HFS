@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, Package, Wrench, Search, ChevronRight,
     Clock, DollarSign, Activity, AlertCircle, AlertTriangle, CheckCircle2, TrendingUp,
     Calendar, MapPin, Box, FileText, ArrowUpRight, Download
-} from 'lucide-react';
+, PauseCircle } from 'lucide-react';
 import { StatCard } from '../components/ui/StatCard';
 import { computeActiveMinutes } from '../utils/timeTracking';
 import { computeIncidentStats, computeMonthlySeries, computeDistribution } from '../utils/incidentStats';
@@ -508,15 +508,15 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
                 setViewStats({
                     total: row.total,
                     open: row.openCount,
-                    inReview: row.inReviewCount,
+                    inProgress: row.inProgressCount,
+                    pausedMaterial: row.pausedMaterialCount,
+                    pausedBudget: row.pausedBudgetCount,
+                    pausedExternal: row.pausedExternalCount,
+                    scheduled: row.scheduledCount,
                     pendingClose: row.pendingCloseCount,
-                    resolved: row.resolvedCount,
-                    cancelled: row.cancelledCount,
-                    converted: row.convertedCount,
+                    closed: row.closedCount,
                     resolutionRate: row.resolutionRate,
-                    avgResolutionDays: row.avgResolutionDays,
-                    reasonsFilled: row.reasonsFilled,
-                    solutionsFilled: row.solutionsFilled
+                    avgResolutionDays: row.avgResolutionDays
                 } as ReturnType<typeof computeIncidentStats>);
             })
             .catch(err => console.warn('No se pudo cargar las vistas de incidencias:', err));
@@ -530,7 +530,7 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
     const byStatus = computeDistribution(incidents, inc => inc.status);
     const bySection = computeDistribution(incidents, inc => inc.section || '');
     const byCategory = computeDistribution(incidents, inc => inc.categoryName || '');
-    const resolvedList = incidents.filter(inc => inc.status === IncidentStatus.RESOLVED);
+    const closedList = incidents.filter(inc => inc.status === IncidentStatus.CLOSED);
 
     return (
         <div className="p-6 space-y-6 overflow-y-auto h-full custom-scrollbar">
@@ -548,14 +548,13 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <StatCard title="Total" value={stats.total} icon={FileText} color="slate" />
                 <StatCard title="Abiertas" value={stats.open} icon={AlertCircle} color="amber" />
-                <StatCard title="En Revisión" value={stats.inReview} icon={Clock} color="blue" />
-                <StatCard title="Resueltas" value={stats.resolved} icon={CheckCircle2} color="emerald" />
-                <StatCard title="Canceladas" value={stats.cancelled} icon={FileText} color="slate" />
-                <StatCard title="% Resueltas" value={`${stats.resolutionRate}%`} icon={TrendingUp} color="emerald" />
-                <StatCard title="Convertidas a OT" value={stats.converted} icon={Wrench} color="purple" />
+                <StatCard title="En Curso" value={stats.inProgress} icon={Clock} color="blue" />
+                <StatCard title="Pausadas" value={stats.pausedMaterial + stats.pausedBudget + stats.pausedExternal} icon={PauseCircle} color="amber" />
+                <StatCard title="Programadas" value={stats.scheduled} icon={Wrench} color="purple" />
+                <StatCard title="Pdtes. confirmación" value={stats.pendingClose} icon={Clock} color="amber" />
+                <StatCard title="Cerradas" value={stats.closed} icon={CheckCircle2} color="emerald" />
+                <StatCard title="% Cerradas" value={`${stats.resolutionRate}%`} icon={TrendingUp} color="emerald" />
                 <StatCard title="Tiempo medio resolución" value={stats.avgResolutionDays !== null ? `${stats.avgResolutionDays} d` : '—'} icon={Clock} color="blue" />
-                <StatCard title="Con motivo" value={`${stats.reasonsFilled}/${stats.total}`} icon={FileText} color="blue" />
-                <StatCard title="Con solución" value={`${stats.solutionsFilled}/${stats.total}`} icon={CheckCircle2} color="emerald" />
             </div>
 
             {/* Monthly trend */}
@@ -579,21 +578,19 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
                 {!category && <DistributionBars title="Por categoría" data={byCategory} />}
             </div>
 
-            {/* Resolved table with reason & solution */}
+            {/* Closed incidents */}
             <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-line font-bold text-txt">
-                    Resueltas — motivo y solución
+                    Cerradas
                 </div>
                 <HistoryTable
-                    data={resolvedList}
+                    data={closedList}
                     columns={[
                         { header: 'ID', accessor: (inc: Incident) => <span className="font-mono text-xs">{inc.displayId || inc.id.slice(0, 8)}</span>, width: 'w-28' },
                         { header: 'Título', accessor: (inc: Incident) => inc.title },
-                        { header: 'Motivo', accessor: (inc: Incident) => inc.reason || '—' },
-                        { header: 'Solución', accessor: (inc: Incident) => inc.solution || '—' },
                         { header: 'Creada', accessor: (inc: Incident) => new Date(inc.createdAt).toLocaleDateString('es-ES') },
-                        { header: 'Resuelta', accessor: (inc: Incident) => inc.resolvedAt ? new Date(inc.resolvedAt).toLocaleDateString('es-ES') : '—' },
-                        { header: 'Resuelta por', accessor: (inc: Incident) => inc.resolvedByName || '—' }
+                        { header: 'Cerrada', accessor: (inc: Incident) => inc.resolvedAt ? new Date(inc.resolvedAt).toLocaleDateString('es-ES') : '—' },
+                        { header: 'Cerrada por', accessor: (inc: Incident) => inc.resolvedByName || '—' }
                     ]}
                 />
             </div>

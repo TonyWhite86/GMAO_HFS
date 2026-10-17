@@ -120,6 +120,9 @@ export const incidentService = {
         scheduledDate?: string | null;
         subtasks?: unknown[];
         attachments?: unknown[];
+        isExternal?: boolean;
+        contractorId?: string | null;
+        externalPrice?: number | null;
     }) => {
         const { data, error } = await supabase.rpc('convert_incident_to_wo', {
             p_incident_id: incidentId,
@@ -132,7 +135,10 @@ export const incidentService = {
             p_assigned_user_id: payload.assignedUserId ?? null,
             p_scheduled_date: payload.scheduledDate ?? null,
             p_subtasks: payload.subtasks ?? [],
-            p_attachments: payload.attachments ?? []
+            p_attachments: payload.attachments ?? [],
+            p_is_external: payload.isExternal ?? false,
+            p_contractor_id: payload.contractorId ?? null,
+            p_external_price: payload.externalPrice ?? null
         });
         if (error) throw error;
         return data as string;

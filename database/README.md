@@ -10,7 +10,7 @@ repo: los scripts se ejecutan a mano en el **SQL Editor** de Supabase.
 | Script | Para qué sirve | ¿Cuándo se ejecuta? |
 |---|---|---|
 | `hfs_setup.sql` | Esquema completo (20 tablas), seed HFS (secciones, admin), triggers de IDs, RPCs base (`create_user_with_role`, `register_inventory_movement`, `merge_inventory_items`), buckets de Storage. **⚠️ Empieza con `DROP TABLE ... CASCADE` de las 20 tablas: borra todos los datos.** | Solo al levantar una **BD nueva** (o al querer resetear todo). |
-| `hfs_all.sql` | **Todo lo demás**: RLS, secciones comodín, visibilidad de incidencias, RPCs atómicas, máquinas de estados, `work_order_events`, paradas, planes preventivos, vistas de reporting… **Idempotente** (reescribe funciones/políticas/triggers sin duplicar). | En cada actualización de la BD. Es el script que se ejecuta cuando se duda de qué está aplicado. |
+| `hfs_all.sql` | **Todo lo demás**: RLS, secciones comodín, visibilidad de incidencias, RPCs atómicas, máquinas de estados, `work_order_events`, paradas, planes preventivos, contratas (`contractors`), vistas de reporting… **Idempotente** (reescribe funciones/políticas/triggers sin duplicar). | En cada actualización de la BD. Es el script que se ejecuta cuando se duda de qué está aplicado. |
 
 **Levantar una BD desde cero** = `hfs_setup.sql` y después `hfs_all.sql`. Nada más.
 

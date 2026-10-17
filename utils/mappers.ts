@@ -3,7 +3,8 @@ import {
     PurchaseOrder, Incident, User, Section, Attachment,
     Comment, SubTask, IncidentComment, IncidentStatus, WorkOrderEvent,
     Skill, UserSkill, InventoryMovement, UserPermission,
-    IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus
+    IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus,
+    Contractor
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -135,6 +136,10 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     assignedUserId: wo.assigned_user_id,
     collaborators: wo.collaborators,
     section: wo.section,
+    isExternal: wo.is_external ?? false,
+    contractorId: wo.contractor_id ?? null,
+    contractorName: wo.contractor?.name ?? null,
+    externalPrice: wo.external_price != null ? Number(wo.external_price) : null,
     createdBy: wo.created_by,
     createdAt: wo.created_at,
     scheduledDate: wo.scheduled_date,
@@ -263,6 +268,17 @@ export const mapIncidentComment = (c: any): IncidentComment => ({
     isSystem: c.is_system,
     createdAt: c.created_at,
     attachments: c.attachments || []
+});
+
+export const mapContractor = (c: any): Contractor => ({
+    id: c.id,
+    name: c.name,
+    contact: c.contact ?? null,
+    phone: c.phone ?? null,
+    email: c.email ?? null,
+    notes: c.notes ?? null,
+    active: c.active ?? true,
+    createdAt: c.created_at
 });
 
 export const mapIncidentCategory = (c: any): IncidentCategory => ({

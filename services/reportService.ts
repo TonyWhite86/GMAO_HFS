@@ -35,13 +35,13 @@ export interface PartRotationRow {
 export interface IncidentStatRow {
     total: number;
     openCount: number;
-    inReviewCount: number;
+    inProgressCount: number;
+    pausedMaterialCount: number;
+    pausedBudgetCount: number;
+    pausedExternalCount: number;
+    scheduledCount: number;
     pendingCloseCount: number;
-    resolvedCount: number;
-    cancelledCount: number;
-    convertedCount: number;
-    reasonsFilled: number;
-    solutionsFilled: number;
+    closedCount: number;
     resolutionRate: number;
     avgResolutionDays: number | null;
 }
@@ -99,13 +99,13 @@ export const reportService = {
             categoryId: r.category_id ?? null,
             total: Number(r.total) || 0,
             openCount: Number(r.open_count) || 0,
-            inReviewCount: Number(r.in_review_count) || 0,
+            inProgressCount: Number(r.in_progress_count) || 0,
+            pausedMaterialCount: Number(r.paused_material_count) || 0,
+            pausedBudgetCount: Number(r.paused_budget_count) || 0,
+            pausedExternalCount: Number(r.paused_external_count) || 0,
+            scheduledCount: Number(r.scheduled_count) || 0,
             pendingCloseCount: Number(r.pending_close_count) || 0,
-            resolvedCount: Number(r.resolved_count) || 0,
-            cancelledCount: Number(r.cancelled_count) || 0,
-            convertedCount: Number(r.converted_count) || 0,
-            reasonsFilled: Number(r.reasons_filled) || 0,
-            solutionsFilled: Number(r.solutions_filled) || 0,
+            closedCount: Number(r.closed_count) || 0,
             resolutionRate: Number(r.resolution_rate) || 0,
             avgResolutionDays: r.avg_resolution_days === null ? null : Number(r.avg_resolution_days)
         }));
@@ -119,13 +119,13 @@ export const reportService = {
         return {
             total: Number(data.total) || 0,
             openCount: Number(data.open_count) || 0,
-            inReviewCount: Number(data.in_review_count) || 0,
+            inProgressCount: Number(data.in_progress_count) || 0,
+            pausedMaterialCount: Number(data.paused_material_count) || 0,
+            pausedBudgetCount: Number(data.paused_budget_count) || 0,
+            pausedExternalCount: Number(data.paused_external_count) || 0,
+            scheduledCount: Number(data.scheduled_count) || 0,
             pendingCloseCount: Number(data.pending_close_count) || 0,
-            resolvedCount: Number(data.resolved_count) || 0,
-            cancelledCount: Number(data.cancelled_count) || 0,
-            convertedCount: Number(data.converted_count) || 0,
-            reasonsFilled: Number(data.reasons_filled) || 0,
-            solutionsFilled: Number(data.solutions_filled) || 0,
+            closedCount: Number(data.closed_count) || 0,
             resolutionRate: Number(data.resolution_rate) || 0,
             avgResolutionDays: data.avg_resolution_days === null ? null : Number(data.avg_resolution_days)
         };

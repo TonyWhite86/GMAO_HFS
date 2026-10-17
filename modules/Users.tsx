@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { User, UserRole, Section, IncidentCategory } from '../types';
+import { User, UserRole, Section, IncidentCategory, Contractor } from '../types';
 import { Search, Plus, UserPlus, Trash2, Edit2, Shield, Mail, Check, X, Building2, UserCircle, Briefcase, ToggleLeft, ToggleRight, Book, KeyRound, Tag } from 'lucide-react';
 import { GenericSkeleton } from '../components/GenericSkeleton';
 import { GenericTable } from '../components/GenericTable';
@@ -8,6 +8,7 @@ import { normalizeForSearch } from '../utils/searchUtils';
 import { SkillsMatrix } from '../components/users/SkillsMatrix';
 import { SkillsManagementModal } from '../components/users/SkillsManagementModal';
 import { CategoriesManagementModal } from '../components/users/CategoriesManagementModal';
+import { ContractorsManagementModal } from '../components/users/ContractorsManagementModal';
 import { PermissionModal } from '../components/users/PermissionModal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -31,7 +32,7 @@ export const UsersModule: React.FC = () => {
 
     if (!currentUser) return <GenericSkeleton />;
 
-    const [activeTab, setActiveTab] = useState<'users' | 'sections' | 'skills' | 'categories'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'sections' | 'skills' | 'categories' | 'contractors'>('users');
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSection, setSelectedSection] = useState<string>('all');
@@ -42,6 +43,8 @@ export const UsersModule: React.FC = () => {
     const [showSkillsModal, setShowSkillsModal] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState<IncidentCategory | null>(null);
+    const [showContractorsModal, setShowContractorsModal] = useState(false);
+    const [editingContractor, setEditingContractor] = useState<Contractor | null>(null);
     const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
     const [permissionUser, setPermissionUser] = useState<User | null>(null);
 
@@ -614,6 +617,16 @@ export const UsersModule: React.FC = () => {
                                 <span>Gestionar Categorías</span>
                             </button>
                         )}
+
+                        {activeTab === 'contractors' && (
+                            <button
+                                onClick={() => { setEditingContractor(null); setShowContractorsModal(true); }}
+                                className="btn btn-primary"
+                            >
+                                <Building2 size={18} />
+                                <span>Gestionar Contratas</span>
+                            </button>
+                        )}
                     </>
                 }
             />
@@ -654,6 +667,15 @@ export const UsersModule: React.FC = () => {
                         }`}
                 >
                     Categorías
+                </button>
+                <button
+                    onClick={() => setActiveTab('contractors')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'contractors'
+                        ? 'bg-surface text-accent shadow-sm'
+                        : 'text-txt-2 hover:text-txt-2'
+                        }`}
+                >
+                    Contratas
                 </button>
             </div>
 
@@ -720,6 +742,25 @@ export const UsersModule: React.FC = () => {
                 )}
                 {activeTab === 'skills' && (
                     <SkillsMatrix users={users} refreshTrigger={skillsRefreshTrigger} />
+                )}
+                {activeTab === 'contractors' && (
+                    <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
+                        <h3 className="font-bold text-txt mb-2 flex items-center gap-2">
+                            <Building2 size={18} className="text-accent" />
+                            Contratas
+                        </h3>
+                        <p className="text-sm text-txt-2 mb-4">
+                            Las contratas son las empresas externas que realizan intervenciones. Al marcar una OT
+                            como externa se elige la contrata y su precio; no se asigna a un técnico interno.
+                        </p>
+                        <button
+                            onClick={() => { setEditingContractor(null); setShowContractorsModal(true); }}
+                            className="btn btn-primary"
+                        >
+                            <Building2 size={16} />
+                            Gestionar Contratas
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -925,6 +966,14 @@ export const UsersModule: React.FC = () => {
                     isOpen={showCategoryModal}
                     onClose={() => { setShowCategoryModal(false); setEditingCategory(null); }}
                     editingCategory={editingCategory}
+                />
+            )}
+
+            {showContractorsModal && (
+                <ContractorsManagementModal
+                    isOpen={showContractorsModal}
+                    onClose={() => { setShowContractorsModal(false); setEditingContractor(null); }}
+                    editingContractor={editingContractor}
                 />
             )}
 

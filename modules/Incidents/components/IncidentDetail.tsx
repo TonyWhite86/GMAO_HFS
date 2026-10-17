@@ -3,13 +3,14 @@ import { Incident, IncidentStatus, Attachment } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import {
     X, AlertCircle, Clock, CheckCircle2, XCircle, FileText,
-    Calendar, MapPin, Wrench, ChevronRight, Save
+    Calendar, MapPin, Wrench, ChevronRight, Save, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { ConvertIncidentModal } from './ConvertIncidentModal';
 import { CommentTimeline, SharedComment } from '../../../components/common/CommentTimeline';
 import { CommentInput } from '../../../components/common/CommentInput';
+import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { canConvertIncident, canManageIncident } from '../../../utils/incidentVisibility';
 
 interface IncidentDetailProps {
@@ -24,19 +25,13 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, confirmIncidentClose, updateIncident, stoppages, sections, incidentCategories } = useAppStore();
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
     const [viewMedia, setViewMedia] = useState<{ type: 'image' | 'video' | 'pdf' | 'file'; url: string; name: string } | null>(null);
-    const [reasonText, setReasonText] = useState('');
-    const [solutionText, setSolutionText] = useState('');
     const [isSavingTransition, setIsSavingTransition] = useState(false);
+    const [targetStatus, setTargetStatus] = useState<string>('');
     const [isEditingDate, setIsEditingDate] = useState(false);
     const [dateValue, setDateValue] = useState('');
     const [isRejecting, setIsRejecting] = useState(false);
     const [rejectComment, setRejectComment] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        setReasonText(incident?.reason || '');
-        setSolutionText(incident?.solution || '');
-    }, [incident?.id, incident?.reason, incident?.solution]);
 
     if (!incident) {
         return (
@@ -71,23 +66,25 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
         }
     };
 
-    // Convertir a OT: solo Admin o personal de sección comodín (Mantenimiento/Ingeniería).
-    const canConvert = canConvertIncident(currentUser, sections)
-        && incident.status !== IncidentStatus.CONVERTED
-        && incident.status !== IncidentStatus.RESOLVED
-        && incident.status !== IncidentStatus.CANCELLED;
+    const isActive = (s?: IncidentStatus) => s !== undefined
+        && s !== IncidentStatus.PENDING_CLOSE
+        && s !== IncidentStatus.CLOSED;
     const linkedWO = incident.workOrderId ? workOrders.find(wo => wo.id === incident.workOrderId) : null;
     const canManageStatus = canManageIncident(incident, currentUser, incidentCategories, sections)
-        && incident.status !== IncidentStatus.RESOLVED
-        && incident.status !== IncidentStatus.CANCELLED;
+        && isActive(incident.status);
     const incidentStoppage = stoppages.find(st => st.incidentId === incident.id);
-    const isDirty = reasonText !== (incident.reason || '')
-        || solutionText !== (incident.solution || '');
 
     // Admin: puede reabrir incidencias terminales y corregir la fecha de creación.
     const isAdmin = currentUser?.role === 'Admin';
-    const canReopen = isAdmin
-        && (incident.status === IncidentStatus.RESOLVED || incident.status === IncidentStatus.CANCELLED);
+    const canReopen = isAdmin && incident.status === IncidentStatus.CLOSED;
+
+    // Convertir a OT: solo Admin o personal de sección comodín (Mantenimiento/Ingeniería),
+    // y solo en estados activos.
+    const canConvert = canConvertIncident(currentUser, sections) && isActive(incident.status);
+
+    // Estados alcanzables desde el estado actual (para el selector).
+    const reachableStatuses = (Object.values(IncidentStatus) as IncidentStatus[])
+        .filter(s => s !== incident.status && (isActive(s) || (s === IncidentStatus.PENDING_CLOSE && isActive(incident.status))));
     // Confirmación de cierre: sólo el creador (o Admin) sobre una propuesta pendiente.
     const canConfirmClose = incident.status === IncidentStatus.PENDING_CLOSE
         && (isAdmin || (!!currentUser && incident.createdBy === currentUser.id));
@@ -96,12 +93,18 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
         if (isSavingTransition) return;
         setIsSavingTransition(true);
         try {
-            await transitionIncidentStatus(incident.id, status, reasonText, solutionText);
+            await transitionIncidentStatus(incident.id, status);
         } catch (error) {
             console.error(error);
         } finally {
             setIsSavingTransition(false);
         }
+    };
+
+    const handleStatusChange = async () => {
+        if (!targetStatus) return;
+        await handleTransition(targetStatus as IncidentStatus);
+        setTargetStatus('');
     };
 
     const handleConfirmClose = async () => {
@@ -164,29 +167,6 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
             });
             toast.success('Fecha actualizada');
             setIsEditingDate(false);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsSavingTransition(false);
-        }
-    };
-
-    const handleSaveReasonSolution = async () => {
-        if (isSavingTransition) return;
-        setIsSavingTransition(true);
-        try {
-            await updateIncident(incident.id, {
-                reason: reasonText.trim() || null,
-                solution: solutionText.trim() || null
-            });
-            await addIncidentComment({
-                incidentId: incident.id,
-                userId: currentUser?.id,
-                userName: 'Sistema',
-                text: 'Motivo y solución actualizados',
-                isSystem: true
-            });
-            toast.success('Motivo y solución actualizados');
         } catch (error) {
             console.error(error);
         } finally {
@@ -394,89 +374,53 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                     </section>
                 )}
 
-                {/* Reason & Solution tracking */}
+                {/* Estado y cierre */}
                 <section>
-                    <h3 className="text-xs font-bold text-txt-3 uppercase tracking-widest mb-3">Motivo y Solución</h3>
+                    <h3 className="text-xs font-bold text-txt-3 uppercase tracking-widest mb-3">Estado</h3>
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-txt-2 mb-1">Motivo</label>
-                            {canManageStatus ? (
-                                <textarea
-                                    value={reasonText}
-                                    onChange={(e) => setReasonText(e.target.value)}
-                                    rows={2}
-                                    placeholder="¿Por qué se ha producido la incidencia?"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-accent outline-none resize-none"
-                                />
-                            ) : (
-                                <div className="bg-surface-2 p-3 rounded-xl border border-line text-txt-2 text-sm min-h-[44px]">
-                                    {incident.reason || <span className="text-txt-3 italic">Sin motivo registrado</span>}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-txt-2 mb-1">Solución</label>
-                            {canManageStatus ? (
-                                <textarea
-                                    value={solutionText}
-                                    onChange={(e) => setSolutionText(e.target.value)}
-                                    rows={2}
-                                    placeholder="¿Qué se ha hecho para resolverla?"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-accent outline-none resize-none"
-                                />
-                            ) : (
-                                <div className="bg-surface-2 p-3 rounded-xl border border-line text-txt-2 text-sm min-h-[44px]">
-                                    {incident.solution || <span className="text-txt-3 italic">Sin solución registrada</span>}
-                                </div>
-                            )}
-                        </div>
-
-                        {incident.status === IncidentStatus.RESOLVED && (incident.resolvedByName || incident.resolvedAt) && (
+                        {incident.status === IncidentStatus.CLOSED && (incident.resolvedByName || incident.resolvedAt) && (
                             <div className="flex items-center gap-2 text-xs font-medium text-ok">
                                 <CheckCircle2 size={14} />
-                                Resuelta
+                                Cerrada
                                 {incident.resolvedByName ? ` por ${incident.resolvedByName}` : ''}
                                 {incident.resolvedAt ? ` el ${new Date(incident.resolvedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''}
                             </div>
                         )}
+                        {incident.status === IncidentStatus.PENDING_CLOSE && (
+                            <div className="flex items-center gap-2 text-xs font-medium text-warn">
+                                <Clock size={14} />
+                                Cierre propuesto
+                                {incident.resolvedByName ? ` por ${incident.resolvedByName}` : ''}
+                                {incident.resolvedAt ? ` el ${new Date(incident.resolvedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''} — pendiente de confirmación del creador
+                            </div>
+                        )}
 
                         {canManageStatus && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                                {isDirty && (
-                                    <button
-                                        onClick={handleSaveReasonSolution}
-                                        disabled={isSavingTransition}
-                                        className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-3 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
-                                    >
-                                        <Save size={16} />
-                                        Guardar
-                                    </button>
-                                )}
-                                {incident.status === IncidentStatus.OPEN && (
-                                    <button
-                                        onClick={() => handleTransition(IncidentStatus.IN_REVIEW)}
-                                        disabled={isSavingTransition}
-                                        className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-2 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-lg shadow-accent/20 transition-all active:scale-95"
-                                    >
-                                        <Clock size={16} />
-                                        Pasar a En Revisión
-                                    </button>
-                                )}
+                            <div className="flex flex-wrap items-end gap-2">
+                                <div className="flex-1 min-w-[220px]">
+                                    <label className="block text-xs font-bold text-txt-3 uppercase tracking-wider mb-1.5">Cambiar a</label>
+                                    <CustomSelect
+                                        value={targetStatus}
+                                        onChange={setTargetStatus}
+                                        options={reachableStatuses.map(s => ({ value: s, label: s }))}
+                                        placeholder="Selecciona el nuevo estado…"
+                                    />
+                                </div>
                                 <button
-                                    onClick={() => handleTransition(IncidentStatus.RESOLVED)}
-                                    disabled={isSavingTransition}
-                                    className="flex items-center gap-2 px-4 py-2 bg-ok hover:bg-ok hover:brightness-110 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-lg shadow-ok/20 transition-all active:scale-95"
+                                    onClick={handleStatusChange}
+                                    disabled={isSavingTransition || !targetStatus}
+                                    className="btn btn-primary px-4 py-2.5 disabled:opacity-50"
                                 >
-                                    <CheckCircle2 size={16} />
-                                    Marcar Resuelta
+                                    <ArrowRight size={16} />
+                                    Cambiar estado
                                 </button>
                                 <button
-                                    onClick={() => handleTransition(IncidentStatus.CANCELLED)}
+                                    onClick={() => handleTransition(IncidentStatus.CLOSED)}
                                     disabled={isSavingTransition}
-                                    className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-3 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                                    className="btn btn-success px-4 py-2.5"
                                 >
-                                    <XCircle size={16} />
-                                    Cancelar
+                                    <CheckCircle2 size={16} />
+                                    Cerrar incidencia
                                 </button>
                             </div>
                         )}

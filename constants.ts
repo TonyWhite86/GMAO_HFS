@@ -51,35 +51,47 @@ export const INCIDENT_STATUS_CONFIG = {
         colorClass: 'text-warn',
         bgClass: 'bdg-amber'
     },
-    [IncidentStatus.IN_REVIEW]: {
-        label: 'En Revisión',
-        icon: Clock,
+    [IncidentStatus.IN_PROGRESS]: {
+        label: 'En Curso',
+        icon: PlayCircle,
         colorClass: 'text-accent',
         bgClass: 'bdg-accent'
     },
-    [IncidentStatus.CONVERTED]: {
-        label: 'Convertida a OT',
-        icon: FileText,
+    [IncidentStatus.PAUSED_MATERIAL]: {
+        label: 'Pausada Material',
+        icon: PauseCircle,
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
+    },
+    [IncidentStatus.PAUSED_BUDGET]: {
+        label: 'Pausada Presupuesto',
+        icon: PauseCircle,
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
+    },
+    [IncidentStatus.PAUSED_EXTERNAL]: {
+        label: 'Pausada Externos',
+        icon: PauseCircle,
+        colorClass: 'text-spec',
+        bgClass: 'bdg-purple'
+    },
+    [IncidentStatus.SCHEDULED]: {
+        label: 'Programada Intervención',
+        icon: Calendar,
         colorClass: 'text-spec',
         bgClass: 'bdg-purple'
     },
     [IncidentStatus.PENDING_CLOSE]: {
         label: 'Pendiente de Confirmación',
-        icon: AlertCircle,
+        icon: Clock,
         colorClass: 'text-warn',
         bgClass: 'bdg-amber'
     },
-    [IncidentStatus.RESOLVED]: {
-        label: 'Resuelta',
+    [IncidentStatus.CLOSED]: {
+        label: 'Cerrada',
         icon: CheckCircle2,
         colorClass: 'text-ok',
         bgClass: 'bdg-green'
-    },
-    [IncidentStatus.CANCELLED]: {
-        label: 'Cancelada',
-        icon: XCircle,
-        colorClass: 'text-ko',
-        bgClass: 'bdg-red'
     }
 };
 

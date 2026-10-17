@@ -39,6 +39,10 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
     const [equipmentId, setEquipmentId] = useState(initialEquipmentId || '');
     const [section, setSection] = useState('');
     const [assignedUserId, setAssignedUserId] = useState(isTechnician ? currentUser.id : '');
+    const [isExternal, setIsExternal] = useState(false);
+    const [contractorId, setContractorId] = useState('');
+    const [externalPrice, setExternalPrice] = useState('');
+    const contractors = useAppStore(s => s.contractors);
     const [collaborators, setCollaborators] = useState<string[]>([]);
     const [collaboratingSections, setCollaboratingSections] = useState<string[]>([]);
 
@@ -137,6 +141,10 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
             toast.error('Por favor complete los campos obligatorios');
             return;
         }
+        if (isExternal && !contractorId) {
+            toast.error('Una OT externa necesita una contrata');
+            return;
+        }
 
         setIsSubmitting(true);
 
@@ -149,8 +157,11 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
             type,
             section,
             equipmentId,
-            assignedUserId: assignedUserId || undefined,
-            collaborators: collaborators.length > 0 ? collaborators : undefined,
+            assignedUserId: isExternal ? undefined : (assignedUserId || undefined),
+            collaborators: isExternal ? undefined : (collaborators.length > 0 ? collaborators : undefined),
+            isExternal,
+            contractorId: isExternal ? contractorId : undefined,
+            externalPrice: isExternal && externalPrice ? Number(externalPrice) : undefined,
             createdBy: currentUser.id,
             createdAt: new Date().toISOString(),
             attachments: attachments,
@@ -265,8 +276,47 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
                                 {showValidationErrors && !section && <p className="text-[10px] text-ko mt-1 font-medium">La sección es obligatoria</p>}
                             </div>
 
-                            {/* Assigned To */}
+                            {/* Trabajo externo */}
                             <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-txt-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={isExternal}
+                                        onChange={(e) => setIsExternal(e.target.checked)}
+                                        className="w-4 h-4"
+                                    />
+                                    Trabajo externo (lo realiza una contrata)
+                                </label>
+                                {isExternal && (
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-spec-border bg-spec-dim">
+                                        <CustomSelect
+                                            label="Contrata"
+                                            value={contractorId}
+                                            onChange={setContractorId}
+                                            options={contractors
+                                                .filter(c => c.active)
+                                                .map(c => ({ value: c.id, label: c.name }))}
+                                            placeholder="Selecciona la contrata…"
+                                            error={showValidationErrors && !contractorId}
+                                        />
+                                        <div>
+                                            <label className="block text-sm font-medium text-txt-2 mb-2">Precio (€)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={externalPrice}
+                                                onChange={(e) => setExternalPrice(e.target.value)}
+                                                placeholder="0.00"
+                                                className="fld-input w-full p-3 rounded-[6px] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Assigned To */}
+                            <div style={isExternal ? { display: 'none' } : undefined}>
                                 <CustomSelect
                                     label="Responsable Principal"
                                     value={assignedUserId}

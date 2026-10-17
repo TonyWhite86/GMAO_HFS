@@ -10,6 +10,7 @@ import type { IncidentSlice } from './slices/createIncidentSlice';
 import type { StoppageSlice } from './slices/createStoppageSlice';
 import type { DataSlice } from './slices/createDataSlice';
 import type { PermissionSlice } from './slices/createPermissionSlice';
+import type { ContractorSlice } from './slices/createContractorSlice';
 
 export type AppState =
     AuthSlice &
@@ -23,4 +24,5 @@ export type AppState =
     IncidentSlice &
     StoppageSlice &
     DataSlice &
-    PermissionSlice;
+    PermissionSlice &
+    ContractorSlice;

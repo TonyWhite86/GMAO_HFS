@@ -12,7 +12,7 @@ import {
     mapWorkOrder, mapEquipment, mapProfile, mapSection,
     mapInventoryItem, mapPreventivePlan, mapPurchaseOrder,
     mapIncident, mapComment, mapIncidentComment, mapSubtask, mapAttachment,
-    mapUserPermission, mapIncidentCategory, mapEquipmentStoppage, mapWorkOrderEvent
+    mapUserPermission, mapIncidentCategory, mapEquipmentStoppage, mapWorkOrderEvent, mapContractor
 } from '../../utils/mappers';
 
 // Import services
@@ -27,6 +27,7 @@ import { incidentService } from '../../services/incidentService';
 import { incidentCategoryService } from '../../services/incidentCategoryService';
 import { stoppageService } from '../../services/stoppageService';
 import { permissionService } from '../../services/permissionService';
+import { contractorService } from '../../services/contractorService';
 
 export interface DataSlice {
     fetchInitialData: () => Promise<void>;
@@ -55,6 +56,7 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
             { key: 'incidentCategories' as const, exec: () => incidentCategoryService.getAll(), label: 'categorías de incidencias' },
             { key: 'stoppages' as const, exec: () => stoppageService.getAll(), label: 'paradas programadas' },
             { key: 'userPermissions' as const, exec: () => permissionService.getAll(), label: 'permisos' },
+            { key: 'contractors' as const, exec: () => contractorService.getAll(), label: 'contratas' },
         ] as const;
 
         const results = await Promise.allSettled(fetchers.map(f => f.exec()));
@@ -155,6 +157,7 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
         subscribeEntity('user_permissions', 'userPermissions', mapUserPermission);
         subscribeEntity('incident_categories', 'incidentCategories', mapIncidentCategory);
         subscribeEntity('equipment_stoppages', 'stoppages', mapEquipmentStoppage);
+        subscribeEntity('contractors', 'contractors', mapContractor);
 
         // El histórico de la OT es un log append-only: basta con añadir el
         // evento a la OT correspondiente para que la Actividad se vea en vivo.
