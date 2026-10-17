@@ -4,6 +4,7 @@ export interface IncidentStats {
     total: number;
     open: number;
     inReview: number;
+    pendingClose: number;
     resolved: number;
     cancelled: number;
     converted: number;
@@ -28,7 +29,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
     const total = incidents.length;
-    let open = 0, inReview = 0, resolved = 0, cancelled = 0, converted = 0;
+    let open = 0, inReview = 0, pendingClose = 0, resolved = 0, cancelled = 0, converted = 0;
     let reasonsFilled = 0, solutionsFilled = 0;
     let resolutionDaysSum = 0;
     let resolvedWithDates = 0;
@@ -37,6 +38,7 @@ export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
         switch (inc.status) {
             case IncidentStatus.OPEN: open++; break;
             case IncidentStatus.IN_REVIEW: inReview++; break;
+            case IncidentStatus.PENDING_CLOSE: pendingClose++; break;
             case IncidentStatus.RESOLVED: resolved++; break;
             case IncidentStatus.CANCELLED: cancelled++; break;
             case IncidentStatus.CONVERTED: converted++; break;
@@ -44,7 +46,7 @@ export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
         if (inc.reason && inc.reason.trim()) reasonsFilled++;
         if (inc.solution && inc.solution.trim()) solutionsFilled++;
 
-        if (inc.status === IncidentStatus.RESOLVED && inc.resolvedAt && inc.createdAt) {
+        if (inc.resolvedAt && inc.createdAt) {
             const days = (new Date(inc.resolvedAt).getTime() - new Date(inc.createdAt).getTime()) / MS_PER_DAY;
             if (days >= 0) {
                 resolutionDaysSum += days;
@@ -58,6 +60,7 @@ export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
         total,
         open,
         inReview,
+        pendingClose,
         resolved,
         cancelled,
         converted,

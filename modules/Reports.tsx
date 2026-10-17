@@ -509,6 +509,7 @@ const IncidentDetails = ({ category, incidents, categoryName }: { category: Inci
                     total: row.total,
                     open: row.openCount,
                     inReview: row.inReviewCount,
+                    pendingClose: row.pendingCloseCount,
                     resolved: row.resolvedCount,
                     cancelled: row.cancelledCount,
                     converted: row.convertedCount,

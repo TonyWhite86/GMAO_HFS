@@ -73,6 +73,13 @@ export const CommentTimeline: React.FC<CommentTimelineProps> = ({
                                         </span>
                                     </div>
                                 )}
+                                {comment.isSystem && (
+                                    <div className="flex items-center justify-center gap-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-txt-3">
+                                        <span>{new Date(comment.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                        <span>·</span>
+                                        <span>{new Date(comment.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                )}
 
                                 <div className="text-sm leading-relaxed">{comment.text}</div>
 

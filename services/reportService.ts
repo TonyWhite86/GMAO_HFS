@@ -36,6 +36,7 @@ export interface IncidentStatRow {
     total: number;
     openCount: number;
     inReviewCount: number;
+    pendingCloseCount: number;
     resolvedCount: number;
     cancelledCount: number;
     convertedCount: number;
@@ -99,6 +100,7 @@ export const reportService = {
             total: Number(r.total) || 0,
             openCount: Number(r.open_count) || 0,
             inReviewCount: Number(r.in_review_count) || 0,
+            pendingCloseCount: Number(r.pending_close_count) || 0,
             resolvedCount: Number(r.resolved_count) || 0,
             cancelledCount: Number(r.cancelled_count) || 0,
             convertedCount: Number(r.converted_count) || 0,
@@ -118,6 +120,7 @@ export const reportService = {
             total: Number(data.total) || 0,
             openCount: Number(data.open_count) || 0,
             inReviewCount: Number(data.in_review_count) || 0,
+            pendingCloseCount: Number(data.pending_close_count) || 0,
             resolvedCount: Number(data.resolved_count) || 0,
             cancelledCount: Number(data.cancelled_count) || 0,
             convertedCount: Number(data.converted_count) || 0,

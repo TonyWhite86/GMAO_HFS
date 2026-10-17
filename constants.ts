@@ -63,6 +63,12 @@ export const INCIDENT_STATUS_CONFIG = {
         colorClass: 'text-spec',
         bgClass: 'bdg-purple'
     },
+    [IncidentStatus.PENDING_CLOSE]: {
+        label: 'Pendiente de Confirmación',
+        icon: AlertCircle,
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
+    },
     [IncidentStatus.RESOLVED]: {
         label: 'Resuelta',
         icon: CheckCircle2,

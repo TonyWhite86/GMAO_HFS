@@ -40,6 +40,16 @@ describe('computeIncidentStats', () => {
         expect(computeIncidentStats([inc({})]).avgResolutionDays).toBeNull();
     });
 
+    it('cuenta Pendiente de Confirmación y usa su resolved_at en la media', () => {
+        const stats = computeIncidentStats([
+            inc({ status: IncidentStatus.PENDING_CLOSE, createdAt: '2026-07-15T10:00:00Z', resolvedAt: '2026-07-16T10:00:00Z' }),
+            inc({ status: IncidentStatus.PENDING_CLOSE })
+        ]);
+        expect(stats.pendingClose).toBe(2);
+        expect(stats.resolved).toBe(0);
+        expect(stats.avgResolutionDays).toBe(1);
+    });
+
     it('lista vacía', () => {
         const stats = computeIncidentStats([]);
         expect(stats.total).toBe(0);

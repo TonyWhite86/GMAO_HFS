@@ -21,7 +21,7 @@ interface IncidentDetailProps {
 
 
 export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClose, onNavigateToWorkOrder }) => {
-    const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, updateIncident, stoppages, sections, incidentCategories } = useAppStore();
+    const { currentUser, addIncidentComment, workOrders, transitionIncidentStatus, confirmIncidentClose, updateIncident, stoppages, sections, incidentCategories } = useAppStore();
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
     const [viewMedia, setViewMedia] = useState<{ type: 'image' | 'video' | 'pdf' | 'file'; url: string; name: string } | null>(null);
     const [reasonText, setReasonText] = useState('');
@@ -29,6 +29,8 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const [isSavingTransition, setIsSavingTransition] = useState(false);
     const [isEditingDate, setIsEditingDate] = useState(false);
     const [dateValue, setDateValue] = useState('');
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [rejectComment, setRejectComment] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -86,12 +88,41 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
     const isAdmin = currentUser?.role === 'Admin';
     const canReopen = isAdmin
         && (incident.status === IncidentStatus.RESOLVED || incident.status === IncidentStatus.CANCELLED);
+    // Confirmación de cierre: sólo el creador (o Admin) sobre una propuesta pendiente.
+    const canConfirmClose = incident.status === IncidentStatus.PENDING_CLOSE
+        && (isAdmin || (!!currentUser && incident.createdBy === currentUser.id));
 
     const handleTransition = async (status: IncidentStatus) => {
         if (isSavingTransition) return;
         setIsSavingTransition(true);
         try {
             await transitionIncidentStatus(incident.id, status, reasonText, solutionText);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
+
+    const handleConfirmClose = async () => {
+        if (isSavingTransition) return;
+        setIsSavingTransition(true);
+        try {
+            await confirmIncidentClose(incident.id, true);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSavingTransition(false);
+        }
+    };
+
+    const handleRejectClose = async () => {
+        if (isSavingTransition || !rejectComment.trim()) return;
+        setIsSavingTransition(true);
+        try {
+            await confirmIncidentClose(incident.id, false, rejectComment.trim());
+            setIsRejecting(false);
+            setRejectComment('');
         } catch (error) {
             console.error(error);
         } finally {
@@ -176,6 +207,26 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                     </button>
 
                     <div className="flex flex-wrap gap-2 ml-auto">
+                        {canConfirmClose && (
+                            <>
+                                <button
+                                    onClick={handleConfirmClose}
+                                    disabled={isSavingTransition}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 sm:py-2 btn btn-success rounded-xl font-bold text-sm transition-all active:scale-95"
+                                >
+                                    <CheckCircle2 size={16} />
+                                    Confirmar cierre
+                                </button>
+                                <button
+                                    onClick={() => setIsRejecting(true)}
+                                    disabled={isSavingTransition}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 sm:py-2 btn btn-danger rounded-xl font-bold text-sm transition-all active:scale-95"
+                                >
+                                    <XCircle size={16} />
+                                    No está resuelta
+                                </button>
+                            </>
+                        )}
                         {canReopen && (
                             <button
                                 onClick={handleReopen}
@@ -309,6 +360,39 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
                         {incident.description}
                     </div>
                 </section>
+
+                {/* Rechazo del cierre (creador) */}
+                {isRejecting && (
+                    <section className="bg-ko-dim border border-ko-border rounded-2xl p-4 animate-fade-in">
+                        <h3 className="text-xs font-bold text-ko uppercase tracking-widest mb-2">¿Por qué no está resuelta?</h3>
+                        <p className="text-xs text-txt-2 mb-3">
+                            La incidencia volverá a estar Abierta. Indica qué falta o qué no se ha solucionado.
+                        </p>
+                        <textarea
+                            value={rejectComment}
+                            onChange={(e) => setRejectComment(e.target.value)}
+                            rows={3}
+                            placeholder="Ej: el equipo sigue fallando después de la reparación…"
+                            className="w-full px-4 py-2.5 rounded-xl border border-line bg-surface text-txt text-sm focus:ring-2 focus:ring-ko outline-none resize-none"
+                        />
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            <button
+                                onClick={handleRejectClose}
+                                disabled={isSavingTransition || !rejectComment.trim()}
+                                className="flex items-center gap-2 px-4 py-2 bg-ko hover:bg-ko hover:brightness-110 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                            >
+                                <XCircle size={16} />
+                                Reabrir incidencia
+                            </button>
+                            <button
+                                onClick={() => { setIsRejecting(false); setRejectComment(''); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-3 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                            >
+                                Volver
+                            </button>
+                        </div>
+                    </section>
+                )}
 
                 {/* Reason & Solution tracking */}
                 <section>
@@ -446,7 +530,19 @@ export const IncidentDetail: React.FC<IncidentDetailProps> = ({ incident, onClos
 
                 {/* Refactored Comments Section */}
                 <CommentTimeline
-                    comments={(incident.comments || []) as SharedComment[]}
+                    comments={[
+                        ...(incident.comments || []),
+                        // El timeline se pinta al revés (más reciente arriba): la
+                        // creación va la última del array para quedar visible arriba.
+                        {
+                            id: 'created',
+                            userId: '',
+                            userName: incident.creatorName || 'Sistema',
+                            text: `Incidencia creada${incident.creatorName ? ` por ${incident.creatorName}` : ''}`,
+                            createdAt: incident.createdAt,
+                            isSystem: true
+                        }
+                    ] as SharedComment[]}
                     currentUserId={currentUser?.id}
                     setViewMedia={setViewMedia}
                     maxHeight="none" // Already in a scrollable container

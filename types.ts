@@ -264,6 +264,7 @@ export enum IncidentStatus {
   OPEN = 'Abierta',
   IN_REVIEW = 'En Revisión',
   CONVERTED = 'Convertida a OT',
+  PENDING_CLOSE = 'Pendiente de Confirmación',
   RESOLVED = 'Resuelta',
   CANCELLED = 'Cancelada',
 }

@@ -1645,17 +1645,39 @@ BEGIN
       NEW.resolved_by := NULL;
       v_sealing := true;
     ELSE
+      -- Cierre directo: si quien resuelve NO es el creador, el cierre queda
+      -- pendiente de confirmación del creador (5 días y se auto-confirma).
+      IF NEW.status = 'Resuelta' AND OLD.status <> 'Pendiente de Confirmación'
+         AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
+        NEW.status := 'Pendiente de Confirmación';
+      END IF;
+
       -- Transiciones legales
       IF OLD.status = 'Abierta' AND NEW.status NOT IN
-         ('En Revisión', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
+         ('En Revisión', 'Pendiente de Confirmación', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
         RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
       END IF;
       IF OLD.status = 'En Revisión' AND NEW.status NOT IN
-         ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
+         ('Pendiente de Confirmación', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
         RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
       END IF;
-      IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN ('Resuelta', 'Cancelada') THEN
+      IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN
+         ('Pendiente de Confirmación', 'Resuelta', 'Cancelada') THEN
         RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+      IF OLD.status = 'Pendiente de Confirmación' THEN
+        IF NEW.status NOT IN ('Resuelta', 'Abierta', 'Cancelada') THEN
+          RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+        END IF;
+        -- Confirmar o rechazar el cierre: sólo el creador o un Admin
+        IF NEW.status IN ('Resuelta', 'Abierta')
+           AND auth.uid() IS NOT NULL
+           AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
+          SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+          IF v_role IS DISTINCT FROM 'Admin' THEN
+            RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar o rechazar el cierre';
+          END IF;
+        END IF;
       END IF;
     END IF;
 
@@ -1665,7 +1687,7 @@ BEGIN
     IF NEW.status = 'En Revisión' AND v_new_reason IS NULL THEN
       RAISE EXCEPTION 'Indica el motivo para pasar a En Revisión';
     END IF;
-    IF NEW.status = 'Resuelta' THEN
+    IF NEW.status IN ('Pendiente de Confirmación', 'Resuelta') THEN
       IF v_new_reason IS NULL THEN
         RAISE EXCEPTION 'Indica el motivo antes de resolver la incidencia';
       END IF;
@@ -1677,6 +1699,12 @@ BEGIN
       v_sealing := true;
     END IF;
     IF NEW.status = 'Cancelada' THEN
+      NEW.resolved_at := NULL;
+      NEW.resolved_by := NULL;
+      v_sealing := true;
+    END IF;
+    IF NEW.status = 'Abierta' AND OLD.status = 'Pendiente de Confirmación' THEN
+      -- Rechazo del creador: la resolución propuesta queda sin efecto
       NEW.resolved_at := NULL;
       NEW.resolved_by := NULL;
       v_sealing := true;
@@ -1725,6 +1753,9 @@ DECLARE
   v_inc RECORD;
   v_final_reason TEXT;
   v_final_solution TEXT;
+  v_actor TEXT;
+  v_effective TEXT;
+  v_note TEXT;
 BEGIN
   SELECT * INTO v_inc FROM public.incidents WHERE id = p_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -1737,18 +1768,31 @@ BEGIN
   v_final_reason   := coalesce(nullif(trim(coalesce(p_reason, '')), ''), v_inc.reason);
   v_final_solution := coalesce(nullif(trim(coalesce(p_solution, '')), ''), v_inc.solution);
 
+  -- El trigger puede redirigir 'Resuelta' a 'Pendiente de Confirmación'
+  -- (cierre propuesto por alguien que no es el creador).
+  v_effective := p_status;
+  IF p_status = 'Resuelta'
+     AND v_inc.status <> 'Pendiente de Confirmación'
+     AND v_inc.created_by IS DISTINCT FROM auth.uid() THEN
+    v_effective := 'Pendiente de Confirmación';
+  END IF;
+
   UPDATE public.incidents
   SET status   = p_status,
       reason   = v_final_reason,
       solution = v_final_solution
   WHERE id = p_id;
 
-  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
-  VALUES (
-    p_id, auth.uid(), 'Sistema',
-    coalesce(p_comment, 'Incidencia marcada como ' || lower(p_status)),
-    true
+  SELECT coalesce(name, 'Sistema') INTO v_actor
+  FROM public.profiles WHERE id = auth.uid();
+
+  v_note := coalesce(
+    p_comment,
+    v_actor || ' · ' || v_inc.status || ' → ' || v_effective
   );
+
+  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+  VALUES (p_id, auth.uid(), v_actor, v_note, true);
 
   RETURN p_id;
 END;
@@ -1867,6 +1911,116 @@ BEGIN
           'Incidencia convertida a Orden de Trabajo: ' || v_wo_id, true);
 
   RETURN v_wo_id;
+END;
+$$;
+
+-- 3bis. Confirmación de cierre por el creador ---------------------------------
+-- Al resolver una incidencia ajena, queda en 'Pendiente de Confirmación': el
+-- creador confirma (→ Resuelta) o rechaza (→ Abierta). A los 5 días sin
+-- respuesta se auto-confirma (auto_confirm_incident_closures).
+
+CREATE OR REPLACE FUNCTION public.confirm_incident_close(
+  p_id UUID,
+  p_accept BOOLEAN,
+  p_comment TEXT DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_inc RECORD;
+  v_actor TEXT;
+  v_note TEXT;
+BEGIN
+  SELECT * INTO v_inc FROM public.incidents WHERE id = p_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Incidencia no encontrada';
+  END IF;
+  IF v_inc.status <> 'Pendiente de Confirmación' THEN
+    RAISE EXCEPTION 'La incidencia no está pendiente de confirmación de cierre';
+  END IF;
+  -- Confirmar o rechazar: sólo el creador o un Admin
+  IF v_inc.created_by IS DISTINCT FROM auth.uid() THEN
+    IF NOT public.is_admin() THEN
+      RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar el cierre';
+    END IF;
+  END IF;
+  IF NOT p_accept AND coalesce(nullif(trim(coalesce(p_comment, '')), ''), '') IS NULL THEN
+    RAISE EXCEPTION 'Indica por qué la incidencia no está resuelta';
+  END IF;
+
+  IF p_accept THEN
+    UPDATE public.incidents
+    SET status = 'Resuelta'
+    WHERE id = p_id;
+    v_note := 'Cierre confirmado por el creador';
+  ELSE
+    UPDATE public.incidents
+    SET status = 'Abierta'
+    WHERE id = p_id;
+    v_note := 'Cierre rechazado por el creador: ' || trim(p_comment);
+  END IF;
+
+  SELECT coalesce(name, 'Sistema') INTO v_actor
+  FROM public.profiles WHERE id = auth.uid();
+  v_note := v_actor || ' · ' || v_note;
+
+  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+  VALUES (p_id, auth.uid(), v_actor, v_note, true);
+
+  RETURN p_id;
+END;
+$$;
+
+-- Auto-confirmación de cierres caducados (5 días sin respuesta del creador).
+CREATE OR REPLACE FUNCTION public.auto_confirm_incident_closures()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_rec RECORD;
+  v_n INTEGER := 0;
+BEGIN
+  FOR v_rec IN
+    SELECT id FROM public.incidents
+    WHERE status = 'Pendiente de Confirmación'
+      AND resolved_at IS NOT NULL
+      AND resolved_at < now() - interval '5 days'
+  LOOP
+    UPDATE public.incidents
+    SET status = 'Resuelta'
+    WHERE id = v_rec.id;
+
+    INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+    VALUES (v_rec.id, NULL, 'Sistema',
+            'Cierre auto-confirmado (5 días sin respuesta del creador)', true);
+
+    v_n := v_n + 1;
+  END LOOP;
+
+  IF v_n > 0 THEN
+    RAISE NOTICE 'Cierres auto-confirmados: %', v_n;
+  END IF;
+  RETURN v_n;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.unschedule('gmao-auto-confirm-closures');
+    PERFORM cron.schedule(
+      'gmao-auto-confirm-closures',
+      '40 6 * * *',
+      'SELECT public.auto_confirm_incident_closures()'
+    );
+  ELSE
+    RAISE WARNING 'pg_cron no está instalado: llama a public.auto_confirm_incident_closures() a mano o desde un job externo.';
+  END IF;
 END;
 $$;
 
@@ -3759,6 +3913,7 @@ SELECT
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
   count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
   count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
   count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
   count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
   count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
@@ -3770,7 +3925,7 @@ SELECT
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents
@@ -3831,6 +3986,7 @@ SELECT
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
   count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
   count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
   count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
   count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
   count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
@@ -3842,7 +3998,7 @@ SELECT
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents
@@ -3903,6 +4059,7 @@ SELECT
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
   count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
   count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación') AS pending_close_count,
   count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
   count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
   count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
@@ -3914,7 +4071,7 @@ SELECT
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents

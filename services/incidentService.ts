@@ -98,6 +98,16 @@ export const incidentService = {
         if (error) throw error;
     },
 
+    /** Confirmación del cierre por el creador: acepta (→ Resuelta) o rechaza (→ Abierta). */
+    confirmClose: async (id: string, accept: boolean, comment?: string | null) => {
+        const { error } = await supabase.rpc('confirm_incident_close', {
+            p_id: id,
+            p_accept: accept,
+            p_comment: comment ?? null
+        });
+        if (error) throw error;
+    },
+
     /** Conversión a OT atómica e idempotente. Devuelve el id de la OT. */
     convertToWorkOrder: async (incidentId: string, payload: {
         title: string;
