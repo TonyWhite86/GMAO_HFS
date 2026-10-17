@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Edit2, PlayCircle, PauseCircle, Plus, X, Search, QrCode, Mic, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Package, CheckSquare, Paperclip, ZoomIn, FileText, User as UserIcon, MessageSquare, Send, Save, Eye, Check, Clock, AlertTriangle, Calendar, Users as UsersIcon, ListTodo, UserPlus, Building2 } from 'lucide-react';
+import { Trash2, Edit2, PlayCircle, PauseCircle, Plus, X, Search, QrCode, Mic, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Package, CheckSquare, Paperclip, ZoomIn, FileText, User as UserIcon, MessageSquare, Send, Save, Eye, Check, Clock, AlertTriangle, Calendar, Users as UsersIcon, ListTodo, UserPlus, Building2, ClipboardCheck } from 'lucide-react';
 import { StatusBadge } from './common/StatusBadge';
 import { PriorityIndicator } from './common/PriorityIndicator';
 import { normalizeForSearch } from '../utils/searchUtils';
@@ -40,6 +40,8 @@ import { WorkOrder, WOStatus, WOPriority, WOType, User, Equipment, Comment, Atta
 // Import sub-components
 import { WOPartsList } from './workOrder/WOPartsList';
 import { WOSubtasksList } from './workOrder/WOSubtasksList';
+import { WOChecklistEditor } from './workOrder/WOChecklistEditor';
+import { WOChecklistView } from './workOrder/WOChecklistView';
 import { WOAttachmentsGrid } from './workOrder/WOAttachmentsGrid';
 import { WOCommentsSection } from './workOrder/WOCommentsSection';
 import { QuickCompleteModal } from './workOrder/QuickCompleteModal';
@@ -96,7 +98,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
     const [statusActionWO, setStatusActionWO] = useState<{ wo: WorkOrder; nextStatus: WOStatus } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [completionNotes, setCompletionNotes] = useState('');
-    const [activeTab, setActiveTab] = useState<'detalle' | 'tareas' | 'piezas' | 'adjuntos' | 'actividad'>('detalle');
+    const [activeTab, setActiveTab] = useState<'detalle' | 'tareas' | 'piezas' | 'checklist' | 'adjuntos' | 'actividad'>('detalle');
 
     // Track newly uploaded files in this session for cleanup on cancel
     const newlyUploadedFilesRef = useRef<string[]>([]);
@@ -486,10 +488,11 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         onClose();
     };
 
-    const tabs: { id: 'detalle' | 'tareas' | 'piezas' | 'adjuntos' | 'actividad'; label: string; icon: typeof FileText; count: number }[] = [
+    const tabs: { id: 'detalle' | 'tareas' | 'piezas' | 'checklist' | 'adjuntos' | 'actividad'; label: string; icon: typeof FileText; count: number }[] = [
         { id: 'detalle', label: 'Detalle', icon: FileText, count: 0 },
         { id: 'tareas', label: 'Tareas', icon: ListTodo, count: editedWO.subtasks?.length || 0 },
         { id: 'piezas', label: 'Piezas', icon: Package, count: editedWO.usedParts?.length || 0 },
+        { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, count: editedWO.closureChecklist?.length || 0 },
         { id: 'adjuntos', label: 'Adjuntos', icon: Paperclip, count: editedWO.attachments?.length || 0 },
         { id: 'actividad', label: 'Actividad', icon: MessageSquare, count: editedWO.comments?.length || 0 },
     ];
@@ -1096,6 +1099,29 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                             isEditing={isEditing}
                             inventory={inventory}
                         />
+                    </div>
+                    )}
+
+                    {/* Checklist de cierre */}
+                    {activeTab === 'checklist' && (
+                    <div className="border-t border-line pt-8">
+                        {isEditing ? (
+                            <WOChecklistEditor
+                                items={editedWO.closureChecklist || []}
+                                onChange={(items) => setEditedWO({ ...editedWO, closureChecklist: items })}
+                            />
+                        ) : (
+                            <>
+                                {(editedWO.closureChecklist || []).length === 0 ? (
+                                    <p className="text-sm text-txt-3 italic">Esta OT no tiene checklist de cierre.</p>
+                                ) : (
+                                    <WOChecklistView
+                                        items={editedWO.closureChecklist || []}
+                                        answers={editedWO.checklistAnswers || {}}
+                                    />
+                                )}
+                            </>
+                        )}
                     </div>
                     )}
 

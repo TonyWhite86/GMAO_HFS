@@ -2038,6 +2038,13 @@ BEGIN
     ELSIF NEW.closed_at IS DISTINCT FROM OLD.closed_at THEN
       NEW.closed_at := OLD.closed_at;
     END IF;
+    -- Checklist y respuestas quedan sellados tras el cierre
+    IF NEW.closure_checklist IS DISTINCT FROM OLD.closure_checklist THEN
+      NEW.closure_checklist := OLD.closure_checklist;
+    END IF;
+    IF NEW.checklist_answers IS DISTINCT FROM OLD.checklist_answers THEN
+      NEW.checklist_answers := OLD.checklist_answers;
+    END IF;
 
     IF NEW.status IS DISTINCT FROM OLD.status THEN
       IF OLD.status = 'Completada' THEN
@@ -3095,7 +3102,8 @@ CREATE OR REPLACE FUNCTION public.transition_work_order(
   p_id TEXT,
   p_action TEXT,
   p_note TEXT DEFAULT NULL,
-  p_manual_minutes INTEGER DEFAULT NULL
+  p_manual_minutes INTEGER DEFAULT NULL,
+  p_checklist_answers JSONB DEFAULT NULL
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -3114,6 +3122,9 @@ DECLARE
   v_status TEXT;
   v_msg TEXT;
   v_time_source TEXT := NULL;
+  v_item JSONB;
+  v_ans JSONB;
+  v_missing INTEGER := 0;
 BEGIN
   SELECT * INTO v_wo FROM public.work_orders WHERE id = p_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -3188,6 +3199,23 @@ BEGIN
 
   -- 2) Estado / tiempo / cierre. NO tocamos status_history.
   IF p_action = 'complete' THEN
+    -- Checklist de cierre: si hay puntos, todos deben estar respondidos
+    -- (respondido = sel sí/no o valor no vacío).
+    IF jsonb_array_length(coalesce(v_wo.closure_checklist, '[]'::jsonb)) > 0 THEN
+      FOR v_item IN SELECT * FROM jsonb_array_elements(coalesce(v_wo.closure_checklist, '[]'::jsonb))
+      LOOP
+        v_ans := coalesce(p_checklist_answers, '{}'::jsonb) -> (v_item->>'id');
+        IF v_ans IS NULL
+           OR (coalesce(v_ans->>'sel', '') NOT IN ('si', 'no')
+               AND coalesce(nullif(trim(coalesce(v_ans->>'val', '')), ''), '') IS NULL) THEN
+          v_missing := v_missing + 1;
+        END IF;
+      END LOOP;
+      IF v_missing > 0 THEN
+        RAISE EXCEPTION 'Faltan % puntos del checklist de cierre por responder', v_missing;
+      END IF;
+    END IF;
+
     UPDATE public.work_orders
     SET status = 'Completada',
         closed_at = v_now,
@@ -3195,7 +3223,8 @@ BEGIN
         time_source = v_time_source,
         time_recorded_by = auth.uid(),
         time_recorded_at = v_now,
-        pending_reason = NULL
+        pending_reason = NULL,
+        checklist_answers = coalesce(p_checklist_answers, checklist_answers)
     WHERE id = p_id;
   ELSIF p_action = 'pause' THEN
     UPDATE public.work_orders
@@ -4291,6 +4320,51 @@ ALTER TABLE public.work_orders
   ADD COLUMN IF NOT EXISTS is_external BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS contractor_id UUID REFERENCES public.contractors(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS external_price NUMERIC(12, 2);
+
+-- Checklist de cierre: puntos [{id, texto}] y respuestas {[id]: {sel, val}}
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS closure_checklist JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS checklist_answers JSONB DEFAULT '{}'::jsonb;
+
+
+-- 3. Plantillas de checklist (reutilizables al crear/editar OTs) ---------------
+
+CREATE TABLE IF NOT EXISTS public.checklist_templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.checklist_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Checklist Templates" ON public.checklist_templates;
+DROP POLICY IF EXISTS "Manage Checklist Templates" ON public.checklist_templates;
+CREATE POLICY "Read Checklist Templates" ON public.checklist_templates
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Checklist Templates" ON public.checklist_templates
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.checklist_templates REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'checklist_templates'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE checklist_templates;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- DIAGNÓSTICO — revisa la salida de este bloque

@@ -3,8 +3,9 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, MessageSquare, Paperclip, X, FileText, UploadCloud, CheckSquare } from 'lucide-react';
 import { VoiceInputButton } from '../ui/VoiceInputButton';
-import { WorkOrder, WOStatus, InventoryItem, User, Attachment, Comment } from '../../types';
+import { WorkOrder, WOStatus, InventoryItem, User, Attachment, Comment, ChecklistAnswer } from '../../types';
 import { WOPartsList } from './WOPartsList'; // Assuming this is in the same directory or adjust path
+import { WOChecklistComplete, isChecklistComplete } from './WOChecklistComplete';
 import { useAppStore } from '../../store/useAppStore';
 import { computeActiveMinutes } from '../../utils/timeTracking';
 
@@ -28,6 +29,9 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
         attachments: workOrder.attachments || []
     });
 
+    const checklistItems = workOrder.closureChecklist || [];
+    const [checklistAnswers, setChecklistAnswers] = useState<Record<string, ChecklistAnswer>>({});
+    const checklistOk = isChecklistComplete(checklistItems, checklistAnswers);
     const [hours, setHours] = useState(Math.floor(initialMins / 60));
     const [minutes, setMinutes] = useState(initialMins % 60);
 
@@ -55,6 +59,7 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
     };
 
     const handleFinalConfirm = async () => {
+        if (!checklistOk) return;
         const safeHours = isNaN(hours) ? 0 : hours;
         const safeMinutes = isNaN(minutes) ? 0 : minutes;
         const finalTime = safeHours * 60 + safeMinutes;
@@ -65,7 +70,8 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
                 workOrder.id,
                 'complete',
                 null,
-                finalTime
+                finalTime,
+                checklistItems.length > 0 ? checklistAnswers : null
             );
         } catch (e) {
             console.error('Error completando la OT:', e);
@@ -95,6 +101,7 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
             closedAt: timestamp,
             timeSpentMinutes: finalTime,
             statusHistory: newHistory,
+            checklistAnswers: checklistItems.length > 0 ? checklistAnswers : editedWO.checklistAnswers,
             comments: [...(workOrder.comments || []), sysComment]
         };
 
@@ -214,14 +221,29 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
                     </div>
                 </div>
 
+                {/* Checklist de cierre */}
+                {checklistItems.length > 0 && (
+                    <div className="p-6 border-t border-line">
+                        <WOChecklistComplete
+                            items={checklistItems}
+                            answers={checklistAnswers}
+                            onChange={setChecklistAnswers}
+                        />
+                    </div>
+                )}
+
                 {/* Footer */}
                 <div className="p-6 border-t border-line bg-surface-2">
                     <button
                         onClick={handleFinalConfirm}
-                        className="w-full py-4 bg-ok hover:bg-ok text-white rounded-2xl font-bold text-lg shadow-xl shadow-ok/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                        disabled={!checklistOk}
+                        className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 ${checklistOk
+                            ? 'bg-ok hover:bg-ok text-white shadow-ok/20'
+                            : 'bg-surface-3 text-txt-3 cursor-not-allowed shadow-none'
+                            }`}
                     >
                         <CheckSquare size={24} />
-                        Cerrar Orden de Trabajo
+                        {checklistOk ? 'Cerrar Orden de Trabajo' : 'Responde el checklist para cerrar'}
                     </button>
                 </div>
             </motion.div>

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Mic, Loader2, Paperclip, FileText, UserPlus, Plus, Trash2, UploadCloud, ClipboardList, User as UserIcon, Users, X } from 'lucide-react';
 import { CustomSelect } from './ui/CustomSelect';
-import { WorkOrder, WOPriority, WOType, WOStatus, User, UserRole, Attachment, SubTask, Section, Equipment } from '../types';
+import { WorkOrder, WOPriority, WOType, WOStatus, User, UserRole, Attachment, SubTask, Section, Equipment, ChecklistItem } from '../types';
 import { EquipmentSelector } from './EquipmentSelector';
+import { WOChecklistEditor } from './workOrder/WOChecklistEditor';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAppStore } from '../store/useAppStore';
@@ -39,6 +40,7 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
     const [equipmentId, setEquipmentId] = useState(initialEquipmentId || '');
     const [section, setSection] = useState('');
     const [assignedUserId, setAssignedUserId] = useState(isTechnician ? currentUser.id : '');
+    const [closureChecklist, setClosureChecklist] = useState<ChecklistItem[]>([]);
     const [isExternal, setIsExternal] = useState(false);
     const [contractorId, setContractorId] = useState('');
     const [externalPrice, setExternalPrice] = useState('');
@@ -169,6 +171,7 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
             comments: [],
             statusHistory: [{ status: WOStatus.PENDING, timestamp: new Date().toISOString() }],
             subtasks: subtasks,
+            closureChecklist: closureChecklist.filter(it => it.text.trim())
         };
 
         onClose();
@@ -534,6 +537,14 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
                                     No hay archivos adjuntos.
                                 </div>
                             )}
+                        </div>
+
+                        {/* Checklist de cierre */}
+                        <div className="border-t border-line pt-5">
+                            <WOChecklistEditor
+                                items={closureChecklist}
+                                onChange={setClosureChecklist}
+                            />
                         </div>
 
                         {/* Subtasks Section */}

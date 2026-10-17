@@ -70,6 +70,25 @@ export interface EquipmentDocument {
   date: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+}
+
+export interface ChecklistAnswer {
+  sel?: 'si' | 'no' | null;
+  val?: string | null;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistItem[];
+  active: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
 export interface Contractor {
   id: string;
   name: string;
@@ -207,6 +226,8 @@ export interface WorkOrder {
   contractorId?: string | null;
   contractorName?: string | null; // Loaded via join
   externalPrice?: number | null;
+  closureChecklist?: ChecklistItem[]; // Puntos obligatorios al cerrar
+  checklistAnswers?: Record<string, ChecklistAnswer>; // Se sellan al completar
   createdBy: string;
   createdAt: string;
   scheduledDate?: string;

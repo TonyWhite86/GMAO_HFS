@@ -11,6 +11,7 @@ import type { StoppageSlice } from './slices/createStoppageSlice';
 import type { DataSlice } from './slices/createDataSlice';
 import type { PermissionSlice } from './slices/createPermissionSlice';
 import type { ContractorSlice } from './slices/createContractorSlice';
+import type { ChecklistTemplateSlice } from './slices/createChecklistTemplateSlice';
 
 export type AppState =
     AuthSlice &
@@ -25,4 +26,5 @@ export type AppState =
     StoppageSlice &
     DataSlice &
     PermissionSlice &
-    ContractorSlice;
+    ContractorSlice &
+    ChecklistTemplateSlice;

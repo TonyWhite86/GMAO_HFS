@@ -4,7 +4,7 @@ import {
     Comment, SubTask, IncidentComment, IncidentStatus, WorkOrderEvent,
     Skill, UserSkill, InventoryMovement, UserPermission,
     IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus,
-    Contractor
+    Contractor, ChecklistTemplate, ChecklistItem, ChecklistAnswer
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -137,6 +137,9 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     collaborators: wo.collaborators,
     section: wo.section,
     isExternal: wo.is_external ?? false,
+    closureChecklist: (Array.isArray(wo.closure_checklist) ? wo.closure_checklist : [])
+        .map((it: any) => ({ id: it.id, text: it.text })),
+    checklistAnswers: wo.checklist_answers ?? {},
     contractorId: wo.contractor_id ?? null,
     contractorName: wo.contractor?.name ?? null,
     externalPrice: wo.external_price != null ? Number(wo.external_price) : null,
@@ -268,6 +271,18 @@ export const mapIncidentComment = (c: any): IncidentComment => ({
     isSystem: c.is_system,
     createdAt: c.created_at,
     attachments: c.attachments || []
+});
+
+export const mapChecklistTemplate = (t: any): ChecklistTemplate => ({
+    id: t.id,
+    name: t.name,
+    items: (Array.isArray(t.items) ? t.items : []).map((it: any) => ({
+        id: it.id,
+        text: it.text
+    })),
+    active: t.active ?? true,
+    createdBy: t.created_by ?? null,
+    createdAt: t.created_at
 });
 
 export const mapContractor = (c: any): Contractor => ({
