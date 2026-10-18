@@ -4,7 +4,8 @@ import {
     Comment, SubTask, IncidentComment, IncidentStatus, WorkOrderEvent,
     Skill, UserSkill, InventoryMovement, UserPermission,
     IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus,
-    Contractor, ChecklistTemplate, ChecklistItem, ChecklistAnswer
+    Contractor, ChecklistTemplate, ChecklistItem, ChecklistAnswer,
+    EquipmentAcceptance
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -63,6 +64,7 @@ export const mapEquipment = (e: any, allAttachments: any[] = []): Equipment => (
             name: a.name,
             type: a.type as 'file' | 'folder',
             url: a.url,
+            category: a.category ?? null,
             date: a.created_at || new Date().toISOString()
         }))
 });
@@ -271,6 +273,29 @@ export const mapIncidentComment = (c: any): IncidentComment => ({
     isSystem: c.is_system,
     createdAt: c.created_at,
     attachments: c.attachments || []
+});
+
+export const mapEquipmentAcceptance = (a: any): EquipmentAcceptance => ({
+    equipmentId: a.equipment_id,
+    manualsOk: a.manuals_ok ?? false,
+    conformityOk: a.conformity_ok ?? false,
+    signoffs: (Array.isArray(a.signoffs) ? a.signoffs : []).map((x: any) => ({
+        id: x.id,
+        department: x.department,
+        userId: x.user_id ?? null,
+        userName: x.user_name ?? null,
+        date: x.date
+    })),
+    trainings: (Array.isArray(a.trainings) ? a.trainings : []).map((x: any) => ({
+        id: x.id,
+        trainee: x.trainee,
+        traineeId: x.trainee_id ?? null,
+        trainer: x.trainer,
+        trainerId: x.trainer_id ?? null,
+        date: x.date
+    })),
+    updatedBy: a.updated_by ?? null,
+    updatedAt: a.updated_at
 });
 
 export const mapChecklistTemplate = (t: any): ChecklistTemplate => ({

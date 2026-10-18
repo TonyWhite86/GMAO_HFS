@@ -4367,6 +4367,57 @@ BEGIN
 END $$;
 
 -- ============================================================================
+-- ACEPTACIÓN DE MÁQUINA Y CATEGORÍAS DE DOCUMENTO
+-- ============================================================================
+-- La aceptación de máquina (vistos buenos, formaciones, manuales y conformidad)
+-- se registra por equipo; los documentos de equipo ganan una categoría para
+-- poder enlazarlos desde la aceptación.
+
+-- 1. Categoría de documento (solo documentación de equipo) --------------------
+
+ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS category TEXT;
+
+-- 2. Aceptación de máquina (1:1 por equipo) -----------------------------------
+
+CREATE TABLE IF NOT EXISTS public.equipment_acceptance (
+  equipment_id UUID PRIMARY KEY REFERENCES public.equipment(id) ON DELETE CASCADE,
+  manuals_ok BOOLEAN NOT NULL DEFAULT false,
+  conformity_ok BOOLEAN NOT NULL DEFAULT false,
+  signoffs JSONB NOT NULL DEFAULT '[]'::jsonb,
+  trainings JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.equipment_acceptance ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Equipment Acceptance" ON public.equipment_acceptance;
+DROP POLICY IF EXISTS "Manage Equipment Acceptance" ON public.equipment_acceptance;
+CREATE POLICY "Read Equipment Acceptance" ON public.equipment_acceptance
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Equipment Acceptance" ON public.equipment_acceptance
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.equipment_acceptance REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'equipment_acceptance'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE equipment_acceptance;
+  END IF;
+END $$;
+
+-- ============================================================================
 -- DIAGNÓSTICO — revisa la salida de este bloque
 -- ============================================================================
 

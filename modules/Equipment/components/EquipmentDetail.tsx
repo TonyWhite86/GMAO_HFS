@@ -9,6 +9,7 @@ import { CreateWorkOrderModal } from '../../../components/CreateWorkOrderModal';
 import { CreatePlannedModal } from '../../../components/CreatePlannedModal';
 import { EquipmentHeader } from './EquipmentHeader';
 import { EquipmentWorkOrders } from './EquipmentWorkOrders';
+import { EquipmentAcceptancePanel } from './EquipmentAcceptancePanel';
 import { EquipmentDocuments } from './EquipmentDocuments';
 import { EquipmentParts } from './EquipmentParts';
 
@@ -32,8 +33,8 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
     const { currentUser, users, workOrders, inventory, addWorkOrder, sections, equipment: allEquipmentList } = useAppStore();
 
     const { isAdmin, isSectionManager } = usePermissions(currentUser);
-    const [activeMainTab, setActiveMainTab] = useState<'work_orders' | 'docs' | 'parts'>('work_orders');
-    const [mobileSubView, setMobileSubView] = useState<'main' | 'work_orders' | 'docs' | 'parts'>('main');
+    const [activeMainTab, setActiveMainTab] = useState<'work_orders' | 'docs' | 'parts' | 'acceptance'>('work_orders');
+    const [mobileSubView, setMobileSubView] = useState<'main' | 'work_orders' | 'docs' | 'parts' | 'acceptance'>('main');
     const [isPhotoZoomed, setIsPhotoZoomed] = useState(false);
     const [isCreateWOModalOpen, setIsCreateWOModalOpen] = useState(false);
     const [isSelectTypeModalOpen, setIsSelectTypeModalOpen] = useState(false);
@@ -82,7 +83,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
         }
     };
 
-    const handleNavigateMobile = (view: 'work_orders' | 'docs' | 'parts') => {
+    const handleNavigateMobile = (view: 'work_orders' | 'docs' | 'parts' | 'acceptance') => {
         setMobileSubView(view);
         setActiveMainTab(view);
     };
@@ -117,6 +118,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
                     <button onClick={() => setActiveMainTab('work_orders')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'work_orders' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Órdenes</button>
                     <button onClick={() => setActiveMainTab('docs')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'docs' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Docs</button>
                     <button onClick={() => setActiveMainTab('parts')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'parts' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Recambios</button>
+                    <button onClick={() => setActiveMainTab('acceptance')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'acceptance' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Aceptación</button>
                 </nav>
             </div>
 
@@ -130,6 +132,9 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
                 )}
                 {activeMainTab === 'parts' && (
                     <EquipmentParts selectedEquipment={selectedEquipment} onSelectInventoryItem={onSelectInventoryItem} currentUser={currentUser} />
+                )}
+                {activeMainTab === 'acceptance' && (
+                    <EquipmentAcceptancePanel equipment={selectedEquipment} />
                 )}
             </div>
 

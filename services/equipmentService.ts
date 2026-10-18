@@ -76,7 +76,61 @@ export const equipmentService = {
             .single();
 
         if (error) throw error;
-        return mapEquipment(data);
+
+        // Sync de documentos (tabla attachments). Reemplazo completo: la lista
+        // de documentos del equipo se guarda tal cual, incluyendo carpetas
+        // (url vacía) y la categoría de documentación.
+        const docs = updatedEq.documents || [];
+        const { data: existingAtts } = await supabase
+            .from('attachments')
+            .select('*')
+            .eq('parent_id', updatedEq.id)
+            .eq('parent_type', 'equipment');
+
+        const existingById = new Map((existingAtts || []).map((a: any) => [a.id, a]));
+        const toInsert = docs
+            .filter(d => !existingById.has(d.id))
+            .map(d => ({
+                id: d.id,
+                parent_id: updatedEq.id,
+                parent_type: 'equipment',
+                name: d.name,
+                url: d.url || '',
+                type: d.type,
+                category: d.category ?? null
+            }));
+        if (toInsert.length > 0) {
+            await supabase.from('attachments').insert(toInsert);
+        }
+
+        const keepIds = new Set(docs.map(d => d.id));
+        const toDelete = (existingAtts || []).filter((a: any) => !keepIds.has(a.id));
+        for (const att of toDelete) {
+            await supabase.from('attachments').delete().eq('id', att.id);
+        }
+
+        // Cambios de categoría/nombre en documentos ya existentes
+        for (const d of docs) {
+            const prev = existingById.get(d.id) as any;
+            if (!prev) continue;
+            const nextCat = d.category ?? null;
+            if (prev.category !== nextCat || prev.name !== d.name) {
+                await supabase.from('attachments')
+                    .update({ category: nextCat, name: d.name })
+                    .eq('id', d.id);
+            }
+        }
+
+        return mapEquipment(data, docs.map(d => ({
+            id: d.id,
+            parent_id: updatedEq.id,
+            parent_type: 'equipment',
+            name: d.name,
+            url: d.url,
+            type: d.type,
+            category: d.category ?? null,
+            created_at: d.date
+        })));
     },
 
     delete: async (id: string) => {

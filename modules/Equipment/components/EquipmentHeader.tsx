@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, X, Box, Settings, Plus, QrCode, ZoomIn, FileText, ClipboardList, Folder, ChevronRight } from 'lucide-react';
+import { ArrowLeft, X, Box, Settings, Plus, QrCode, ZoomIn, FileText, ClipboardList, Folder, ChevronRight, ClipboardCheck } from 'lucide-react';
 import { Equipment, UserRole } from '../../../types';
 
 interface EquipmentHeaderProps {
@@ -13,7 +13,7 @@ interface EquipmentHeaderProps {
     onEdit: () => void;
     onBack: () => void;
     onOpenPhoto: () => void;
-    onNavigateMobile: (view: 'work_orders' | 'docs' | 'parts') => void;
+    onNavigateMobile: (view: 'work_orders' | 'docs' | 'parts' | 'acceptance') => void;
 }
 
 const statusBadge = (status: string) => {
@@ -47,7 +47,8 @@ export const EquipmentHeader: React.FC<EquipmentHeaderProps> = ({
                     <span className="font-bold text-txt truncate">
                         {mobileSubView === 'main' ? 'Detalle de Equipo' :
                             mobileSubView === 'work_orders' ? 'Órdenes de Trabajo' :
-                                mobileSubView === 'docs' ? 'Documentación' : 'Recambios'}
+                                mobileSubView === 'docs' ? 'Documentación' :
+                                    mobileSubView === 'acceptance' ? 'Aceptación' : 'Recambios'}
                     </span>
                 </div>
                 <button onClick={() => onBack()} className="p-2.5 bg-surface-2 text-txt-3 hover:text-ko rounded-xl transition-all active:scale-95 border border-line shadow-sm">
@@ -166,6 +167,17 @@ export const EquipmentHeader: React.FC<EquipmentHeaderProps> = ({
                     <div className="text-left">
                         <h3 className="font-bold text-txt">Recambios Vinculados</h3>
                         <p className="text-xs text-txt-2">Gestión de stock y piezas</p>
+                    </div>
+                    <ChevronRight size={20} className="ml-auto text-txt-3" />
+                </button>
+
+                <button onClick={() => onNavigateMobile('acceptance')} className="flex items-center gap-4 p-4 bg-surface border border-line rounded-xl shadow-sm hover:bg-surface-2 transition-colors">
+                    <div className="w-12 h-12 bg-ok-dim text-ok rounded-full flex items-center justify-center">
+                        <ClipboardCheck size={24} />
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-bold text-txt">Aceptación</h3>
+                        <p className="text-xs text-txt-2">Vistos buenos, formaciones y conformidad</p>
                     </div>
                     <ChevronRight size={20} className="ml-auto text-txt-3" />
                 </button>

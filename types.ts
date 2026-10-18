@@ -68,6 +68,47 @@ export interface EquipmentDocument {
   parentId?: string;
   size?: string;
   date: string;
+  category?: string | null;
+}
+
+/** Categorías de documentación de equipo (kit Pulso §9). */
+export const DOCUMENT_CATEGORIES = [
+  'Procedimientos',
+  'Manuales',
+  'Conformidad',
+  'Revisiones',
+  'Planos'
+] as const;
+export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number];
+
+/** Visto bueno por departamento en la aceptación de máquina. */
+export interface EquipmentSignoff {
+  id: string;
+  department: string;
+  userId?: string | null;
+  userName?: string | null;
+  date: string;
+}
+
+/** Formación impartida durante la aceptación de máquina. */
+export interface EquipmentTraining {
+  id: string;
+  trainee: string;
+  traineeId?: string | null;
+  trainer: string;
+  trainerId?: string | null;
+  date: string;
+}
+
+/** Aceptación de máquina (1:1 por equipo). */
+export interface EquipmentAcceptance {
+  equipmentId: string;
+  manualsOk: boolean;
+  conformityOk: boolean;
+  signoffs: EquipmentSignoff[];
+  trainings: EquipmentTraining[];
+  updatedBy?: string | null;
+  updatedAt?: string;
 }
 
 export interface ChecklistItem {

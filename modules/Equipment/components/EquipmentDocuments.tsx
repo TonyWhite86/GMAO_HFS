@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Home, ChevronRight, FolderPlus, FileUp, Folder, FileText, X, FolderOpen, Trash2 } from 'lucide-react';
-import { Equipment, EquipmentDocument } from '../../../types';
+import { Equipment, EquipmentDocument, DOCUMENT_CATEGORIES } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import { supabase } from '../../../lib/supabase';
 import { compressImage } from '../../../utils/compressImage';
@@ -15,10 +15,25 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
 
     const [currentDocPath, setCurrentDocPath] = useState<{ id: string; name: string }[]>([]);
     const [isUploadingDocs, setIsUploadingDocs] = useState(false);
+    const [uploadCategory, setUploadCategory] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const currentFolderId = currentDocPath.length > 0 ? currentDocPath[currentDocPath.length - 1].id : undefined;
-    const currentDocs = (selectedEquipment.documents || []).filter(d => d.parentId === currentFolderId);
+    const currentDocs = (selectedEquipment.documents || [])
+        .filter(d => d.parentId === currentFolderId)
+        .filter(d => {
+            if (!filterCategory) return true;
+            if (filterCategory === '__sin__') return !d.category;
+            return d.category === filterCategory;
+        });
+
+    const setDocCategory = async (docId: string, category: string) => {
+        const updatedDocs = (selectedEquipment.documents || []).map(d =>
+            d.id === docId ? { ...d, category: category || null } : d
+        );
+        await updateEquipment({ ...selectedEquipment, documents: updatedDocs });
+    };
 
     const handleCreateFolder = async () => {
         const name = prompt('Nombre de la carpeta:');
@@ -72,6 +87,7 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                     url: publicUrl,
                     parentId: currentFolderId,
                     size: (file.size / 1024).toFixed(1) + ' KB',
+                    category: uploadCategory || null,
                     date: new Date().toISOString()
                 });
             }
@@ -138,6 +154,25 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="fld-input px-2 py-1.5 rounded-lg text-xs"
+                        title="Filtrar por categoría"
+                    >
+                        <option value="">Todas las categorías</option>
+                        {DOCUMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        <option value="__sin__">Sin categoría</option>
+                    </select>
+                    <select
+                        value={uploadCategory}
+                        onChange={(e) => setUploadCategory(e.target.value)}
+                        className="fld-input px-2 py-1.5 rounded-lg text-xs"
+                        title="Categoría de los archivos nuevos"
+                    >
+                        <option value="">Categoría al subir…</option>
+                        {DOCUMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                     <button onClick={handleCreateFolder} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-txt-2 bg-surface border border-line rounded-lg hover:bg-surface-2 transition-colors">
                         <FolderPlus size={16} />
                         <span>Carpeta</span>
@@ -171,6 +206,11 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                         <span className="text-[11px] font-medium text-txt-2 text-center line-clamp-2 px-1">
                             {d.name}
                         </span>
+                        {d.type === 'file' && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${d.category ? 'bg-accent-dim text-accent' : 'bg-surface-2 text-txt-3'}`}>
+                                {d.category || 'Sin categoría'}
+                            </span>
+                        )}
                     </div>
                 ))}
             </div>
@@ -182,6 +222,7 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                             <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Nombre</th>
                             <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Tamaño</th>
                             <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Fecha</th>
+                            <th className="p-3 text-xs font-semibold text-txt-2 uppercase">Categoría</th>
                             <th className="p-3 text-xs font-semibold text-txt-2 uppercase text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -196,6 +237,20 @@ export const EquipmentDocuments: React.FC<EquipmentDocumentsProps> = ({ selected
                                 </td>
                                 <td className="p-3 text-txt-2">{d.size || '-'}</td>
                                 <td className="p-3 text-txt-2">{new Date(d.date).toLocaleDateString()}</td>
+                                <td className="p-3">
+                                    {d.type === 'folder' ? (
+                                        <span className="text-txt-3 text-xs">—</span>
+                                    ) : (
+                                        <select
+                                            value={d.category || ''}
+                                            onChange={(e) => setDocCategory(d.id, e.target.value)}
+                                            className="fld-input px-2 py-1 rounded-md text-xs"
+                                        >
+                                            <option value="">Sin categoría</option>
+                                            {DOCUMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    )}
+                                </td>
                                 <td className="p-3 text-right">
                                     <button onClick={() => handleDeleteDoc(d.id)} className="p-1.5 text-txt-3 hover:text-ko hover:bg-ko-dim rounded-md transition-all">
                                         <Trash2 size={16} />

@@ -4,7 +4,7 @@ import {
     mapInventoryItem, mapPreventivePlan, mapPurchaseOrder,
     mapIncident, mapComment, mapIncidentComment, mapSubtask,
     mapAttachment, mapInventoryMovement, mapIncidentCategory,
-    mapEquipmentStoppage
+    mapEquipmentStoppage, mapEquipmentAcceptance
 } from './mappers';
 
 describe('mapProfile', () => {
@@ -465,5 +465,34 @@ describe('mapInventoryMovement', () => {
         expect(result.itemId).toBe('i1');
         expect(result.itemName).toBe('Filtro');
         expect(result.userName).toBe('Juan');
+    });
+});
+
+describe('mapEquipmentAcceptance', () => {
+    it('mapea la aceptación de máquina', () => {
+        const raw = {
+            equipment_id: 'eq1',
+            manuals_ok: true,
+            conformity_ok: false,
+            signoffs: [{ id: 's1', department: 'Calidad', user_id: 'u1', user_name: 'Ana', date: '2026-10-15' }],
+            trainings: [{ id: 't1', trainee: 'Luis', trainee_id: null, trainer: 'Ana', trainer_id: 'u1', date: '2026-10-16' }],
+            updated_by: 'u1',
+            updated_at: '2026-10-16T10:00:00Z'
+        };
+        const result = mapEquipmentAcceptance(raw);
+        expect(result.equipmentId).toBe('eq1');
+        expect(result.manualsOk).toBe(true);
+        expect(result.conformityOk).toBe(false);
+        expect(result.signoffs[0].department).toBe('Calidad');
+        expect(result.signoffs[0].userName).toBe('Ana');
+        expect(result.trainings[0].trainer).toBe('Ana');
+        expect(result.updatedBy).toBe('u1');
+    });
+
+    it('tolera listas vacías o ausentes', () => {
+        const result = mapEquipmentAcceptance({ equipment_id: 'eq2' });
+        expect(result.signoffs).toEqual([]);
+        expect(result.trainings).toEqual([]);
+        expect(result.manualsOk).toBe(false);
     });
 });
