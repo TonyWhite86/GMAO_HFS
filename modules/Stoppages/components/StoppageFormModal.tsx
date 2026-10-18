@@ -19,6 +19,7 @@ interface StoppageFormModalProps {
     canDelete?: boolean;
     initialEquipmentId?: string;
     initialStartAt?: string;
+    linkedWorkOrderId?: string;
     onCreate: (data: Partial<EquipmentStoppage>) => Promise<unknown>;
     onUpdate: (id: string, updates: Partial<EquipmentStoppage>) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
@@ -33,7 +34,7 @@ const toLocalInput = (iso?: string | null) => {
 
 export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
     isOpen, onClose, stoppage, equipment, currentUser, canManage, canDelete = false,
-    initialEquipmentId, initialStartAt,
+    initialEquipmentId, initialStartAt, linkedWorkOrderId,
     onCreate, onUpdate, onDelete
 }) => {
     const [title, setTitle] = useState('');
@@ -87,7 +88,8 @@ export const StoppageFormModal: React.FC<StoppageFormModalProps> = ({
                     ...payload,
                     status: StoppageStatus.SCHEDULED,
                     requestedBy: currentUser?.id,
-                    createdBy: currentUser?.id
+                    createdBy: currentUser?.id,
+                    workOrderId: linkedWorkOrderId ?? null
                 });
             }
             onClose();

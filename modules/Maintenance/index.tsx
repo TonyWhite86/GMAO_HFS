@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 // Subcomponents
 import { MaintenanceWorkOrders } from './components/MaintenanceWorkOrders';
 import { MaintenancePreventivePlans } from './components/MaintenancePreventivePlans';
+import { PlannedActionsView } from './components/PlannedActionsView';
 import { OrderTypeSelectionModal } from './components/OrderTypeSelectionModal';
 import { CreatePreventiveModal } from './components/CreatePreventiveModal';
 
@@ -48,10 +49,10 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         currentUser,
         sections,
         addWorkOrder: onAddWorkOrder,
+        updateWorkOrder: onUpdateWorkOrder,
         addPreventivePlan: onAddPreventivePlan,
         updatePreventivePlan: onUpdatePreventivePlan,
         deletePreventivePlan: onDeletePreventivePlan,
-        updateWorkOrder: onUpdateWorkOrder,
         generateWorkOrderFromPlan,
         inventory,
         updateInventory: onUpdateInventory,
@@ -115,6 +116,9 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         });
     }, [preventivePlans, currentUser, equipment]);
 
+    const openWoCount = securityFilteredWorkOrders.filter(wo => wo.status !== WOStatus.COMPLETED).length;
+    const plannedCount = securityFilteredWorkOrders.filter(wo => wo.type === WOType.PLANNED).length;
+
     const handleCreateClick = () => {
         if (viewMode === 'plans') {
             setModalMode('preventive');
@@ -159,34 +163,28 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                 }
             />
 
-            <div className="flex gap-1 bg-surface-2 p-1 rounded-lg border border-line shadow-sm w-fit">
+            <div className="tabs w-fit">
                 <button
                     onClick={() => setViewMode('workOrders')}
-                    className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'workOrders'
-                        ? 'bg-surface text-accent shadow-sm'
-                        : 'text-txt-2 hover:text-txt-2 '
-                        }`}
+                    className={`tab ${viewMode === 'workOrders' ? 'active' : ''}`}
                 >
                     Órdenes de Trabajo
+                    <span className="bdg bdg-gray ml-1.5">{openWoCount}</span>
                 </button>
                 <button
                     onClick={() => setViewMode('plans')}
-                    className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plans'
-                        ? 'bg-surface text-spec shadow-sm'
-                        : 'text-txt-2 hover:text-txt-2 '
-                        }`}
+                    className={`tab ${viewMode === 'plans' ? 'active' : ''}`}
                 >
                     Planes Preventivos
+                    <span className="bdg bdg-gray ml-1.5">{securityFilteredPlans.length}</span>
                 </button>
                 {canViewActuaciones && (
                     <button
                         onClick={() => setViewMode('plannedActions')}
-                        className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plannedActions'
-                            ? 'bg-surface text-warn  shadow-sm'
-                            : 'text-txt-2 hover:text-txt-2 '
-                            }`}
+                        className={`tab ${viewMode === 'plannedActions' ? 'active' : ''}`}
                     >
                         Actuaciones
+                        <span className="bdg bdg-gray ml-1.5">{plannedCount}</span>
                     </button>
                 )}
             </div>
@@ -204,25 +202,26 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     }}
                     onDelete={onDeletePreventivePlan}
                 />
-            ) : (
-                <MaintenanceWorkOrders
-                    workOrders={securityFilteredWorkOrders.filter(wo => {
-                        if (viewMode === 'plannedActions') {
-                            return wo.type === WOType.PLANNED;
-                        } else {
-                            // viewMode === 'workOrders'
-                            // Show everything that is NOT a preventive plan template (which are separate entities in 'preventivePlans')
-                            // Ideally, show everything. The user requested PLANNED to be visible here.
-                            return true;
-                        }
-                    })}
+            ) : viewMode === 'plannedActions' ? (
+                <PlannedActionsView
+                    workOrders={securityFilteredWorkOrders.filter(wo => wo.type === WOType.PLANNED)}
                     users={users}
                     equipment={equipment}
                     onSelectWO={(id) => setSelectedWOId(id)}
                     onStatusAction={(wo, nextStatus) => setStatusActionWO({ wo, nextStatus })}
                     onComplete={(wo) => setCompletingWO(wo)}
+                />
+            ) : (
+                <MaintenanceWorkOrders
+                    workOrders={securityFilteredWorkOrders}
+                    users={users}
+                    equipment={equipment}
+                    onSelectWO={(id) => setSelectedWOId(id)}
+                    onStatusAction={(wo, nextStatus) => setStatusActionWO({ wo, nextStatus })}
+                    onComplete={(wo) => setCompletingWO(wo)}
+                    onUpdateWO={(wo, updates) => onUpdateWorkOrder({ ...wo, ...updates })}
                     initialFilters={initialFilters}
-                    viewMode={viewMode === 'plannedActions' ? 'plannedActions' : 'workOrders'}
+                    viewMode="workOrders"
                 />
             )}
 
