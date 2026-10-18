@@ -25,6 +25,24 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'overdue' | 'week'>('all');
+    const [equipmentFilter, setEquipmentFilter] = useState('');
+
+    // Estado del ciclo: última ejecución → próxima ejecución
+    const planCycle = (plan: PreventivePlan) => {
+        const next = new Date(plan.nextRun).getTime();
+        const now = Date.now();
+        const days = Math.ceil((next - now) / 86400000);
+        const total = Math.max(plan.frequencyDays || 1, 1);
+        const elapsed = plan.lastRun
+            ? Math.min(total, Math.max(0, Math.floor((now - new Date(plan.lastRun).getTime()) / 86400000)))
+            : total;
+        return {
+            days,                                     // >0: vence en X días; <0: vencido hace X
+            pct: Math.min(100, Math.max(0, Math.round((elapsed / total) * 100))),
+            overdue: next <= now
+        };
+    };
 
     // Initial Filter & Sort
     const filteredPlans = useMemo(() => {
@@ -34,6 +52,19 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                 eqName.toLowerCase().includes(filterText.toLowerCase());
             return matchesText;
         });
+
+        if (equipmentFilter) {
+            result = result.filter(p => p.equipmentId === equipmentFilter);
+        }
+        if (statusFilter === 'overdue') {
+            result = result.filter(p => new Date(p.nextRun).getTime() <= Date.now());
+        } else if (statusFilter === 'week') {
+            const inAWeek = Date.now() + 7 * 86400000;
+            result = result.filter(p => {
+                const t = new Date(p.nextRun).getTime();
+                return t > Date.now() && t <= inAWeek;
+            });
+        }
 
         if (sortConfig) {
             result = [...result].sort((a, b) => {
@@ -71,7 +102,21 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
             render: (plan: PreventivePlan) => (
                 <div>
                     <div className="font-medium text-txt">{plan.name}</div>
-                    <div className="text-xs text-txt-2">{plan.tasks.length} tareas definidas</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {plan.tasks.slice(0, 3).map((t, i) => (
+                            <span key={t.id || i} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-spec-dim text-spec border border-spec-border">
+                                {t.description}
+                            </span>
+                        ))}
+                        {plan.tasks.length > 3 && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-surface-2 text-txt-3">
+                                +{plan.tasks.length - 3}
+                            </span>
+                        )}
+                        {plan.tasks.length === 0 && (
+                            <span className="text-xs text-txt-3 italic">Sin tareas definidas</span>
+                        )}
+                    </div>
                 </div>
             )
         },
@@ -93,13 +138,36 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
             )
         },
         {
-            header: "Próxima Ejecución",
+            header: "Ciclo / Próxima Ejecución",
             sortKey: "nextRun",
-            render: (plan: PreventivePlan) => (
-                <span className="text-sm text-spec font-medium">
-                    {new Date(plan.nextRun).toLocaleDateString()}
-                </span>
-            )
+            render: (plan: PreventivePlan) => {
+                const c = planCycle(plan);
+                return (
+                    <div className="min-w-[150px]">
+                        <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${c.overdue ? 'text-ko font-bold' : 'text-spec'}`}>
+                                {new Date(plan.nextRun).toLocaleDateString()}
+                            </span>
+                            {c.overdue ? (
+                                <span className="bdg bdg-red shrink-0">VENCIDO</span>
+                            ) : c.days <= 7 ? (
+                                <span className="bdg bdg-amber shrink-0">Vence en {c.days}d</span>
+                            ) : null}
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-surface-2 overflow-hidden mt-1" title={`Día ${Math.min(c.pct, 100)}% del ciclo`}>
+                            <div
+                                className="h-full rounded-full"
+                                style={{ width: `${c.pct}%`, background: c.overdue ? 'var(--red)' : c.days <= 7 ? 'var(--amber)' : 'var(--purple)' }}
+                            />
+                        </div>
+                        {plan.lastRun && (
+                            <div className="text-[9px] text-txt-3 mt-0.5">
+                                Última: {new Date(plan.lastRun).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
         },
         {
             header: "Acciones",
@@ -195,9 +263,22 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                             <span>{plan.tasks.length} tareas</span>
                         </div>
                     </div>
-                    <div className="text-spec font-medium">
-                        Próx: {new Date(plan.nextRun).toLocaleDateString()}
+                    <div className={`font-medium ${planCycle(plan).overdue ? 'text-ko font-bold' : 'text-spec'}`}>
+                        {planCycle(plan).overdue
+                            ? 'VENCIDO'
+                            : planCycle(plan).days <= 7
+                                ? `Vence en ${planCycle(plan).days}d`
+                                : `Próx: ${new Date(plan.nextRun).toLocaleDateString()}`}
                     </div>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-surface-2 overflow-hidden mt-2">
+                    <div
+                        className="h-full rounded-full"
+                        style={{
+                            width: `${planCycle(plan).pct}%`,
+                            background: planCycle(plan).overdue ? 'var(--red)' : planCycle(plan).days <= 7 ? 'var(--amber)' : 'var(--purple)'
+                        }}
+                    />
                 </div>
             </div>
         );
@@ -206,7 +287,34 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     return (
         <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line">
+            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    {([
+                        { id: 'all' as const, label: 'Todos' },
+                        { id: 'overdue' as const, label: 'Vencidos' },
+                        { id: 'week' as const, label: 'Esta semana' }
+                    ]).map(opt => (
+                        <button
+                            key={opt.id}
+                            onClick={() => setStatusFilter(opt.id)}
+                            className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${statusFilter === opt.id
+                                ? opt.id === 'overdue' ? 'bg-ko text-white border-ko' : 'bg-accent text-white border-accent'
+                                : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                    <select
+                        value={equipmentFilter}
+                        onChange={(e) => setEquipmentFilter(e.target.value)}
+                        className="fld-input px-2.5 py-1.5 rounded-[6px] text-xs ml-auto"
+                    >
+                        <option value="">Todos los equipos</option>
+                        {equipment.map(eq => (
+                            <option key={eq.id} value={eq.id}>{eq.name}</option>
+                        ))}
+                    </select>
+                </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={18} />
                     <input
