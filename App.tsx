@@ -48,7 +48,7 @@ const App: React.FC = () => {
   const setCurrentModule = setActiveModule;
 
   // State to control Maintenance modal opening from other modules (keep these local as they are UI transition state)
-  const [maintenanceInitialMode, setMaintenanceInitialMode] = useState<'create' | null>(null);
+  const [maintenanceInitialMode, setMaintenanceInitialMode] = useState<'create' | 'preventive' | 'planned' | null>(null);
   const [maintenanceInitialFilters, setMaintenanceInitialFilters] = useState<{ status?: WOStatus[], unassigned?: boolean, priority?: WOPriority[], section?: string[] } | null>(null);
   const [inventoryInitialMode, setInventoryInitialMode] = useState<'withdrawal' | null>(null);
   const [inventoryInitialTab, setInventoryInitialTab] = useState<'requests' | null>(null);
@@ -59,6 +59,16 @@ const App: React.FC = () => {
 
   const handleCreateWorkOrderRequest = () => {
     setMaintenanceInitialMode('create');
+    setCurrentModule('maintenance');
+  };
+
+  const handleCreatePreventiveRequest = () => {
+    setMaintenanceInitialMode('preventive');
+    setCurrentModule('maintenance');
+  };
+
+  const handleCreateActuationRequest = () => {
+    setMaintenanceInitialMode('planned');
     setCurrentModule('maintenance');
   };
 
@@ -290,7 +300,12 @@ const App: React.FC = () => {
           </div>
         </div>
       ) : (
-        <Layout>
+        <Layout
+          onCreateWO={handleCreateWorkOrderRequest}
+          onCreateIncident={handleCreateIncidentRequest}
+          onCreatePreventive={handleCreatePreventiveRequest}
+          onCreateActuation={handleCreateActuationRequest}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={activeModule}

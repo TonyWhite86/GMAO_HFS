@@ -35,8 +35,6 @@ export interface UISlice {
     toggleTheme: () => void;
     activeModule: string;
     setActiveModule: (module: string) => void;
-    creationMode: boolean;
-    setCreationMode: (mode: boolean) => void;
     isLoading: boolean;
     error: string | null;
     setLoading: (loading: boolean) => void;
@@ -58,8 +56,6 @@ export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set, get) 
     },
     activeModule: 'dashboard',
     setActiveModule: (module) => set({ activeModule: module }),
-    creationMode: false,
-    setCreationMode: (mode) => set({ creationMode: mode }),
     isLoading: false,
     error: null,
     setLoading: (loading) => set({ isLoading: loading }),

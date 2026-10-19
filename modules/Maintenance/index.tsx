@@ -26,7 +26,7 @@ type ModalMode = 'none' | 'selection' | 'corrective' | 'preventive' | 'planned';
 type ViewMode = 'workOrders' | 'plans' | 'plannedActions';
 
 export interface MaintenanceProps {
-    initialMode?: 'create' | null;
+    initialMode?: 'create' | 'preventive' | 'planned' | null;
     initialFilters?: {
         status?: WOStatus[];
         unassigned?: boolean;
@@ -56,8 +56,6 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         generateWorkOrderFromPlan,
         inventory,
         updateInventory: onUpdateInventory,
-        creationMode,
-        setCreationMode
     } = useAppStore();
 
     if (!currentUser) return <GenericSkeleton />;
@@ -79,18 +77,16 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
 
     // --- Handling Initial Props & Store Signals ---
     useEffect(() => {
+        if (!initialMode) return;
         if (initialMode === 'create') {
             setModalMode(currentUser.role === UserRole.TECHNICIAN ? 'corrective' : 'selection');
-            onModeHandled?.();
+        } else if (initialMode === 'preventive') {
+            setModalMode('preventive');
+        } else if (initialMode === 'planned') {
+            setModalMode('planned');
         }
+        onModeHandled?.();
     }, [initialMode, currentUser.role, onModeHandled]);
-
-    useEffect(() => {
-        if (creationMode) {
-            setModalMode(currentUser.role === UserRole.TECHNICIAN ? 'corrective' : 'selection');
-            setCreationMode(false);
-        }
-    }, [creationMode, currentUser.role, setCreationMode]);
 
     useEffect(() => {
         if (viewMode === 'plannedActions' && !canViewActuaciones) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, Calendar, Box, Users, Wrench, LogOut, LayoutDashboard, BarChart3, Plus, AlertCircle, CalendarClock, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardList, Calendar, Box, Users, Wrench, LogOut, LayoutDashboard, BarChart3, Plus, AlertCircle, CalendarClock, Sun, Moon, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { BRANDING } from '../branding';
 import { useAppStore } from '../store/useAppStore';
 import { WOStatus, IncidentStatus } from '../types';
@@ -10,6 +10,10 @@ import { usePermissions } from '../hooks/usePermissions';
 
 interface LayoutProps {
   children: React.ReactNode;
+  onCreateWO: () => void;
+  onCreateIncident: () => void;
+  onCreatePreventive: () => void;
+  onCreateActuation: () => void;
 }
 
 const Clock: React.FC<{ collapsed?: boolean }> = ({ collapsed }) => {
@@ -49,13 +53,12 @@ const ThemeToggle: React.FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   );
 };
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, onCreateWO, onCreateIncident, onCreatePreventive, onCreateActuation }) => {
   const {
     currentUser,
     activeModule,
     setActiveModule,
-    logout,
-    setCreationMode
+    logout
   } = useAppStore();
 
   const userPermissions = useAppStore(s => s.userPermissions);
@@ -72,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (perm?.level ?? 'sin_acceso') !== 'sin_acceso';
   }, [userPermissions, currentUser?.id, currentUser?.role]);
 
-  const { canViewStoppages } = usePermissions(currentUser);
+  const { canViewStoppages, canCreateActuaciones, canManagePreventivePlans } = usePermissions(currentUser);
 
   // Notification badges (scoped to what the current user can actually see)
   const visibleWorkOrders = useRestrictedItems(
@@ -101,6 +104,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
 
   // Safety check if user is null (should only happen if redirected to login)
   if (!currentUser) return null;
@@ -359,16 +363,73 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {!isObserver && (
               <>
-                <button
-                  className="flex-shrink-0 flex flex-col items-center gap-1 p-3 -mt-8 text-white rounded-full transition-transform hover:scale-110 active:scale-95 z-40 mx-1"
-                  style={{ background: 'var(--btn-primary-bg)', boxShadow: '0 4px 14px rgba(0,0,0,.3)' }}
-                  onClick={() => {
-                    handleNavigate('maintenance');
-                    setCreationMode(true);
-                  }}
-                >
-                  <Plus size={24} />
-                </button>
+                <div className="relative">
+                  <AnimatePresence>
+                    {isCreateMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-52 rounded-2xl p-2 z-50 overflow-hidden"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)' }}
+                      >
+                        <p className="px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text3)' }}>
+                          Crear
+                        </p>
+                        <button
+                          onClick={() => { setIsCreateMenuOpen(false); onCreateWO(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-2 transition-colors text-left"
+                        >
+                          <span className="p-1.5 rounded-lg" style={{ background: 'var(--accentdim)', color: 'var(--accent)' }}>
+                            <Plus size={15} />
+                          </span>
+                          <span className="text-sm font-medium text-txt">Nueva Orden</span>
+                        </button>
+                        <button
+                          onClick={() => { setIsCreateMenuOpen(false); onCreateIncident(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-2 transition-colors text-left"
+                        >
+                          <span className="p-1.5 rounded-lg" style={{ background: 'var(--warn-dim, var(--amberdim))', color: 'var(--amber)' }}>
+                            <AlertCircle size={15} />
+                          </span>
+                          <span className="text-sm font-medium text-txt">Nueva Incidencia</span>
+                        </button>
+                        {canManagePreventivePlans && (
+                          <button
+                            onClick={() => { setIsCreateMenuOpen(false); onCreatePreventive(); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-2 transition-colors text-left"
+                          >
+                            <span className="p-1.5 rounded-lg" style={{ background: 'var(--accentdim)', color: 'var(--accent)' }}>
+                              <RefreshCw size={15} />
+                            </span>
+                            <span className="text-sm font-medium text-txt">Nuevo Plan Preventivo</span>
+                          </button>
+                        )}
+                        {canCreateActuaciones && (
+                          <button
+                            onClick={() => { setIsCreateMenuOpen(false); onCreateActuation(); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-2 transition-colors text-left"
+                          >
+                            <span className="p-1.5 rounded-lg" style={{ background: 'var(--accentdim)', color: 'var(--accent)' }}>
+                              <Calendar size={15} />
+                            </span>
+                            <span className="text-sm font-medium text-txt">Nueva Actuación</span>
+                          </button>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <button
+                    className="flex-shrink-0 flex flex-col items-center gap-1 p-3 -mt-8 text-white rounded-full transition-transform hover:scale-110 active:scale-95 z-40 mx-1"
+                    style={{ background: 'var(--btn-primary-bg)', boxShadow: '0 4px 14px rgba(0,0,0,.3)' }}
+                    onClick={() => {
+                      setIsCreateMenuOpen(v => !v);
+                      setIsAccountMenuOpen(false);
+                    }}
+                  >
+                    <Plus size={24} className={`transition-transform ${isCreateMenuOpen ? 'rotate-45' : ''}`} />
+                  </button>
+                </div>
 
                 {canAccessInventory && (
                   <button
