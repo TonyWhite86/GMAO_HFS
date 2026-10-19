@@ -25,8 +25,6 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
-    const [statusFilter, setStatusFilter] = useState<'all' | 'overdue' | 'week'>('all');
-    const [equipmentFilter, setEquipmentFilter] = useState('');
 
     // Estado del ciclo: última ejecución → próxima ejecución
     const planCycle = (plan: PreventivePlan) => {
@@ -52,19 +50,6 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                 eqName.toLowerCase().includes(filterText.toLowerCase());
             return matchesText;
         });
-
-        if (equipmentFilter) {
-            result = result.filter(p => p.equipmentId === equipmentFilter);
-        }
-        if (statusFilter === 'overdue') {
-            result = result.filter(p => new Date(p.nextRun).getTime() <= Date.now());
-        } else if (statusFilter === 'week') {
-            const inAWeek = Date.now() + 7 * 86400000;
-            result = result.filter(p => {
-                const t = new Date(p.nextRun).getTime();
-                return t > Date.now() && t <= inAWeek;
-            });
-        }
 
         if (sortConfig) {
             result = [...result].sort((a, b) => {
@@ -287,34 +272,7 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     return (
         <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                    {([
-                        { id: 'all' as const, label: 'Todos' },
-                        { id: 'overdue' as const, label: 'Vencidos' },
-                        { id: 'week' as const, label: 'Esta semana' }
-                    ]).map(opt => (
-                        <button
-                            key={opt.id}
-                            onClick={() => setStatusFilter(opt.id)}
-                            className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${statusFilter === opt.id
-                                ? opt.id === 'overdue' ? 'bg-ko text-white border-ko' : 'bg-accent text-white border-accent'
-                                : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                    <select
-                        value={equipmentFilter}
-                        onChange={(e) => setEquipmentFilter(e.target.value)}
-                        className="fld-input px-2.5 py-1.5 rounded-[6px] text-xs ml-auto"
-                    >
-                        <option value="">Todos los equipos</option>
-                        {equipment.map(eq => (
-                            <option key={eq.id} value={eq.id}>{eq.name}</option>
-                        ))}
-                    </select>
-                </div>
+            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={18} />
                     <input
