@@ -12,6 +12,7 @@ import type { DataSlice } from './slices/createDataSlice';
 import type { PermissionSlice } from './slices/createPermissionSlice';
 import type { ContractorSlice } from './slices/createContractorSlice';
 import type { ChecklistTemplateSlice } from './slices/createChecklistTemplateSlice';
+import type { EquipmentGroupSlice } from './slices/createEquipmentGroupSlice';
 
 export type AppState =
     AuthSlice &
@@ -27,4 +28,5 @@ export type AppState =
     DataSlice &
     PermissionSlice &
     ContractorSlice &
-    ChecklistTemplateSlice;
+    ChecklistTemplateSlice &
+    EquipmentGroupSlice;

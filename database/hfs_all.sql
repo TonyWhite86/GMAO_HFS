@@ -2205,7 +2205,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -2918,7 +2918,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -3238,7 +3238,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -4416,6 +4416,336 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE equipment_acceptance;
   END IF;
 END $$;
+
+-- ============================================================================
+-- PREVENTIVOS MULTI-OBJETIVO: GRUOS DE EQUIPOS Y CICLOS POR EQUIPO
+-- ============================================================================
+-- Un plan preventivo se asigna a equipos sueltos y/o a grupos nombrados
+-- (equipment_groups). Cada equipo objetivo tiene su propio ciclo
+-- (preventive_plan_targets.next_run) y cada ejecución genera una OT por equipo.
+
+-- 1. Catálogo de grupos de equipos --------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.equipment_groups (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  equipment_ids UUID[] NOT NULL DEFAULT '{}',
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.equipment_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Equipment Groups" ON public.equipment_groups;
+DROP POLICY IF EXISTS "Manage Equipment Groups" ON public.equipment_groups;
+CREATE POLICY "Read Equipment Groups" ON public.equipment_groups
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Equipment Groups" ON public.equipment_groups
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.equipment_groups REPLICA IDENTITY FULL;
+
+-- 2. Asignación plan ↔ grupo (intención declarada del editor) -----------------
+
+CREATE TABLE IF NOT EXISTS public.preventive_plan_groups (
+  plan_id UUID NOT NULL REFERENCES public.preventive_plans(id) ON DELETE CASCADE,
+  group_id UUID NOT NULL REFERENCES public.equipment_groups(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (plan_id, group_id)
+);
+
+ALTER TABLE public.preventive_plan_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Plan Groups" ON public.preventive_plan_groups;
+DROP POLICY IF EXISTS "Manage Plan Groups" ON public.preventive_plan_groups;
+CREATE POLICY "Read Plan Groups" ON public.preventive_plan_groups
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Plan Groups" ON public.preventive_plan_groups
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+-- 3. Objetivos del plan con ciclo individual ---------------------------------
+
+CREATE TABLE IF NOT EXISTS public.preventive_plan_targets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  plan_id UUID NOT NULL REFERENCES public.preventive_plans(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL REFERENCES public.equipment(id) ON DELETE CASCADE,
+  source_group_id UUID REFERENCES public.equipment_groups(id) ON DELETE SET NULL,
+  last_run TIMESTAMP WITH TIME ZONE,
+  next_run TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE (plan_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_targets_due
+  ON public.preventive_plan_targets (next_run);
+CREATE INDEX IF NOT EXISTS idx_plan_targets_group
+  ON public.preventive_plan_targets (source_group_id);
+
+ALTER TABLE public.preventive_plan_targets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Plan Targets" ON public.preventive_plan_targets;
+DROP POLICY IF EXISTS "Manage Plan Targets" ON public.preventive_plan_targets;
+CREATE POLICY "Read Plan Targets" ON public.preventive_plan_targets
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Plan Targets" ON public.preventive_plan_targets
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.preventive_plan_targets REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'equipment_groups'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE equipment_groups;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'preventive_plan_targets'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE preventive_plan_targets;
+  END IF;
+END $$;
+
+-- 4. Migración: planes existentes → objetivos --------------------------------
+-- Idempotente (ON CONFLICT DO NOTHING). Tras migrar, equipment_id se retira:
+-- su FK con ON DELETE CASCADE podía borrar el plan entero al borrar un equipo.
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'preventive_plans' AND column_name = 'equipment_id'
+  ) THEN
+    INSERT INTO public.preventive_plan_targets (plan_id, equipment_id, last_run, next_run)
+    SELECT p.id, p.equipment_id, p.last_run, p.next_run
+    FROM public.preventive_plans p
+    WHERE p.equipment_id IS NOT NULL
+    ON CONFLICT (plan_id, equipment_id) DO NOTHING;
+
+    ALTER TABLE public.preventive_plans DROP COLUMN equipment_id;
+    RAISE NOTICE 'preventive_plans.equipment_id migrado a preventive_plan_targets';
+  ELSE
+    RAISE NOTICE 'preventive_plans.equipment_id ya no existe: migración omitida';
+  END IF;
+END $$;
+
+-- 5. Sincronización automática de objetivos al editar un grupo ----------------
+-- Alta de miembros → el plan los recibe (ciclo desde hoy). Baja → se retiran
+-- SOLO los objetivos traídos por ese grupo (una asignación directa no se toca).
+
+CREATE OR REPLACE FUNCTION public.sync_group_plan_targets()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_plan RECORD;
+  v_member UUID;
+  v_old UUID[];
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.equipment_ids IS NOT DISTINCT FROM OLD.equipment_ids THEN
+      RETURN NULL;
+    END IF;
+    v_old := coalesce(OLD.equipment_ids, '{}');
+  ELSE
+    v_old := '{}';
+  END IF;
+
+  FOR v_plan IN
+    SELECT DISTINCT plan_id FROM public.preventive_plan_groups WHERE group_id = NEW.id
+  LOOP
+    -- Altas: miembros nuevos del grupo
+    FOR v_member IN
+      SELECT unnest(coalesce(NEW.equipment_ids, '{}'))
+      EXCEPT
+      SELECT unnest(v_old)
+    LOOP
+      INSERT INTO public.preventive_plan_targets (plan_id, equipment_id, source_group_id, next_run)
+      VALUES (v_plan.plan_id, v_member, NEW.id, now())
+      ON CONFLICT (plan_id, equipment_id) DO NOTHING;
+    END LOOP;
+
+    -- Bajas: solo objetivos de este grupo que ya no son miembros
+    DELETE FROM public.preventive_plan_targets t
+    WHERE t.source_group_id = NEW.id
+      AND t.plan_id = v_plan.plan_id
+      AND NOT (t.equipment_id = ANY (coalesce(NEW.equipment_ids, '{}')));
+  END LOOP;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_sync_group_plan_targets ON public.equipment_groups;
+CREATE TRIGGER trg_sync_group_plan_targets
+  AFTER INSERT OR UPDATE ON public.equipment_groups
+  FOR EACH ROW EXECUTE FUNCTION public.sync_group_plan_targets();
+
+-- 6. Motor de lanzamiento por objetivos ---------------------------------------
+-- launch_plan_target_wo(target): una OT por equipo (título «Plan — Equipo»),
+-- tareas del plan como subtareas y rueda el ciclo de ESE objetivo.
+
+CREATE OR REPLACE FUNCTION public.launch_plan_target_wo(p_target_id UUID)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_plan RECORD;
+  v_eq_name TEXT;
+  v_wo_id TEXT;
+  v_hist JSONB;
+  v_task JSONB;
+  v_next TIMESTAMPTZ;
+BEGIN
+  SELECT * INTO v_target FROM public.preventive_plan_targets WHERE id = p_target_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
+  END IF;
+
+  SELECT * INTO v_plan FROM public.preventive_plans WHERE id = v_target.plan_id;
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT name INTO v_eq_name FROM public.equipment WHERE id = v_target.equipment_id;
+
+  v_hist := jsonb_build_array(jsonb_build_object('status', 'Programada', 'timestamp', now()));
+
+  INSERT INTO public.work_orders (
+    title, description, type, status, priority, section, created_by,
+    created_at, scheduled_date, status_history, related_plan_id, equipment_id
+  ) VALUES (
+    v_plan.name || ' — ' || coalesce(v_eq_name, 'Equipo'),
+    coalesce(v_plan.description, ''),
+    'Preventivo',
+    'Programada',
+    'Media',
+    coalesce(nullif(v_plan.section, ''), 'Global'),
+    auth.uid(),
+    now(),
+    v_target.next_run,
+    v_hist,
+    v_plan.id,
+    v_target.equipment_id
+  )
+  RETURNING id INTO v_wo_id;
+
+  FOR v_task IN SELECT * FROM jsonb_array_elements(coalesce(v_plan.tasks, '[]'::jsonb))
+  LOOP
+    INSERT INTO public.subtasks (work_order_id, description, completed, assigned_user_ids)
+    VALUES (v_wo_id, coalesce(v_task->>'description', v_task->>'name', ''), false, '{}');
+  END LOOP;
+
+  -- Rueda el ciclo de este objetivo (si se perdieron semanas, una sola vez)
+  v_next := v_target.next_run + make_interval(days => coalesce(v_plan.frequency_days, 30));
+  IF v_next <= now() THEN
+    v_next := now() + make_interval(days => coalesce(v_plan.frequency_days, 30));
+  END IF;
+
+  UPDATE public.preventive_plan_targets
+  SET last_run = v_target.next_run,
+      next_run = v_next
+  WHERE id = p_target_id;
+
+  RETURN v_wo_id;
+END;
+$$;
+
+-- launch_plan_next_wo(plan, equipment?): sin equipo lanza TODOS los objetivos
+-- del plan; con equipo, solo el suyo (cadena al completar una OT).
+CREATE OR REPLACE FUNCTION public.launch_plan_next_wo(
+  p_plan_id UUID,
+  p_equipment_id UUID DEFAULT NULL
+)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_first TEXT;
+  v_wo TEXT;
+BEGIN
+  FOR v_target IN
+    SELECT id FROM public.preventive_plan_targets
+    WHERE plan_id = p_plan_id
+      AND (p_equipment_id IS NULL OR equipment_id = p_equipment_id)
+  LOOP
+    v_wo := public.launch_plan_target_wo(v_target.id);
+    IF v_first IS NULL THEN
+      v_first := v_wo;
+    END IF;
+  END LOOP;
+  RETURN v_first;
+END;
+$$;
+
+-- launch_due_preventive_plans: itera OBJETIVOS vencidos (un OT por equipo)
+CREATE OR REPLACE FUNCTION public.launch_due_preventive_plans()
+RETURNS TABLE(plan_id UUID, wo_id TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_wo TEXT;
+  v_fired INT := 0;
+BEGIN
+  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
+  END IF;
+
+  FOR v_target IN
+    SELECT t.id, t.plan_id FROM public.preventive_plan_targets t
+    WHERE t.next_run <= now()
+    ORDER BY t.next_run
+  LOOP
+    v_wo := public.launch_plan_target_wo(v_target.id);
+    v_fired := v_fired + 1;
+    IF v_wo IS NOT NULL THEN
+      plan_id := v_target.plan_id;
+      wo_id := v_wo;
+      RETURN NEXT;
+    END IF;
+  END LOOP;
+
+  RAISE NOTICE 'Objetivos preventivos lanzados: %', v_fired;
+END;
+$$;
 
 -- ============================================================================
 -- DIAGNÓSTICO — revisa la salida de este bloque

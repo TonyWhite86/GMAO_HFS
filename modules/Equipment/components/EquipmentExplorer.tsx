@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Equipment } from '../../../types';
-import { Search, QrCode, Cog, Building2, ChevronRight, Factory } from 'lucide-react';
+import { Search, QrCode, Cog, Building2, ChevronRight, Factory, Layers } from 'lucide-react';
 import {
     buildEquipmentTree, defaultExpandedIds, getAncestorIds, getEquipmentPath,
     EquipmentTreeNode
 } from '../../../utils/equipmentTree';
 import { EQUIPMENT_STATUS_DOT } from '../../../constants';
+import { EquipmentGroupsModal } from './EquipmentGroupsModal';
 
 interface EquipmentExplorerProps {
     equipmentList: Equipment[];
@@ -102,6 +103,7 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
     const [expandedIds, setExpandedIds] = useState<Set<string>>(
         () => defaultExpandedIds(equipmentList, selectedEqId)
     );
+    const [isGroupsOpen, setIsGroupsOpen] = useState(false);
 
     // Auto-expandir la rama del equipo seleccionado (p.ej. desde búsqueda o QR).
     useEffect(() => {
@@ -152,6 +154,14 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                         {equipmentList.length} equipos
                     </span>
                 </div>
+                <button
+                    onClick={() => setIsGroupsOpen(true)}
+                    className="btn btn-ghost btn-sm"
+                    title="Gestionar grupos de equipos"
+                >
+                    <Layers size={13} />
+                    Grupos
+                </button>
             </div>
 
             {/* Search Bar */}
@@ -256,6 +266,13 @@ export const EquipmentExplorer: React.FC<EquipmentExplorerProps> = ({
                     </div>
                 )}
             </div>
+
+            {isGroupsOpen && (
+                <EquipmentGroupsModal
+                    isOpen={isGroupsOpen}
+                    onClose={() => setIsGroupsOpen(false)}
+                />
+            )}
         </div>
     );
 };

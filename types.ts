@@ -289,17 +289,41 @@ export interface WorkOrder {
   subtasks?: SubTask[];
 }
 
+/** Grupo nombrado de equipos (p.ej. "Detectores de metales"). */
+export interface EquipmentGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  equipmentIds: string[];
+  active: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+/** Objetivo de un plan preventivo, con ciclo individual por equipo. */
+export interface PreventivePlanTarget {
+  id: string;
+  planId: string;
+  equipmentId: string;
+  sourceGroupId?: string | null;
+  lastRun?: string | null;
+  nextRun: string;
+}
+
 export interface PreventivePlan {
   id: string;
   name: string;
   description?: string;
-  equipmentId: string;
+  /** @deprecated usar targets; se conserva por compatibilidad temporal */
+  equipmentId?: string;
   frequencyDays: number;
   tasks: SubTask[];
   lastRun?: string;
   nextRun: string;
   assignedGroupId?: string;
   section?: string;
+  /** Objetivos con ciclo individual (equipos sueltos y/o de grupos). */
+  targets?: PreventivePlanTarget[];
 }
 
 export enum POStatus {

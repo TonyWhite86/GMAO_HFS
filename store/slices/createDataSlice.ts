@@ -12,7 +12,7 @@ import {
     mapWorkOrder, mapEquipment, mapProfile, mapSection,
     mapInventoryItem, mapPreventivePlan, mapPurchaseOrder,
     mapIncident, mapComment, mapIncidentComment, mapSubtask, mapAttachment,
-    mapUserPermission, mapIncidentCategory, mapEquipmentStoppage, mapWorkOrderEvent, mapContractor, mapChecklistTemplate, mapEquipmentAcceptance
+    mapUserPermission, mapIncidentCategory, mapEquipmentStoppage, mapWorkOrderEvent, mapContractor, mapChecklistTemplate, mapEquipmentAcceptance, mapEquipmentGroup
 } from '../../utils/mappers';
 
 // Import services
@@ -30,6 +30,7 @@ import { permissionService } from '../../services/permissionService';
 import { contractorService } from '../../services/contractorService';
 import { checklistTemplateService } from '../../services/checklistTemplateService';
 import { equipmentAcceptanceService } from '../../services/equipmentAcceptanceService';
+import { equipmentGroupService } from '../../services/equipmentGroupService';
 
 export interface DataSlice {
     fetchInitialData: () => Promise<void>;
@@ -61,6 +62,7 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
             { key: 'contractors' as const, exec: () => contractorService.getAll(), label: 'contratas' },
             { key: 'checklistTemplates' as const, exec: () => checklistTemplateService.getAll(), label: 'plantillas de checklist' },
             { key: 'equipmentAcceptance' as const, exec: () => equipmentAcceptanceService.getAll(), label: 'aceptación de máquina' },
+            { key: 'equipmentGroups' as const, exec: () => equipmentGroupService.getAll(), label: 'grupos de equipos' },
         ] as const;
 
         const results = await Promise.allSettled(fetchers.map(f => f.exec()));
@@ -164,6 +166,7 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
         subscribeEntity('contractors', 'contractors', mapContractor);
         subscribeEntity('checklist_templates', 'checklistTemplates', mapChecklistTemplate);
         subscribeEntity('equipment_acceptance', 'equipmentAcceptance', mapEquipmentAcceptance);
+        subscribeEntity('equipment_groups', 'equipmentGroups', mapEquipmentGroup);
 
         // El histórico de la OT es un log append-only: basta con añadir el
         // evento a la OT correspondiente para que la Actividad se vea en vivo.

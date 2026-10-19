@@ -110,9 +110,11 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         if (!currentUser) return [];
         if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.OBSERVER_L1 || currentUser.role === UserRole.OBSERVER_L2) return preventivePlans;
         return preventivePlans.filter(plan => {
-            const eq = equipment.find(e => e.id === plan.equipmentId);
-            const sections = eq?.sections || [];
-            return sections.some(s => currentUser.sections.includes(s));
+            const targetIds = (plan.targets || []).map(t => t.equipmentId);
+            return targetIds.some(eqId => {
+                const eq = equipment.find(e => e.id === eqId);
+                return (eq?.sections || []).some(s => currentUser.sections.includes(s));
+            });
         });
     }, [preventivePlans, currentUser, equipment]);
 
@@ -190,7 +192,7 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     plans={securityFilteredPlans}
                     equipment={equipment}
                     canManage={canManageMaintenance}
-                    onLaunch={(planId) => generateWorkOrderFromPlan(planId, new Date().toISOString())}
+                    onLaunch={(planId) => generateWorkOrderFromPlan(planId)}
                     onEdit={(plan) => {
                         setSelectedPlanToEdit(plan);
                         setModalMode('preventive');
@@ -266,11 +268,11 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                         setModalMode('none');
                         setSelectedPlanToEdit(undefined);
                     }}
-                    onSubmit={(plan, launchNow) => {
+                    onSubmit={(plan, launchNow, targets) => {
                         if (selectedPlanToEdit) {
-                            onUpdatePreventivePlan(plan);
+                            onUpdatePreventivePlan(plan, targets);
                         } else {
-                            onAddPreventivePlan(plan, launchNow);
+                            onAddPreventivePlan(plan, targets, launchNow);
                         }
                         setModalMode('none');
                         setSelectedPlanToEdit(undefined);

@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { PreventivePlan, Equipment, SortKey } from '../../../types';
 import { GenericTable } from '../../../components/GenericTable';
-import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare } from 'lucide-react';
+import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare, Building2, Cog, AlertTriangle } from 'lucide-react';
+import { resolvePlanSummary } from '../../../utils/preventiveTargets';
+import { useAppStore } from '../../../store/useAppStore';
 
 interface MaintenancePreventivePlansProps {
     plans: PreventivePlan[];
@@ -22,13 +24,15 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     onEdit,
     onDelete
 }) => {
+    const equipmentGroups = useAppStore(s => s.equipmentGroups);
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
 
-    // Estado del ciclo: última ejecución → próxima ejecución
+    // Estado del ciclo agregado: próximo vencimiento entre los objetivos
     const planCycle = (plan: PreventivePlan) => {
-        const next = new Date(plan.nextRun).getTime();
+        const summary = resolvePlanSummary(plan.targets || [], equipmentGroups);
+        const next = summary.nextRun ? new Date(summary.nextRun).getTime() : new Date(plan.nextRun).getTime();
         const now = Date.now();
         const days = Math.ceil((next - now) / 86400000);
         const total = Math.max(plan.frequencyDays || 1, 1);
@@ -36,18 +40,24 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
             ? Math.min(total, Math.max(0, Math.floor((now - new Date(plan.lastRun).getTime()) / 86400000)))
             : total;
         return {
-            days,                                     // >0: vence en X días; <0: vencido hace X
+            days,
             pct: Math.min(100, Math.max(0, Math.round((elapsed / total) * 100))),
-            overdue: next <= now
+            overdue: summary.overdueCount > 0 || next <= now,
+            overdueCount: summary.overdueCount,
+            summary
         };
     };
 
     // Initial Filter & Sort
     const filteredPlans = useMemo(() => {
         let result = plans.filter(plan => {
-            const eqName = equipment.find(e => e.id === plan.equipmentId)?.name || '';
+            const targetNames = (plan.targets || [])
+                .map(t => equipment.find(e => e.id === t.equipmentId)?.name || '')
+                .concat(planCycle(plan).summary.groupNames)
+                .join(' ')
+                .toLowerCase();
             const matchesText = (plan.name || '').toLowerCase().includes(filterText.toLowerCase()) ||
-                eqName.toLowerCase().includes(filterText.toLowerCase());
+                targetNames.includes(filterText.toLowerCase());
             return matchesText;
         });
 
@@ -106,11 +116,26 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
             )
         },
         {
-            header: "Equipo",
+            header: "Objetivos",
             render: (plan: PreventivePlan) => {
-                const eq = equipment.find(e => e.id === plan.equipmentId);
-                if (!eq) return 'Unknown';
-                return eq.code ? `[${eq.code}] ${eq.name}` : eq.name;
+                const sum = planCycle(plan).summary;
+                return (
+                    <div className="flex flex-wrap items-center gap-1">
+                        {sum.groupNames.map(n => (
+                            <span key={n} className="bdg bdg-accent">
+                                <Building2 size={10} />
+                                {n}
+                            </span>
+                        ))}
+                        {sum.directCount > 0 && (
+                            <span className="bdg bdg-gray">
+                                <Cog size={10} />
+                                {sum.directCount} suelto{sum.directCount === 1 ? '' : 's'}
+                            </span>
+                        )}
+                        {sum.equipmentCount === 0 && <span className="text-xs text-txt-3 italic">Sin objetivos</span>}
+                    </div>
+                );
             }
         },
         {
@@ -133,8 +158,10 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                             <span className={`text-sm font-medium ${c.overdue ? 'text-ko font-bold' : 'text-spec'}`}>
                                 {new Date(plan.nextRun).toLocaleDateString()}
                             </span>
-                            {c.overdue ? (
-                                <span className="bdg bdg-red shrink-0">VENCIDO</span>
+                            {c.summary.overdueCount > 0 ? (
+                                <span className="bdg bdg-red shrink-0">
+                                    <AlertTriangle size={10} /> {c.summary.overdueCount} vencido{c.summary.overdueCount === 1 ? '' : 's'}
+                                </span>
                             ) : c.days <= 7 ? (
                                 <span className="bdg bdg-amber shrink-0">Vence en {c.days}d</span>
                             ) : null}
@@ -194,7 +221,7 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     ], [equipment, canManage, onLaunch, onDelete, sortConfig]);
 
     const renderCard = (plan: PreventivePlan) => {
-        const eq = equipment.find(e => e.id === plan.equipmentId);
+        const sum = planCycle(plan).summary;
         return (
             <div
                 key={plan.id}
@@ -229,9 +256,14 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-sm text-txt-2 mb-1">
-                    <Wrench size={14} className="text-txt-3" />
-                    <span className="truncate">{eq?.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap text-xs text-txt-2 mb-1">
+                    {sum.groupNames.map(n => (
+                        <span key={n} className="bdg bdg-accent"><Building2 size={10} /> {n}</span>
+                    ))}
+                    {sum.directCount > 0 && (
+                        <span className="bdg bdg-gray"><Cog size={10} /> {sum.directCount} suelto{sum.directCount === 1 ? '' : 's'}</span>
+                    )}
+                    {sum.equipmentCount === 0 && <span className="italic text-txt-3">Sin objetivos</span>}
                 </div>
                 {plan.description && (
                     <p className="text-xs text-txt-2 mb-3 line-clamp-2">{plan.description}</p>

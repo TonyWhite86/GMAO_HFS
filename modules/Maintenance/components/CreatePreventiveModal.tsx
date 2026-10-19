@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PreventivePlan, Equipment, User, SubTask, UserRole, Section } from '../../../types';
-import { EquipmentSelector } from '../../../components/EquipmentSelector';
+import { PlanTargetsPicker } from './PlanTargetsPicker';
+import { useAppStore } from '../../../store/useAppStore';
+import { PlanTargetsInput, expandTargetEquipment } from '../../../utils/preventiveTargets';
 import { ListPlus, Plus, Check, User as UserIcon, Trash2, PlayCircle, ChevronUp, ChevronDown } from 'lucide-react';
 import { VoiceInputButton } from '../../../components/ui/VoiceInputButton';
 import { Modal } from '../../../components/ui/Modal';
@@ -8,7 +10,7 @@ import { toast } from 'sonner';
 
 interface CreatePreventiveModalProps {
     onClose: () => void;
-    onSubmit: (plan: PreventivePlan, launchNow?: boolean) => void;
+    onSubmit: (plan: PreventivePlan, launchNow?: boolean, targets?: PlanTargetsInput) => void;
     equipment: Equipment[];
     users: User[];
     currentUser: User;
@@ -27,9 +29,12 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
     readOnly,
     sections
 }) => {
+    const { equipmentGroups } = useAppStore();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [equipmentId, setEquipmentId] = useState('');
+    const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+    const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+    const [staggerDays, setStaggerDays] = useState(0);
     const [frequency, setFrequency] = useState<number>(30);
     const [newTask, setNewTask] = useState('');
     const [newTaskAssignee, setNewTaskAssignee] = useState('');
@@ -41,34 +46,24 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
         if (editingPlan) {
             setName(editingPlan.name);
             setDescription(editingPlan.description || '');
-            setEquipmentId(editingPlan.equipmentId);
             setFrequency(editingPlan.frequencyDays);
             setTasks(editingPlan.tasks);
             setSection(editingPlan.section || '');
-        } else {
-            // Set default equipment if available
-            if (equipment.length > 0 && !equipmentId) {
-                setEquipmentId(equipment[0].id);
-            }
+            const targets = editingPlan.targets || [];
+            setSelectedEquipment(targets.filter(t => !t.sourceGroupId).map(t => t.equipmentId));
+            setSelectedGroups([...new Set(targets.map(t => t.sourceGroupId).filter(Boolean))] as string[]);
         }
-    }, [editingPlan, equipment]);
+    }, [editingPlan]);
 
-    // Defensive check to ensure equipmentId is set if not already
+    // Sección por defecto según el primer equipo seleccionado
     useEffect(() => {
-        if (!equipmentId && equipment.length > 0) {
-            setEquipmentId(equipment[0].id);
-        }
-    }, [equipment]);
-
-    // Set default section based on equipment selected
-    useEffect(() => {
-        if (equipmentId && !section && !editingPlan) {
-            const eq = equipment.find(e => e.id === equipmentId);
+        if (selectedEquipment.length > 0 && !section && !editingPlan) {
+            const eq = equipment.find(e => e.id === selectedEquipment[0]);
             if (eq && eq.sections && eq.sections.length > 0) {
                 setSection(eq.sections[0]);
             }
         }
-    }, [equipmentId, equipment, section, editingPlan]);
+    }, [selectedEquipment, equipment, section, editingPlan]);
 
 
     const handleAddTask = () => {
@@ -96,9 +91,10 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (readOnly) return;
-        if (!name || !equipmentId || tasks.length === 0 || !section) {
+        const hasTargets = selectedEquipment.length > 0 || selectedGroups.length > 0;
+        if (!name || !hasTargets || tasks.length === 0 || !section) {
             if (!name) toast.error('El nombre del plan es obligatorio');
-            else if (!equipmentId) toast.error('Debes seleccionar un equipo');
+            else if (!hasTargets) toast.error('Selecciona al menos un equipo o grupo');
             else if (!section) toast.error('Debes seleccionar una sección');
             else if (tasks.length === 0) toast.error('Debes añadir al menos una tarea');
             return;
@@ -108,13 +104,17 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
             id: editingPlan ? editingPlan.id : crypto.randomUUID(),
             name,
             description,
-            equipmentId,
             frequencyDays: isNaN(frequency) ? 30 : frequency,
             tasks,
             nextRun: editingPlan ? editingPlan.nextRun : new Date().toISOString(),
             section
         };
-        onSubmit(plan, launchNow);
+        const targets: PlanTargetsInput = {
+            equipmentIds: selectedEquipment,
+            groupIds: selectedGroups,
+            staggerDays
+        };
+        onSubmit(plan, launchNow, targets);
     };
 
     return (
@@ -163,24 +163,20 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
                         />
                     </div>
 
+                    {/* Equipos objetivo (sueltos y/o grupos) */}
+                    <PlanTargetsPicker
+                        equipment={equipment}
+                        groups={equipmentGroups}
+                        selectedEquipment={selectedEquipment}
+                        selectedGroups={selectedGroups}
+                        staggerDays={staggerDays}
+                        disabled={readOnly}
+                        onEquipmentChange={setSelectedEquipment}
+                        onGroupsChange={setSelectedGroups}
+                        onStaggerChange={setStaggerDays}
+                    />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Equipment */}
-                        <div className={readOnly ? 'pointer-events-none' : ''}>
-                            <label className="block text-sm font-medium text-txt-2 mb-1">Equipo / Activo {readOnly ? '' : '*'}</label>
-                            {readOnly ? (
-                                <div className="text-txt font-medium py-2">
-                                    {equipment.find(e => e.id === equipmentId)?.name}
-                                </div>
-                            ) : (
-                                <EquipmentSelector
-                                    equipment={equipment}
-                                    selectedId={equipmentId}
-                                    onSelect={setEquipmentId}
-                                    required
-                                    color="purple"
-                                />
-                            )}
-                        </div>
 
                         {/* Section */}
                         <div>

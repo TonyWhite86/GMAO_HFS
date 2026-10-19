@@ -5,7 +5,7 @@ import {
     Skill, UserSkill, InventoryMovement, UserPermission,
     IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus,
     Contractor, ChecklistTemplate, ChecklistItem, ChecklistAnswer,
-    EquipmentAcceptance
+    EquipmentAcceptance, EquipmentGroup, PreventivePlanTarget
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -184,16 +184,19 @@ export const mapInventoryItem = (i: any): InventoryItem => ({
     linkedEquipmentIds: i.linked_equipment_ids || []
 });
 
-export const mapPreventivePlan = (p: any): PreventivePlan => ({
+export const mapPreventivePlan = (p: any, existing?: PreventivePlan): PreventivePlan => ({
     id: p.id,
     name: p.name,
     description: p.description,
-    equipmentId: p.equipment_id,
+    equipmentId: p.equipment_id ?? undefined,
     frequencyDays: p.frequency_days,
     lastRun: p.last_run,
     nextRun: p.next_run,
     tasks: p.tasks || [],
-    section: p.section
+    section: p.section,
+    targets: Array.isArray(p.targets)
+        ? p.targets.map(mapPreventivePlanTarget)
+        : existing?.targets  // el payload realtime no trae el join
 });
 
 export const mapPurchaseOrder = (po: any): PurchaseOrder => ({
@@ -308,6 +311,25 @@ export const mapChecklistTemplate = (t: any): ChecklistTemplate => ({
     active: t.active ?? true,
     createdBy: t.created_by ?? null,
     createdAt: t.created_at
+});
+
+export const mapEquipmentGroup = (g: any): EquipmentGroup => ({
+    id: g.id,
+    name: g.name,
+    description: g.description ?? null,
+    equipmentIds: Array.isArray(g.equipment_ids) ? g.equipment_ids : [],
+    active: g.active ?? true,
+    createdBy: g.created_by ?? null,
+    createdAt: g.created_at
+});
+
+export const mapPreventivePlanTarget = (t: any): PreventivePlanTarget => ({
+    id: t.id,
+    planId: t.plan_id,
+    equipmentId: t.equipment_id,
+    sourceGroupId: t.source_group_id ?? null,
+    lastRun: t.last_run ?? null,
+    nextRun: t.next_run
 });
 
 export const mapContractor = (c: any): Contractor => ({

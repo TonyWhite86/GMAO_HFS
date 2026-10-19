@@ -138,10 +138,18 @@ export const getPreventiveSummary = (plans: PreventivePlan[], now: Date = new Da
     let thisWeek = 0;
     let next: PreventivePlan | null = null;
     for (const p of plans) {
-        const n = new Date(p.nextRun).getTime();
-        if (n <= t) overdue++;
-        else if (n <= week) thisWeek++;
-        if (!next || n < new Date(next.nextRun).getTime()) next = p;
+        // Con objetivos: el ciclo es por equipo; se agregan sus vencimientos.
+        const runs = (p.targets && p.targets.length > 0)
+            ? p.targets.map(tg => new Date(tg.nextRun).getTime())
+            : [new Date(p.nextRun).getTime()];
+        for (const n of runs) {
+            if (n <= t) overdue++;
+            else if (n <= week) thisWeek++;
+        }
+        const earliest = Math.min(...runs);
+        if (!next || earliest < Math.min(...((next.targets && next.targets.length > 0)
+            ? next.targets.map(tg => new Date(tg.nextRun).getTime())
+            : [new Date(next.nextRun).getTime()]))) next = p;
     }
     return { overdue, thisWeek, next };
 };
@@ -149,8 +157,18 @@ export const getPreventiveSummary = (plans: PreventivePlan[], now: Date = new Da
 /** % de planes preventivos al día (nextRun futuro). */
 export const computePreventivePct = (plans: PreventivePlan[], now: Date = new Date()): number | null => {
     if (plans.length === 0) return null;
-    const ok = plans.filter(p => new Date(p.nextRun).getTime() > now.getTime()).length;
-    return Math.round((ok / plans.length) * 100);
+    let total = 0;
+    let ok = 0;
+    for (const p of plans) {
+        const runs = (p.targets && p.targets.length > 0)
+            ? p.targets.map(tg => new Date(tg.nextRun).getTime())
+            : [new Date(p.nextRun).getTime()];
+        for (const n of runs) {
+            total++;
+            if (n > now.getTime()) ok++;
+        }
+    }
+    return total === 0 ? null : Math.round((ok / total) * 100);
 };
 
 /* ── OTs externas (contratas) ── */
