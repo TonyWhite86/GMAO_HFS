@@ -40,12 +40,6 @@ export const getDueTone = (
     return null;
 };
 
-/** ¿La OT es urgente (vencida, hoy o mañana)? Atajo "≤ Mañana". */
-export const isDueByTomorrow = (
-    wo: Pick<WorkOrder, 'scheduledDate' | 'createdAt' | 'status'>,
-    now: Date = new Date()
-): boolean => getDueLabel(wo, now) !== null || startOfDay(getEffectiveDate(wo)).getTime() < startOfDay(now).getTime();
-
 /** ISO de hoy + n días, a las 08:00 (ajuste rápido +7d/+15d/+30d desde hoy). */
 export const quickDate = (days: number, now: Date = new Date()): string => {
     const d = startOfDay(now);

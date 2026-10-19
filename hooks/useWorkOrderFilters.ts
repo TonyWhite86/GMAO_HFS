@@ -58,15 +58,6 @@ export const useWorkOrderFilters = (
                 if (!value) return true;
                 // If filter is true, show only if NO assiged user
                 return !item.assignedUserId;
-            },
-            dueByTomorrow: (item, value) => {
-                if (!value) return true;
-                // Atajo "≤ Mañana": vencidas, de hoy y de mañana
-                const t = new Date(item.scheduledDate || item.createdAt);
-                const end = new Date();
-                end.setDate(end.getDate() + 1);
-                end.setHours(23, 59, 59, 999);
-                return t.getTime() <= end.getTime();
             }
         }
     });
@@ -107,7 +98,6 @@ export const useWorkOrderFilters = (
     const selectedPriorities = (filters.priority as WOPriority[]) || (initialFilters?.priority || []);
     const selectedSections = (filters.section as string[]) || (initialFilters?.section || []);
     const showUnassigned = !!filters.unassigned;
-    const dueByTomorrow = !!filters.dueByTomorrow;
     const startDate = (filters.dateRange?.start as string) || '';
     const endDate = (filters.dateRange?.end as string) || '';
 
@@ -150,7 +140,6 @@ export const useWorkOrderFilters = (
         setFilter('section', current.includes(sec) ? current.filter(s => s !== sec) : [...current, sec]);
     };
     const setShowUnassigned = (val: boolean) => setFilter('unassigned', val);
-    const setDueByTomorrow = (val: boolean) => setFilter('dueByTomorrow', val);
     const setStartDate = (val: string) => setFilter('dateRange', { ...filters.dateRange, start: val });
     const setEndDate = (val: string) => setFilter('dateRange', { ...filters.dateRange, end: val });
 
@@ -161,7 +150,6 @@ export const useWorkOrderFilters = (
         selectedPriorities, setSelectedPriorities, togglePriorityFilter,
         selectedSections, setSelectedSections, toggleSectionFilter,
         showUnassigned, setShowUnassigned,
-        dueByTomorrow, setDueByTomorrow,
         startDate, setStartDate,
         endDate, setEndDate,
         sortConfig, setSortConfig, handleSort,

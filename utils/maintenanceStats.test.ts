@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    getDueLabel, getDueTone, isDueByTomorrow, quickDate, groupByTimeframe,
+    getDueLabel, getDueTone, quickDate, groupByTimeframe,
     hasPendingChecklist, getEffectiveDate
 } from './maintenanceStats';
 import { WorkOrder, WOStatus, WOType, WOPriority } from '../types';
@@ -38,14 +38,6 @@ describe('getDueLabel / getDueTone', () => {
         expect(getDueTone(wo({ scheduledDate: iso(2026, 9, 15) }), NOW)).toBe('warn');
         expect(getDueTone(wo({ scheduledDate: iso(2026, 9, 16) }), NOW)).toBe('accent');
         expect(getDueTone(wo({ scheduledDate: iso(2026, 9, 20) }), NOW)).toBeNull();
-    });
-});
-
-describe('isDueByTomorrow (atajo ≤ Mañana)', () => {
-    it('incluye vencidas, hoy y mañana; excluye lo posterior', () => {
-        expect(isDueByTomorrow(wo({ scheduledDate: iso(2026, 9, 10) }), NOW)).toBe(true);
-        expect(isDueByTomorrow(wo({ scheduledDate: iso(2026, 9, 16, 22) }), NOW)).toBe(true);
-        expect(isDueByTomorrow(wo({ scheduledDate: iso(2026, 9, 17) }), NOW)).toBe(false);
     });
 });
 

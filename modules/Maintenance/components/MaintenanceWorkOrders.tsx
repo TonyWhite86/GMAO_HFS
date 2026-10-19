@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Filter, CheckSquare, PlayCircle, PauseCircle, AlertTriangle, Building2, ClipboardCheck, CalendarClock } from 'lucide-react';
+import { Search, Filter, CheckSquare, PlayCircle, PauseCircle, AlertTriangle, Building2, ClipboardCheck } from 'lucide-react';
 import { WorkOrder, WOStatus, WOPriority, User, Equipment } from '../../../types';
 import { GenericTable, Column } from '../../../components/GenericTable';
 import { StatusBadge } from '../../../components/common/StatusBadge';
@@ -47,7 +47,6 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
         selectedPriorities, togglePriorityFilter,
         selectedSections, toggleSectionFilter,
         showUnassigned, setShowUnassigned,
-        dueByTomorrow, setDueByTomorrow,
         startDate, setStartDate,
         endDate, setEndDate,
         sortConfig, handleSort,
@@ -64,15 +63,6 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
     const sortedWOs = filteredWOs;
-
-    // ── KPIs de la vista (clicables para filtrar) ──
-    const now = Date.now();
-    const weekAgo = now - 7 * 86400000;
-    const kpiOpen = workOrders.filter(w => w.status === WOStatus.PENDING).length;
-    const kpiInProgress = workOrders.filter(w => w.status === WOStatus.IN_PROGRESS).length;
-    const kpiDoneWeek = workOrders.filter(w =>
-        w.status === WOStatus.COMPLETED && w.closedAt && new Date(w.closedAt).getTime() >= weekAgo
-    ).length;
 
     const columns = useMemo((): Column<WorkOrder>[] => [
         {
@@ -221,39 +211,6 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
 
     return (
         <div className="space-y-4">
-            {/* KPIs de la vista */}
-            <div className="flex flex-wrap items-center gap-2">
-                <button
-                    onClick={() => toggleStatusFilter(WOStatus.PENDING)}
-                    className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${activeStatuses.includes(WOStatus.PENDING) && activeStatuses.length === 1
-                        ? 'bg-warn text-white border-warn' : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
-                >
-                    Pendientes · {kpiOpen}
-                </button>
-                <button
-                    onClick={() => toggleStatusFilter(WOStatus.IN_PROGRESS)}
-                    className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${activeStatuses.includes(WOStatus.IN_PROGRESS) && activeStatuses.length === 1
-                        ? 'bg-accent text-white border-accent' : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
-                >
-                    En curso · {kpiInProgress}
-                </button>
-                <button
-                    onClick={() => toggleStatusFilter(WOStatus.COMPLETED)}
-                    className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${activeStatuses.includes(WOStatus.COMPLETED) && activeStatuses.length === 1
-                        ? 'bg-ok text-white border-ok' : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
-                >
-                    Completadas (7d) · {kpiDoneWeek}
-                </button>
-                <button
-                    onClick={() => setDueByTomorrow(!dueByTomorrow)}
-                    className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-colors ${dueByTomorrow
-                        ? 'bg-ko text-white border-ko' : 'bg-surface text-txt-2 border-line hover:bg-surface-2'}`}
-                >
-                    <CalendarClock size={12} className="inline mr-1 -mt-0.5" />
-                    ≤ Mañana
-                </button>
-            </div>
-
             {/* Filters */}
             <div className="bg-surface p-4 rounded-xl shadow-sm border border-line space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -270,7 +227,6 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                     <div className="flex flex-wrap gap-2">
                         {Object.values(WOStatus).map(status => {
                             const config = WO_STATUS_CONFIG[status];
-                            const count = workOrders.filter(w => w.status === status).length;
                             return (
                                 <button
                                     key={status}
@@ -280,7 +236,7 @@ export const MaintenanceWorkOrders: React.FC<MaintenanceWorkOrdersProps> = ({
                                         : 'bg-surface text-txt-2 border-line hover:border-line-2'
                                         }`}
                                 >
-                                    {status} · {count}
+                                    {status}
                                 </button>
                             );
                         })}
