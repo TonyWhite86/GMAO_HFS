@@ -145,12 +145,7 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     && (
                         <button
                             onClick={handleCreateClick}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto shadow-lg ${viewMode === 'plans'
-                                ? 'bg-spec hover:bg-spec shadow-spec/20'
-                                : viewMode === 'plannedActions'
-                                    ? 'bg-warn hover:bg-warn shadow-warn/20'
-                                    : 'bg-accent hover:bg-accent-2 shadow-accent/20'
-                                }`}
+                            className="btn btn-primary w-full sm:w-auto justify-center px-4 py-2.5 !text-[13px] shadow-lg"
                         >
                             <Plus size={18} />
                             <span>

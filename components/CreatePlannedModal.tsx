@@ -98,7 +98,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             <Modal.Header onClose={onClose}>
                 <div className="flex items-center gap-3">
                     <span>Nueva Actuación Programada</span>
-                    <span className="text-sm px-2 py-1 bg-warn-dim text-warn rounded-lg font-bold uppercase tracking-wider text-[10px]">Planificado</span>
+                    <span className="bdg bdg-accent !text-[10px] !uppercase !tracking-wider">Planificado</span>
                 </div>
             </Modal.Header>
 
@@ -183,8 +183,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
 
                     {/* Bulk Assignment UI (Conditional) */}
                     {assignedUserId && subtasks.length > 0 && (
-                        <div className="bg-warn-dim p-4 rounded-lg border border-warn-border animate-in fade-in slide-in-from-top-2">
-                            <h4 className="text-sm font-semibold text-warn mb-2 flex items-center gap-2">
+                        <div className="bg-surface-2 p-4 rounded-lg border border-line animate-fade-in">
+                            <h4 className="text-sm font-semibold text-txt mb-2 flex items-center gap-2">
                                 <UserIcon size={14} />
                                 Asignar tareas a {users.find(u => u.id === assignedUserId)?.name}
                             </h4>
@@ -259,7 +259,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 type="button"
                                 onClick={handleAddSubtask}
                                 disabled={!newTaskDesc.trim()}
-                                className="px-4 py-2 bg-warn hover:bg-warn text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                                className="btn btn-ghost"
                             >
                                 <Plus size={18} /> Añadir
                             </button>
@@ -313,14 +313,14 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             <Modal.Footer>
                 <button
                     onClick={onClose}
-                    className="px-4 py-2 text-txt-2 hover:bg-surface-3 rounded-lg transition-colors font-medium"
+                    className="btn btn-ghost"
                 >
                     Cancelar
                 </button>
                 <button
                     onClick={handleSubmit}
                     disabled={subtasks.length === 0 || !title.trim() || !equipmentId}
-                    className="px-6 py-2 bg-warn hover:bg-warn disabled:bg-warn/50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-lg shadow-warn/20 disabled:shadow-none transition-all flex items-center gap-2"
+                    className="btn btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Calendar size={18} /> Crear Actuación
                 </button>

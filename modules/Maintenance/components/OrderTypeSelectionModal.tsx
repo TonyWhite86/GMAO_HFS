@@ -23,7 +23,7 @@ export const OrderTypeSelectionModal: React.FC<OrderTypeSelectionModalProps> = (
                     onClick={onSelectCorrective}
                     className="flex flex-col items-center justify-center gap-4 p-6 rounded-xl border-2 border-line hover:border-accent hover:bg-accent-dim transition-all group"
                 >
-                    <div className="p-4 bg-accent-dim rounded-full text-accent group-hover:scale-110 transition-transform">
+                    <div className="p-4 bg-surface-2 rounded-full text-txt-2 group-hover:text-accent group-hover:scale-110 transition-transform">
                         <Wrench size={32} />
                     </div>
                     <div className="text-center">
@@ -34,9 +34,9 @@ export const OrderTypeSelectionModal: React.FC<OrderTypeSelectionModalProps> = (
 
                 <button
                     onClick={onSelectPreventive}
-                    className="flex flex-col items-center justify-center gap-4 p-4 rounded-xl border-2 border-line hover:border-spec hover:bg-spec-dim transition-all group"
+                    className="flex flex-col items-center justify-center gap-4 p-4 rounded-xl border-2 border-line hover:border-accent hover:bg-accent-dim transition-all group"
                 >
-                    <div className="p-3 bg-spec-dim rounded-full text-spec group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-surface-2 rounded-full text-txt-2 group-hover:text-accent group-hover:scale-110 transition-transform">
                         <RefreshCw size={28} />
                     </div>
                     <div className="text-center">
@@ -47,9 +47,9 @@ export const OrderTypeSelectionModal: React.FC<OrderTypeSelectionModalProps> = (
 
                 <button
                     onClick={onSelectPlanned}
-                    className="flex flex-col items-center justify-center gap-4 p-4 rounded-xl border-2 border-line hover:border-ok hover:bg-ok-dim transition-all group"
+                    className="flex flex-col items-center justify-center gap-4 p-4 rounded-xl border-2 border-line hover:border-accent hover:bg-accent-dim transition-all group"
                 >
-                    <div className="p-3 bg-ok-dim rounded-full text-ok group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-surface-2 rounded-full text-txt-2 group-hover:text-accent group-hover:scale-110 transition-transform">
                         <Calendar size={28} />
                     </div>
                     <div className="text-center">

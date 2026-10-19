@@ -121,9 +121,9 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
         <Modal onClose={onClose} size="lg">
             <Modal.Header
                 onClose={onClose}
-                icon={<div className="p-2 bg-spec-dim rounded-lg text-spec"><PlayCircle size={22} /></div>}
+                icon={<div className="p-2 bg-accent-dim rounded-lg text-accent"><PlayCircle size={22} /></div>}
                 subtitle="Recurrente"
-                subtitleColor="bg-spec-dim text-spec"
+                subtitleColor="bg-accent-dim text-accent"
             >
                 {readOnly ? 'Detalles del Plan Preventivo' : (editingPlan ? 'Editar Plan Preventivo' : 'Nuevo Plan Preventivo')}
             </Modal.Header>
@@ -301,7 +301,7 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
                         <div className="space-y-3">
                             {tasks.length > 0 ? (
                                 tasks.map((task, idx) => (
-                                    <div key={task.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${task.completed ? 'bg-ok-dim border-ok-border' : 'bg-surface border-line group hover:border-spec-border'}`}>
+                                    <div key={task.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${task.completed ? 'bg-ok-dim border-ok-border' : 'bg-surface border-line group hover:border-accent-border'}`}>
                                         <div className="flex items-center gap-4 flex-1">
                                             {/* Checkbox for visual consistency */}
                                             <button
@@ -355,9 +355,9 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
 
                     {/* Launch Now Checkbox (Only for Create Mode) */}
                     {!editingPlan && !readOnly && (
-                        <div className="bg-spec-dim p-4 rounded-xl border border-spec-border flex items-center justify-between">
+                        <div className="bg-surface-2 p-4 rounded-xl border border-line flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-spec-dim rounded-lg text-spec">
+                                <div className="p-2 bg-accent-dim rounded-lg text-accent">
                                     <PlayCircle size={20} />
                                 </div>
                                 <div>
@@ -368,7 +368,7 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setLaunchNow(!launchNow)}
-                                className={`w-12 h-6 rounded-full transition-colors relative ${launchNow ? 'bg-spec' : 'bg-surface-3 bg-surface'}`}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${launchNow ? 'bg-accent' : 'bg-surface-3 bg-surface'}`}
                             >
                                 <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${launchNow ? 'translate-x-6' : ''}`} />
                             </button>
@@ -379,18 +379,10 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
 
             {!readOnly && (
                 <Modal.Footer>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-txt-2 hover:bg-surface-3 rounded-lg transition-colors"
-                    >
+                    <button type="button" onClick={onClose} className="btn btn-ghost">
                         Cancelar
                     </button>
-                    <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="px-6 py-2 bg-spec text-white rounded-lg hover:bg-spec transition-colors shadow-lg shadow-spec/20"
-                    >
+                    <button type="button" onClick={handleSubmit} className="btn btn-primary px-6">
                         {editingPlan ? 'Guardar Cambios' : 'Crear Plan'}
                     </button>
                 </Modal.Footer>

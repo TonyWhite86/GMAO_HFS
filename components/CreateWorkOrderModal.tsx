@@ -291,7 +291,7 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
                                     Trabajo externo (lo realiza una contrata)
                                 </label>
                                 {isExternal && (
-                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-spec-border bg-spec-dim">
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-line bg-surface-2">
                                         <CustomSelect
                                             label="Contrata"
                                             value={contractorId}
@@ -647,18 +647,10 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
                 </Modal.Body>
 
                 <Modal.Footer>
-                    <button
-                        type="button"
-                        onClick={handleCancel}
-                        className="px-4 py-2 text-txt-2 hover:bg-surface-3 rounded-lg transition-colors"
-                    >
+                    <button type="button" onClick={handleCancel} className="btn btn-ghost">
                         Cancelar
                     </button>
-                    <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-2 transition-colors shadow-lg shadow-accent/20"
-                    >
+                    <button type="button" onClick={handleSubmit} className="btn btn-primary px-6">
                         Crear Orden
                     </button>
                 </Modal.Footer>
