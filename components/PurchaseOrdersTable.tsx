@@ -25,13 +25,13 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
 
     const getStatusStyle = (status: POStatus) => {
         switch (status) {
-            case POStatus.REQUESTED: return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-            case POStatus.DRAFT: return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
-            case POStatus.ORDERED: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-            case POStatus.PARTIAL: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
-            case POStatus.RECEIVED: return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-            case POStatus.CANCELLED: return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-            default: return 'bg-slate-100 text-slate-700';
+            case POStatus.REQUESTED: return 'bg-warn-dim text-warn';
+            case POStatus.DRAFT: return 'bg-surface-2 text-txt-2 bg-surface text-txt-2';
+            case POStatus.ORDERED: return 'bg-accent-dim text-accent';
+            case POStatus.PARTIAL: return 'bg-accent-dim text-accent';
+            case POStatus.RECEIVED: return 'bg-ok-dim text-ok';
+            case POStatus.CANCELLED: return 'bg-ko-dim text-ko';
+            default: return 'bg-surface-2 text-txt-2';
         }
     };
 
@@ -47,10 +47,10 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
 
     if (orders.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-700 rounded-xl p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
-                <Package className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">No hay registros</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">No se encontraron solicitudes o pedidos.</p>
+            <div className="bg-surface rounded-xl p-12 text-center border-2 border-dashed border-line">
+                <Package className="mx-auto h-12 w-12 text-txt-3 mb-4" />
+                <h3 className="text-lg font-bold text-txt mb-2">No hay registros</h3>
+                <p className="text-txt-2 text-sm">No se encontraron solicitudes o pedidos.</p>
             </div>
         );
     }
@@ -61,25 +61,25 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
             <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-separate border-spacing-0">
                     <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-700/50">
-                            <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider rounded-tl-xl border-b border-slate-200 dark:border-slate-700">Número</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Estado</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Solicitado</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Entrega Prevista</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">{canViewSensibleInfo ? 'Proveedor / Notas' : 'Notas'}</th>
-                            {canViewSensibleInfo && <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Importe</th>}
-                            <th className="px-6 py-4 text-right rounded-tr-xl border-b border-slate-200 dark:border-slate-700"></th>
+                        <tr className="bg-surface-2">
+                            <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider rounded-tl-xl border-b border-line">Número</th>
+                            <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider border-b border-line">Estado</th>
+                            <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider border-b border-line">Solicitado</th>
+                            <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider border-b border-line">Entrega Prevista</th>
+                            <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider border-b border-line">{canViewSensibleInfo ? 'Proveedor / Notas' : 'Notas'}</th>
+                            {canViewSensibleInfo && <th className="px-6 py-4 text-xs font-bold text-txt-2 uppercase tracking-wider border-b border-line">Importe</th>}
+                            <th className="px-6 py-4 text-right rounded-tr-xl border-b border-line"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-line">
                         {orders.map((order) => (
                             <tr
                                 key={order.id}
                                 onClick={() => onRowClick(order)}
-                                className="bg-white dark:bg-slate-800/50 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 cursor-pointer transition-colors group"
+                                className="bg-surface/50 hover:bg-accent-dim/30 cursor-pointer transition-colors group"
                             >
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-mono font-bold text-slate-700 dark:text-slate-300">
+                                    <div className="text-sm font-mono font-bold text-txt-2">
                                         {order.number}
                                     </div>
                                 </td>
@@ -90,29 +90,29 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-slate-600 dark:text-slate-400">
+                                    <div className="text-sm text-txt-2">
                                         {new Date(order.requestedDate).toLocaleDateString()}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className={`text-sm font-bold ${order.expectedDate ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
+                                    <div className={`text-sm font-bold ${order.expectedDate ? 'text-accent' : 'text-txt-3'}`}>
                                         {order.expectedDate ? new Date(order.expectedDate).toLocaleDateString() : 'Pendiente'}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="text-sm font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
+                                    <div className="text-sm font-medium text-txt truncate max-w-[200px]">
                                         {canViewSensibleInfo ? (order.supplier || order.notes || '---') : (order.notes || '---')}
                                     </div>
                                 </td>
                                 {canViewSensibleInfo && (
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-bold text-slate-900 dark:text-white italic">
+                                        <div className="text-sm font-bold text-txt italic">
                                             {order.totalAmount > 0 ? `${order.totalAmount.toFixed(2)} €` : '---'}
                                         </div>
                                     </td>
                                 )}
                                 <td className="px-6 py-4 text-right">
-                                    <ChevronRight className="inline-block text-slate-300 group-hover:text-blue-500 transition-colors" size={20} />
+                                    <ChevronRight className="inline-block text-txt-3 group-hover:text-accent transition-colors" size={20} />
                                 </td>
                             </tr>
                         ))}
@@ -126,11 +126,11 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
                     <div
                         key={order.id}
                         onClick={() => onRowClick(order)}
-                        className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-transform"
+                        className="bg-surface p-4 rounded-xl shadow-sm border border-line active:scale-[0.98] transition-transform"
                     >
                         <div className="flex justify-between items-start mb-3">
                             <div>
-                                <span className="font-mono text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">
+                                <span className="font-mono text-xs font-bold bg-surface-2 text-txt-2 px-2 py-1 rounded">
                                     {order.number}
                                 </span>
                             </div>
@@ -141,34 +141,34 @@ export const PurchaseOrdersTable: React.FC<PurchaseOrdersTableProps> = ({
                         </div>
 
                         <div className="mb-3">
-                            <h4 className="font-bold text-slate-800 dark:text-white mb-1">
+                            <h4 className="font-bold text-txt mb-1">
                                 {canViewSensibleInfo ? (order.supplier || 'Proveedor sin asignar') : 'Solicitud'}
                             </h4>
                             {order.notes && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                                <p className="text-xs text-txt-2 line-clamp-2">
                                     {order.notes}
                                 </p>
                             )}
                         </div>
 
-                        <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between text-xs text-txt-2 pt-3 border-t border-line">
                             <div className="flex gap-4">
                                 <div>
-                                    <span className="block text-[10px] uppercase text-slate-400">Solicitado</span>
+                                    <span className="block text-[10px] uppercase text-txt-3">Solicitado</span>
                                     <span>{new Date(order.requestedDate).toLocaleDateString()}</span>
                                 </div>
                                 {order.expectedDate && (
                                     <div>
-                                        <span className="block text-[10px] uppercase text-slate-400">Entrega</span>
-                                        <span className="text-blue-600 dark:text-blue-400 font-bold">{new Date(order.expectedDate).toLocaleDateString()}</span>
+                                        <span className="block text-[10px] uppercase text-txt-3">Entrega</span>
+                                        <span className="text-accent font-bold">{new Date(order.expectedDate).toLocaleDateString()}</span>
                                     </div>
                                 )}
                             </div>
 
                             {canViewSensibleInfo && order.totalAmount > 0 && (
                                 <div className="text-right">
-                                    <span className="block text-[10px] uppercase text-slate-400">Total</span>
-                                    <span className="font-bold text-slate-900 dark:text-white">{order.totalAmount.toFixed(2)} €</span>
+                                    <span className="block text-[10px] uppercase text-txt-3">Total</span>
+                                    <span className="font-bold text-txt">{order.totalAmount.toFixed(2)} €</span>
                                 </div>
                             )}
                         </div>

@@ -94,18 +94,18 @@ export const CommentInput: React.FC<CommentInputProps> = ({
                 <div className="flex flex-wrap gap-2">
                     {attachments.map((file, idx) => (
                         <div key={idx} className="relative group">
-                            <div className="w-16 h-16 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-700">
+                            <div className="w-16 h-16 rounded-lg border border-line overflow-hidden" style={{ background: 'var(--surface)' }}>
                                 {file.type === 'image' ? (
                                     <img src={file.url} alt="" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                        <StopCircle size={24} className="text-slate-400" />
+                                        <StopCircle size={24} className="text-txt-3" />
                                     </div>
                                 )}
                             </div>
                             <button
                                 onClick={() => handleRemoveAttachment(idx)}
-                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 transition-colors"
+                                className="absolute -top-1 -right-1 rounded-full p-0.5 shadow-sm transition-colors" style={{ background: 'var(--red)', color: '#fff' }}
                             >
                                 <X size={12} />
                             </button>
@@ -127,7 +127,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-3 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all border border-slate-200 dark:border-slate-800 shrink-0"
+                    className="p-3 text-txt-3 hover:text-accent rounded-[10px] transition-all border border-line shrink-0"
                     title="Adjuntar"
                     disabled={isUploading || disabled}
                 >
@@ -143,7 +143,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
 
                 <div className="flex-1 relative">
                     <textarea
-                        className="w-full p-3 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none min-h-[46px] max-h-32 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                        className="fld-input w-full p-3 text-sm rounded-[10px] transition-all resize-none min-h-[46px] max-h-32 placeholder:text-txt-3"
                         placeholder={placeholder}
                         rows={1}
                         value={text}
@@ -167,7 +167,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
                     type="button"
                     onClick={submitComment}
                     disabled={(!text.trim() && attachments.length === 0) || isUploading || disabled}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center shrink-0 mb-0.5"
+                    className="btn btn-primary disabled:opacity-50 p-3.5 rounded-[10px] flex items-center justify-center shrink-0 mb-0.5"
                 >
                     <Send size={18} />
                 </button>

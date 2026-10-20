@@ -83,16 +83,16 @@ export const extractSessions = (wo: WorkOrder): WorkSession[] => {
 };
 
 const WO_COLORS: Record<string, string> = {
-  'Correctivo': 'bg-blue-500 border-blue-600',
-  'Preventivo': 'bg-purple-500 border-purple-600',
-  'Actuación Programada': 'bg-orange-500 border-orange-600',
+  'Correctivo': 'bg-accent border-accent',
+  'Preventivo': 'bg-spec border-spec',
+  'Actuación Programada': 'bg-warn border-warn',
 };
 
 // Diffused (gradient) backgrounds for the weekly cards, tinted by WO type.
 const WO_GRADIENTS: Record<string, string> = {
-  'Correctivo': 'bg-gradient-to-br from-blue-500/25 via-blue-500/10 to-transparent',
-  'Preventivo': 'bg-gradient-to-br from-purple-500/25 via-purple-500/10 to-transparent',
-  'Actuación Programada': 'bg-gradient-to-br from-orange-500/25 via-orange-500/10 to-transparent',
+  'Correctivo': 'bg-gradient-to-br from-accent/25 via-accent/10 to-transparent',
+  'Preventivo': 'bg-gradient-to-br from-spec/25 via-spec/10 to-transparent',
+  'Actuación Programada': 'bg-gradient-to-br from-warn/25 via-warn/10 to-transparent',
 };
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -212,24 +212,24 @@ export const WorkLogGantt: React.FC<Props> = ({
   }, [viewMode, rangeMs]);
 
   return (
-    <div className="bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm overflow-auto">
+    <div className="bg-surface rounded-lg border border-line shadow-sm overflow-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-700">
-        <h3 className="font-bold text-slate-700 dark:text-slate-200">
+      <div className="flex items-center gap-2 p-4 border-b border-line">
+        <h3 className="font-bold text-txt-2">
           Parte de Trabajo
         </h3>
         {isTechnicianOnly && (
-          <span className="text-xs text-slate-400">(Solo mis registros)</span>
+          <span className="text-xs text-txt-3">(Solo mis registros)</span>
         )}
         {filteredSessions.length > 0 && (
-          <span className="text-xs text-slate-400 ml-auto">
+          <span className="text-xs text-txt-3 ml-auto">
             {filteredSessions.length} sesion{filteredSessions.length !== 1 ? 'es' : ''}
           </span>
         )}
       </div>
 
       {visibleUsers.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
+        <div className="text-center py-12 text-txt-3">
           {isTechnicianOnly ? 'No hay registros de trabajo' : 'No hay técnicos disponibles'}
         </div>
       ) : isMobile ? (
@@ -249,54 +249,54 @@ export const WorkLogGantt: React.FC<Props> = ({
             );
 
             return (
-              <div key={user.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+              <div key={user.id} className="bg-surface rounded-lg border border-line overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-surface-2 border-b border-line">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent-2 to-accent flex items-center justify-center text-[10px] font-bold text-white shrink-0">
                     {user.name.charAt(0)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{user.name}</div>
+                    <div className="text-xs font-semibold text-txt-2 truncate">{user.name}</div>
                   </div>
-                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{formatDuration(totalMin)}</div>
+                  <div className="text-[10px] font-medium text-txt-2">{formatDuration(totalMin)}</div>
                 </div>
 
                 <div className="p-2 space-y-2">
                   {daySessions.length === 0 ? (
-                    <div className="text-center text-[11px] text-slate-400 italic py-3">Sin registro</div>
+                    <div className="text-center text-[11px] text-txt-3 italic py-3">Sin registro</div>
                   ) : (
                     daySessions.map((session, si) => {
                       const wo = workOrders.find(w => w.id === session.woId);
                       const durationMin = Math.round((session.end.getTime() - session.start.getTime()) / 60000);
                       const typeCfg = WO_TYPE_CONFIG[session.woType as keyof typeof WO_TYPE_CONFIG];
-                      const colorClass = WO_COLORS[session.woType] || 'bg-slate-500';
+                      const colorClass = WO_COLORS[session.woType] || 'bg-surface-20';
                       return (
                         <button
                           key={si}
                           onClick={() => wo && onSelectWO(wo)}
-                          className="w-full text-left flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-600/40 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors active:scale-[0.98]"
+                          className="w-full text-left flex items-center gap-2 p-2 rounded-lg border border-line bg-surface hover:bg-surface-2 transition-colors active:scale-[0.98]"
                         >
                           <div className={`w-1.5 self-stretch rounded ${colorClass.split(' ')[0]}`} />
                           <div className="min-w-0 flex-1">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{session.woTitle}</div>
+                            <div className="text-xs font-semibold text-txt truncate">{session.woTitle}</div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              <span className="text-[10px] text-txt-2">
                                 {formatTime(session.start)} – {formatTime(session.end)}
                               </span>
                               {session.isActive && (
-                                <span className="flex items-center gap-1 text-[9px] font-bold text-green-600 dark:text-green-400">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> En curso
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-ok">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" /> En curso
                                 </span>
                               )}
                               {session.isManual && (
-                                <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-warn">
                                   ⚠ Manual
                                 </span>
                               )}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{formatDuration(durationMin)}</div>
-                            <div className="text-[9px] text-slate-400">{typeCfg ? typeCfg.label : session.woType}</div>
+                            <div className="text-[11px] font-bold text-txt-2">{formatDuration(durationMin)}</div>
+                            <div className="text-[9px] text-txt-3">{typeCfg ? typeCfg.label : session.woType}</div>
                           </div>
                         </button>
                       );
@@ -310,29 +310,29 @@ export const WorkLogGantt: React.FC<Props> = ({
       ) : (
         <div className="min-w-[600px]">
           {/* Time header row */}
-          <div className="grid border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
+          <div className="grid border-b border-line bg-surface-2"
             style={{ gridTemplateColumns: `160px repeat(${totalColumns}, 1fr)` }}
           >
-            <div className="p-2 text-xs font-semibold text-slate-500 border-r border-slate-200 dark:border-slate-700">
+            <div className="p-2 text-xs font-semibold text-txt-2 border-r border-line">
               Técnico
             </div>
             {viewMode === 'day' ? (
-              <div className="relative h-8 border-r border-slate-200 dark:border-slate-700">
+              <div className="relative h-8 border-r border-line">
                 {hourColumns.map(m => (
                   <div
                     key={m.hour}
-                    className="absolute top-0 h-full border-l border-slate-300 dark:border-slate-600"
+                    className="absolute top-0 h-full border-l border-line"
                     style={{ left: m.left }}
                   >
                     {m.hour < 24 && (
-                      <span className="text-[9px] text-slate-500 ml-0.5">{m.hour.toString().padStart(2, '0')}:00</span>
+                      <span className="text-[9px] text-txt-2 ml-0.5">{m.hour.toString().padStart(2, '0')}:00</span>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
               dayColumns.map((d, i) => (
-                <div key={i} className={`p-1 text-[10px] text-center font-medium border-r border-slate-200 dark:border-slate-700 last:border-r-0 ${d.getDay() === 0 ? 'text-red-500' : 'text-slate-500'}`}>
+                <div key={i} className={`p-1 text-[10px] text-center font-medium border-r border-line last:border-r-0 ${d.getDay() === 0 ? 'text-ko' : 'text-txt-2'}`}>
                   <div>{d.toLocaleDateString('es-ES', { weekday: 'short' })}</div>
                   <div className="text-[9px] opacity-70">{d.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' })}</div>
                 </div>
@@ -346,17 +346,17 @@ export const WorkLogGantt: React.FC<Props> = ({
 
             return (
               <div key={user.id}
-                className="grid border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                className="grid border-b border-line last:border-b-0"
                 style={{ gridTemplateColumns: `160px repeat(${totalColumns}, 1fr)` }}
               >
                 {/* User label */}
-                <div className="p-2 border-r border-slate-100 dark:border-slate-700 flex items-center gap-2 bg-white dark:bg-slate-700">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                <div className="p-2 border-r border-line flex items-center gap-2 bg-surface">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent-2 to-accent flex items-center justify-center text-[10px] font-bold text-white shrink-0">
                     {user.name.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{user.name}</div>
-                    <div className="text-[9px] text-slate-400">
+                    <div className="text-xs font-semibold text-txt-2 truncate">{user.name}</div>
+                    <div className="text-[9px] text-txt-3">
                       {formatDuration(userSessions.reduce((acc, s) => acc + Math.round((s.end.getTime() - s.start.getTime()) / 60000), 0))}
                     </div>
                   </div>
@@ -364,12 +364,12 @@ export const WorkLogGantt: React.FC<Props> = ({
 
                 {/* Day view: single timeline column */}
                 {viewMode === 'day' && (
-                  <div className="relative min-h-[60px] bg-white dark:bg-slate-700 border-r border-slate-100 dark:border-slate-700">
+                  <div className="relative min-h-[60px] bg-surface border-r border-line">
                     {/* Hour column lines */}
                     {hourColumns.map(m => (
                       <div
                         key={m.hour}
-                        className="absolute top-0 h-full border-l border-slate-100 dark:border-slate-800/50"
+                        className="absolute top-0 h-full border-l border-line/50"
                         style={{ left: m.left, zIndex: 0 }}
                       />
                     ))}
@@ -379,7 +379,7 @@ export const WorkLogGantt: React.FC<Props> = ({
                       const clippedStart = Math.max(session.start.getTime(), timeRange.start.getTime());
                       const clippedEnd = Math.min(session.end.getTime(), timeRange.end.getTime());
                       const durationMin = Math.round((clippedEnd - clippedStart) / 60000);
-                      const colorClass = WO_COLORS[session.woType] || 'bg-slate-500';
+                      const colorClass = WO_COLORS[session.woType] || 'bg-surface-20';
                       return (
                         <div
                           key={si}
@@ -402,7 +402,7 @@ export const WorkLogGantt: React.FC<Props> = ({
                               </>
                             )}
                             {session.isActive && (
-                              <span className="w-1 h-1 rounded-full bg-white animate-pulse shrink-0" />
+                              <span className="w-1 h-1 rounded-full bg-surface animate-pulse shrink-0" />
                             )}
                           </div>
                         </div>
@@ -410,7 +410,7 @@ export const WorkLogGantt: React.FC<Props> = ({
                     })}
                     {/* "No work" indicator */}
                     {userSessions.length === 0 && (
-                      <div className="flex items-center justify-center h-full text-[10px] text-slate-300 dark:text-slate-600 italic">
+                      <div className="flex items-center justify-center h-full text-[10px] text-txt-3 italic">
                         Sin registro
                       </div>
                     )}
@@ -438,10 +438,10 @@ export const WorkLogGantt: React.FC<Props> = ({
 
                   return (
                     <div key={ci}
-                      className="flex flex-col gap-1 p-1 border-r border-slate-100 dark:border-slate-700 last:border-r-0 min-h-[60px] bg-white dark:bg-slate-700"
+                      className="flex flex-col gap-1 p-1 border-r border-line last:border-r-0 min-h-[60px] bg-surface"
                     >
                       {grouped.size === 0 ? (
-                        <div className="flex items-center justify-center h-full text-[10px] text-slate-300 dark:text-slate-600 italic">
+                        <div className="flex items-center justify-center h-full text-[10px] text-txt-3 italic">
                           Sin registro
                         </div>
                       ) : (
@@ -453,7 +453,7 @@ export const WorkLogGantt: React.FC<Props> = ({
                             0
                           );
                           const typeCfg = WO_TYPE_CONFIG[sessions[0].woType as keyof typeof WO_TYPE_CONFIG];
-                          const gradient = WO_GRADIENTS[sessions[0].woType] || 'bg-gradient-to-br from-slate-500/20 to-transparent';
+                          const gradient = WO_GRADIENTS[sessions[0].woType] || 'bg-gradient-to-br from-txt-3/20 to-transparent';
                           const isActive = sessions.some(s => s.isActive);
                           return (
                             <div
@@ -462,20 +462,20 @@ export const WorkLogGantt: React.FC<Props> = ({
                                 const wo = workOrders.find(w => w.id === woId);
                                 if (wo) onSelectWO(wo);
                               }}
-                              className={`p-1 rounded text-[9px] cursor-pointer hover:opacity-80 transition-opacity shadow-sm border border-slate-200 dark:border-slate-600 overflow-hidden ${gradient}`}
+                              className={`p-1 rounded text-[9px] cursor-pointer hover:opacity-80 transition-opacity shadow-sm border border-line overflow-hidden ${gradient}`}
                             >
-                              <div className="font-semibold truncate text-slate-700 dark:text-slate-200">{sessions[0].woTitle}</div>
+                              <div className="font-semibold truncate text-txt-2">{sessions[0].woTitle}</div>
                               <div className="flex items-center gap-1 mt-0.5">
                                 {typeCfg && (
-                                  <span className="text-[8px] px-1 rounded bg-white/50 dark:bg-slate-800/50">{typeCfg.label}</span>
+                                  <span className="text-[8px] px-1 rounded bg-surface/50">{typeCfg.label}</span>
                                 )}
-                                <span className="text-slate-400">{formatTime(first.start)}–{formatTime(last.end)}</span>
-                                <span className="text-slate-700 dark:text-slate-200 font-bold">{formatDuration(totalMin)}</span>
+                                <span className="text-txt-3">{formatTime(first.start)}–{formatTime(last.end)}</span>
+                                <span className="text-txt-2 font-bold">{formatDuration(totalMin)}</span>
                                 {isActive && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
                                 )}
                                 {sessions.some(s => s.isManual) && (
-                                  <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400">⚠ manual</span>
+                                  <span className="text-[8px] font-bold text-warn">⚠ manual</span>
                                 )}
                               </div>
                             </div>
@@ -492,12 +492,12 @@ export const WorkLogGantt: React.FC<Props> = ({
       )}
 
       {/* Legend */}
-      <div className="flex items-center gap-4 p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <span className="text-[10px] font-medium text-slate-500">Tipo:</span>
+      <div className="flex items-center gap-4 p-3 border-t border-line bg-surface-2">
+        <span className="text-[10px] font-medium text-txt-2">Tipo:</span>
         {Object.entries(WO_COLORS).map(([type, cls]) => (
           <div key={type} className="flex items-center gap-1.5">
             <div className={`w-3 h-3 rounded ${cls.split(' ')[0]}`} />
-            <span className="text-[10px] text-slate-500">{type}</span>
+            <span className="text-[10px] text-txt-2">{type}</span>
           </div>
         ))}
       </div>

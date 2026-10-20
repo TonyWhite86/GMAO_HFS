@@ -68,6 +68,77 @@ export interface EquipmentDocument {
   parentId?: string;
   size?: string;
   date: string;
+  category?: string | null;
+}
+
+/** Categorías de documentación de equipo (kit Pulso §9). */
+export const DOCUMENT_CATEGORIES = [
+  'Procedimientos',
+  'Manuales',
+  'Conformidad',
+  'Revisiones',
+  'Planos'
+] as const;
+export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number];
+
+/** Visto bueno por departamento en la aceptación de máquina. */
+export interface EquipmentSignoff {
+  id: string;
+  department: string;
+  userId?: string | null;
+  userName?: string | null;
+  date: string;
+}
+
+/** Formación impartida durante la aceptación de máquina. */
+export interface EquipmentTraining {
+  id: string;
+  trainee: string;
+  traineeId?: string | null;
+  trainer: string;
+  trainerId?: string | null;
+  date: string;
+}
+
+/** Aceptación de máquina (1:1 por equipo). */
+export interface EquipmentAcceptance {
+  equipmentId: string;
+  manualsOk: boolean;
+  conformityOk: boolean;
+  signoffs: EquipmentSignoff[];
+  trainings: EquipmentTraining[];
+  updatedBy?: string | null;
+  updatedAt?: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+}
+
+export interface ChecklistAnswer {
+  sel?: 'si' | 'no' | null;
+  val?: string | null;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistItem[];
+  active: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+export interface Contractor {
+  id: string;
+  name: string;
+  contact?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  active: boolean;
+  createdAt: string;
 }
 
 export interface SupplierInfo {
@@ -192,6 +263,12 @@ export interface WorkOrder {
   assignedUserId?: string; // Main responsible
   collaborators?: string[]; // Additional assigned technicians
   assignedGroupId?: string; // Group assignment
+  isExternal?: boolean; // Trabajo encargado a una contrata (sin técnico ni tiempo)
+  contractorId?: string | null;
+  contractorName?: string | null; // Loaded via join
+  externalPrice?: number | null;
+  closureChecklist?: ChecklistItem[]; // Puntos obligatorios al cerrar
+  checklistAnswers?: Record<string, ChecklistAnswer>; // Se sellan al completar
   createdBy: string;
   createdAt: string;
   scheduledDate?: string;
@@ -212,17 +289,41 @@ export interface WorkOrder {
   subtasks?: SubTask[];
 }
 
+/** Grupo nombrado de equipos (p.ej. "Detectores de metales"). */
+export interface EquipmentGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  equipmentIds: string[];
+  active: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+/** Objetivo de un plan preventivo, con ciclo individual por equipo. */
+export interface PreventivePlanTarget {
+  id: string;
+  planId: string;
+  equipmentId: string;
+  sourceGroupId?: string | null;
+  lastRun?: string | null;
+  nextRun: string;
+}
+
 export interface PreventivePlan {
   id: string;
   name: string;
   description?: string;
-  equipmentId: string;
+  /** @deprecated usar targets; se conserva por compatibilidad temporal */
+  equipmentId?: string;
   frequencyDays: number;
   tasks: SubTask[];
   lastRun?: string;
   nextRun: string;
   assignedGroupId?: string;
   section?: string;
+  /** Objetivos con ciclo individual (equipos sueltos y/o de grupos). */
+  targets?: PreventivePlanTarget[];
 }
 
 export enum POStatus {
@@ -262,10 +363,13 @@ export interface PurchaseOrder {
 
 export enum IncidentStatus {
   OPEN = 'Abierta',
-  IN_REVIEW = 'En Revisión',
-  CONVERTED = 'Convertida a OT',
-  RESOLVED = 'Resuelta',
-  CANCELLED = 'Cancelada',
+  IN_PROGRESS = 'En Curso',
+  PAUSED_MATERIAL = 'Pausada Material',
+  PAUSED_BUDGET = 'Pausada Presupuesto',
+  PAUSED_EXTERNAL = 'Pausada Externos',
+  SCHEDULED = 'Programada Intervención',
+  PENDING_CLOSE = 'Pendiente de Confirmación de Cierre',
+  CLOSED = 'Cerrada',
 }
 
 export interface IncidentComment {

@@ -31,27 +31,27 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
         case WorkOrderEventKind.CREATE:
             return {
                 icon: <Package size={14} />,
-                iconClass: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+                iconClass: 'bg-surface-3 text-txt-2',
                 title: 'Orden creada'
             };
         case WorkOrderEventKind.STATUS:
             return {
                 icon: <PlayCircle size={14} />,
-                iconClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: e.status === 'En Progreso' ? 'Inicio del trabajo' : `Estado: ${e.status}`,
                 detail: e.note || undefined
             };
         case WorkOrderEventKind.PAUSE:
             return {
                 icon: <PauseCircle size={14} />,
-                iconClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
+                iconClass: 'bg-warn-dim text-warn',
                 title: 'Trabajo pausado',
                 detail: e.note ? `Motivo: ${e.note}` : 'Motivo: no indicado'
             };
         case WorkOrderEventKind.RESUME:
             return {
                 icon: <PlayCircle size={14} />,
-                iconClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: 'Trabajo reanudado',
                 detail: e.note || undefined
             };
@@ -59,7 +59,7 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
             const mins = wo.timeSpentMinutes ?? 0;
             return {
                 icon: <CheckCircle2 size={14} />,
-                iconClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
+                iconClass: 'bg-ok-dim text-ok',
                 title: 'Orden completada',
                 detail: `Fin: ${fmtDateTime(wo.closedAt)} · Tiempo: ${formatDuration(mins)}` +
                     (wo.timeSource === 'manual' ? ' · registrado a mano' : '')
@@ -68,37 +68,37 @@ const eventPresentation = (e: WorkOrderEvent, wo: WorkOrder): { icon: React.Reac
         case WorkOrderEventKind.ASSIGN:
             return {
                 icon: <UserPlus size={14} />,
-                iconClass: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300',
+                iconClass: 'bg-spec-dim text-spec',
                 title: e.note || 'Asignación'
             };
         case WorkOrderEventKind.UNASSIGN:
             return {
                 icon: <UserMinus size={14} />,
-                iconClass: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+                iconClass: 'bg-surface-3 text-txt-2',
                 title: e.note || 'Desasignación'
             };
         case WorkOrderEventKind.PRIORITY:
             return {
                 icon: <Star size={14} />,
-                iconClass: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300',
+                iconClass: 'bg-warn-dim text-warn',
                 title: e.note ? `Prioridad cambiada: ${e.note}` : 'Prioridad cambiada'
             };
         case WorkOrderEventKind.PARTS:
             return {
                 icon: <Wrench size={14} />,
-                iconClass: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: e.note || 'Repuestos actualizados'
             };
         case WorkOrderEventKind.CONVERT:
             return {
                 icon: <Link2 size={14} />,
-                iconClass: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300',
+                iconClass: 'bg-accent-dim text-accent',
                 title: e.note || 'Creada desde una incidencia'
             };
         default:
             return {
                 icon: <MessageSquare size={14} />,
-                iconClass: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+                iconClass: 'bg-surface-3 text-txt-2',
                 title: e.note || e.kind
             };
     }
@@ -149,8 +149,8 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                 kind: 'comment',
                 icon: <MessageSquare size={14} />,
                 iconClass: c.isSystem
-                    ? 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300',
+                    ? 'bg-surface-3 text-txt-3'
+                    : 'bg-accent-dim text-accent',
                 title: c.text,
                 actorName: c.isSystem ? (c.userName || 'Sistema') : c.userName,
                 isSystem: !!c.isSystem,
@@ -164,36 +164,36 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     return (
         <div className="space-y-4">
             {title && (
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-xs font-bold text-txt-3 uppercase tracking-wider flex items-center gap-2">
                     <MessageSquare size={16} /> {title}
                 </h3>
             )}
 
             <div className="space-y-0 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight }}>
                 {items.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm">{emptyMessage}</div>
+                    <div className="text-center py-8 text-txt-3 text-sm">{emptyMessage}</div>
                 ) : (
-                    <ol className="relative border-l border-slate-200 dark:border-slate-600 ml-2">
+                    <ol className="relative border-l border-line ml-2">
                         {items.map(item => (
                             <li key={item.key} className="relative pb-4 pl-6">
-                                <span className={`absolute -left-[11px] top-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ring-4 ring-white dark:ring-slate-700 ${item.iconClass}`}>
+                                <span className={`absolute -left-[11px] top-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ring-4 ring-[color:var(--surface)] ${item.iconClass}`}>
                                     {item.icon}
                                 </span>
 
                                 <div className={`rounded-xl border px-3 py-2 ${item.kind === 'event'
-                                    ? 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-100 dark:border-slate-700'
+                                    ? 'bg-surface-2 border-line'
                                     : (item.isSystem
-                                        ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-700 italic'
+                                        ? 'bg-surface-2 border-line italic'
                                         : (item.actorName && currentUserId && workOrder.createdBy === currentUserId
-                                            ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50'
-                                            : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'))}
+                                            ? 'bg-accent-dim border-accent-border'
+                                            : 'bg-surface border-line'))}
                                     `}>
-                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words">
+                                    <p className="text-sm font-semibold text-txt whitespace-pre-wrap break-words">
                                         {item.kind === 'comment' && !item.isSystem ? `“${item.title}”` : item.title}
                                     </p>
 
                                     {item.detail && (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{item.detail}</p>
+                                        <p className="text-xs text-txt-2 mt-1">{item.detail}</p>
                                     )}
 
                                     {item.attachments && item.attachments.length > 0 && (
@@ -202,21 +202,21 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                                                 <button
                                                     key={i}
                                                     onClick={() => setViewMedia({ type: att.type as any, url: att.url, name: att.name })}
-                                                    className="w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800"
+                                                    className="w-14 h-14 rounded-lg overflow-hidden border border-line bg-surface-2"
                                                 >
                                                     {att.type === 'image'
                                                         ? <img src={att.url} alt="" className="w-full h-full object-cover" />
-                                                        : <FileText size={20} className="m-auto text-slate-400" />}
+                                                        : <FileText size={20} className="m-auto text-txt-3" />}
                                                 </button>
                                             ))}
                                         </div>
                                     )}
 
-                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-[11px] text-txt-3 mt-1.5 flex items-center gap-1.5 flex-wrap">
                                         {item.actorName && <span className="font-semibold">{item.actorName}</span>}
                                         <span>{fmtDateTime(item.timestamp)}</span>
                                         {item.kind === 'event' && (item.detail || '').includes('registrado a mano') && (
-                                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
+                                            <span className="inline-flex items-center gap-1 text-warn font-bold">
                                                 <AlertTriangle size={11} /> Manual
                                             </span>
                                         )}

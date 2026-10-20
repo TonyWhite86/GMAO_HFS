@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 // Subcomponents
 import { MaintenanceWorkOrders } from './components/MaintenanceWorkOrders';
 import { MaintenancePreventivePlans } from './components/MaintenancePreventivePlans';
+import { PlannedActionsView } from './components/PlannedActionsView';
 import { OrderTypeSelectionModal } from './components/OrderTypeSelectionModal';
 import { CreatePreventiveModal } from './components/CreatePreventiveModal';
 
@@ -25,7 +26,7 @@ type ModalMode = 'none' | 'selection' | 'corrective' | 'preventive' | 'planned';
 type ViewMode = 'workOrders' | 'plans' | 'plannedActions';
 
 export interface MaintenanceProps {
-    initialMode?: 'create' | null;
+    initialMode?: 'create' | 'preventive' | 'planned' | null;
     initialFilters?: {
         status?: WOStatus[];
         unassigned?: boolean;
@@ -48,15 +49,13 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         currentUser,
         sections,
         addWorkOrder: onAddWorkOrder,
+        updateWorkOrder: onUpdateWorkOrder,
         addPreventivePlan: onAddPreventivePlan,
         updatePreventivePlan: onUpdatePreventivePlan,
         deletePreventivePlan: onDeletePreventivePlan,
-        updateWorkOrder: onUpdateWorkOrder,
         generateWorkOrderFromPlan,
         inventory,
         updateInventory: onUpdateInventory,
-        creationMode,
-        setCreationMode
     } = useAppStore();
 
     if (!currentUser) return <GenericSkeleton />;
@@ -78,18 +77,16 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
 
     // --- Handling Initial Props & Store Signals ---
     useEffect(() => {
+        if (!initialMode) return;
         if (initialMode === 'create') {
             setModalMode(currentUser.role === UserRole.TECHNICIAN ? 'corrective' : 'selection');
-            onModeHandled?.();
+        } else if (initialMode === 'preventive') {
+            setModalMode('preventive');
+        } else if (initialMode === 'planned') {
+            setModalMode('planned');
         }
+        onModeHandled?.();
     }, [initialMode, currentUser.role, onModeHandled]);
-
-    useEffect(() => {
-        if (creationMode) {
-            setModalMode(currentUser.role === UserRole.TECHNICIAN ? 'corrective' : 'selection');
-            setCreationMode(false);
-        }
-    }, [creationMode, currentUser.role, setCreationMode]);
 
     useEffect(() => {
         if (viewMode === 'plannedActions' && !canViewActuaciones) {
@@ -109,11 +106,16 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         if (!currentUser) return [];
         if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.OBSERVER_L1 || currentUser.role === UserRole.OBSERVER_L2) return preventivePlans;
         return preventivePlans.filter(plan => {
-            const eq = equipment.find(e => e.id === plan.equipmentId);
-            const sections = eq?.sections || [];
-            return sections.some(s => currentUser.sections.includes(s));
+            const targetIds = (plan.targets || []).map(t => t.equipmentId);
+            return targetIds.some(eqId => {
+                const eq = equipment.find(e => e.id === eqId);
+                return (eq?.sections || []).some(s => currentUser.sections.includes(s));
+            });
         });
     }, [preventivePlans, currentUser, equipment]);
+
+    const openWoCount = securityFilteredWorkOrders.filter(wo => wo.status !== WOStatus.COMPLETED).length;
+    const plannedCount = securityFilteredWorkOrders.filter(wo => wo.type === WOType.PLANNED).length;
 
     const handleCreateClick = () => {
         if (viewMode === 'plans') {
@@ -141,12 +143,7 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     && (
                         <button
                             onClick={handleCreateClick}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto shadow-lg ${viewMode === 'plans'
-                                ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
-                                : viewMode === 'plannedActions'
-                                    ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
-                                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
-                                }`}
+                            className="btn btn-primary w-full sm:w-auto justify-center px-4 py-2.5 !text-[13px] shadow-lg"
                         >
                             <Plus size={18} />
                             <span>
@@ -159,34 +156,28 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                 }
             />
 
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
+            <div className="tabs w-fit">
                 <button
                     onClick={() => setViewMode('workOrders')}
-                    className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'workOrders'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
+                    className={`tab ${viewMode === 'workOrders' ? 'active' : ''}`}
                 >
                     Órdenes de Trabajo
+                    <span className="bdg bdg-gray ml-1.5">{openWoCount}</span>
                 </button>
                 <button
                     onClick={() => setViewMode('plans')}
-                    className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plans'
-                        ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
+                    className={`tab ${viewMode === 'plans' ? 'active' : ''}`}
                 >
                     Planes Preventivos
+                    <span className="bdg bdg-gray ml-1.5">{securityFilteredPlans.length}</span>
                 </button>
                 {canViewActuaciones && (
                     <button
                         onClick={() => setViewMode('plannedActions')}
-                        className={`px-4 py-1.5 rounded-md text-base font-medium transition-all ${viewMode === 'plannedActions'
-                            ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                            }`}
+                        className={`tab ${viewMode === 'plannedActions' ? 'active' : ''}`}
                     >
                         Actuaciones
+                        <span className="bdg bdg-gray ml-1.5">{plannedCount}</span>
                     </button>
                 )}
             </div>
@@ -197,32 +188,33 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                     plans={securityFilteredPlans}
                     equipment={equipment}
                     canManage={canManageMaintenance}
-                    onLaunch={(planId) => generateWorkOrderFromPlan(planId, new Date().toISOString())}
+                    onLaunch={(planId) => generateWorkOrderFromPlan(planId)}
                     onEdit={(plan) => {
                         setSelectedPlanToEdit(plan);
                         setModalMode('preventive');
                     }}
                     onDelete={onDeletePreventivePlan}
                 />
-            ) : (
-                <MaintenanceWorkOrders
-                    workOrders={securityFilteredWorkOrders.filter(wo => {
-                        if (viewMode === 'plannedActions') {
-                            return wo.type === WOType.PLANNED;
-                        } else {
-                            // viewMode === 'workOrders'
-                            // Show everything that is NOT a preventive plan template (which are separate entities in 'preventivePlans')
-                            // Ideally, show everything. The user requested PLANNED to be visible here.
-                            return true;
-                        }
-                    })}
+            ) : viewMode === 'plannedActions' ? (
+                <PlannedActionsView
+                    workOrders={securityFilteredWorkOrders.filter(wo => wo.type === WOType.PLANNED)}
                     users={users}
                     equipment={equipment}
                     onSelectWO={(id) => setSelectedWOId(id)}
                     onStatusAction={(wo, nextStatus) => setStatusActionWO({ wo, nextStatus })}
                     onComplete={(wo) => setCompletingWO(wo)}
+                />
+            ) : (
+                <MaintenanceWorkOrders
+                    workOrders={securityFilteredWorkOrders}
+                    users={users}
+                    equipment={equipment}
+                    onSelectWO={(id) => setSelectedWOId(id)}
+                    onStatusAction={(wo, nextStatus) => setStatusActionWO({ wo, nextStatus })}
+                    onComplete={(wo) => setCompletingWO(wo)}
+                    onUpdateWO={(wo, updates) => onUpdateWorkOrder({ ...wo, ...updates })}
                     initialFilters={initialFilters}
-                    viewMode={viewMode === 'plannedActions' ? 'plannedActions' : 'workOrders'}
+                    viewMode="workOrders"
                 />
             )}
 
@@ -272,11 +264,11 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
                         setModalMode('none');
                         setSelectedPlanToEdit(undefined);
                     }}
-                    onSubmit={(plan, launchNow) => {
+                    onSubmit={(plan, launchNow, targets) => {
                         if (selectedPlanToEdit) {
-                            onUpdatePreventivePlan(plan);
+                            onUpdatePreventivePlan(plan, targets);
                         } else {
-                            onAddPreventivePlan(plan, launchNow);
+                            onAddPreventivePlan(plan, targets, launchNow);
                         }
                         setModalMode('none');
                         setSelectedPlanToEdit(undefined);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Layout } from './components/Layout';
 import { LoginPage } from './components/LoginPage';
@@ -9,6 +9,7 @@ import { MaintenanceSkeleton } from './components/MaintenanceSkeleton';
 import { GenericSkeleton } from './components/GenericSkeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
+import { QRScannerModal } from './components/QRScannerModal';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { WOStatus, WOPriority } from './types';
 import { useAppStore } from './store/useAppStore';
@@ -29,14 +30,16 @@ const App: React.FC = () => {
   // Global Store State
   const {
     currentUser,
-    isDarkMode,
+    theme,
     activeModule,
     setActiveModule,
     fetchInitialData,
     initializeSubscription,
     login,
     isLoading,
-    error
+    error,
+    equipment,
+    inventory
   } = useAppStore();
 
   const { isOffline } = useNetworkStatus();
@@ -45,13 +48,27 @@ const App: React.FC = () => {
   const setCurrentModule = setActiveModule;
 
   // State to control Maintenance modal opening from other modules (keep these local as they are UI transition state)
-  const [maintenanceInitialMode, setMaintenanceInitialMode] = useState<'create' | null>(null);
+  const [maintenanceInitialMode, setMaintenanceInitialMode] = useState<'create' | 'preventive' | 'planned' | null>(null);
   const [maintenanceInitialFilters, setMaintenanceInitialFilters] = useState<{ status?: WOStatus[], unassigned?: boolean, priority?: WOPriority[], section?: string[] } | null>(null);
   const [inventoryInitialMode, setInventoryInitialMode] = useState<'withdrawal' | null>(null);
   const [inventoryInitialTab, setInventoryInitialTab] = useState<'requests' | null>(null);
+  const [incidentsInitialMode, setIncidentsInitialMode] = useState<'create' | null>(null);
+  const [stoppagesInitialMode, setStoppagesInitialMode] = useState<'create' | null>(null);
+  const [pendingEquipmentId, setPendingEquipmentId] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const handleCreateWorkOrderRequest = () => {
     setMaintenanceInitialMode('create');
+    setCurrentModule('maintenance');
+  };
+
+  const handleCreatePreventiveRequest = () => {
+    setMaintenanceInitialMode('preventive');
+    setCurrentModule('maintenance');
+  };
+
+  const handleCreateActuationRequest = () => {
+    setMaintenanceInitialMode('planned');
     setCurrentModule('maintenance');
   };
 
@@ -69,29 +86,44 @@ const App: React.FC = () => {
     setCurrentModule('inventory');
   };
 
+  const handleCreateIncidentRequest = () => {
+    setIncidentsInitialMode('create');
+    setCurrentModule('incidents');
+  };
+
+  const handleCreateStoppageRequest = () => {
+    setStoppagesInitialMode('create');
+    setCurrentModule('stoppages');
+  };
+
+  // Escáner QR: busca el código en equipos y repuestos y navega a su módulo.
+  const handleScanResult = (result: string) => {
+    setIsScannerOpen(false);
+    const eq = equipment.find(e => e.qrCode === result || e.code === result || e.serialNumber === result);
+    if (eq) {
+      setPendingEquipmentId(eq.id);
+      setCurrentModule('equipment');
+      return;
+    }
+    const item = inventory.find(i => i.qrCode === result || i.sku === result);
+    if (item) {
+      setCurrentModule('inventory');
+      return;
+    }
+    toast.error('Código QR no reconocido');
+  };
+
   const handleRequestPurchase = () => {
     setInventoryInitialTab('requests');
     setCurrentModule('inventory');
   };
 
-  // Sync dark class with isDarkMode
+  // Sync theme class with store theme
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
-  // Listen for system color scheme changes (with cleanup, unlike previous implementation in the store)
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      useAppStore.setState({ isDarkMode: e.matches });
-    };
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+    const root = document.documentElement;
+    root.classList.remove('theme-azul', 'theme-claro', 'theme-oscuro', 'theme-suave');
+    root.classList.add(`theme-${theme}`);
+  }, [theme]);
 
   // Restore Supabase Auth session and load user data
   useEffect(() => {
@@ -166,8 +198,11 @@ const App: React.FC = () => {
             onNavigate={setCurrentModule}
             onNavigateWithFilter={handleNavigateWithFilter}
             onCreateWorkOrder={handleCreateWorkOrderRequest}
+            onCreateIncident={handleCreateIncidentRequest}
+            onCreateStoppage={handleCreateStoppageRequest}
             onRequestWithdrawal={handleRequestWithdrawal}
             onRequestPurchase={handleRequestPurchase}
+            onScanQR={() => setIsScannerOpen(true)}
           />
         );
       case 'maintenance':
@@ -198,11 +233,21 @@ const App: React.FC = () => {
       case 'reports':
         return <ReportsModule />;
       case 'incidents':
-        return <IncidentsModule />;
+        return (
+          <IncidentsModule
+            initialCreate={incidentsInitialMode === 'create'}
+            onCreateHandled={() => setIncidentsInitialMode(null)}
+          />
+        );
       case 'stoppages':
-        return <StoppagesModule />;
+        return (
+          <StoppagesModule
+            initialCreate={stoppagesInitialMode === 'create'}
+            onCreateHandled={() => setStoppagesInitialMode(null)}
+          />
+        );
       default:
-        return <div className="dark:text-white">Módulo no encontrado</div>;
+        return <div className="text-txt">Módulo no encontrado</div>;
     }
   };
 
@@ -221,13 +266,19 @@ const App: React.FC = () => {
     <>
       {isOffline && <OfflineBanner onRetry={() => fetchInitialData()} />}
       <Toaster position="top-right" richColors expand gap={14} visibleToasts={5} />
+      {isScannerOpen && (
+        <QRScannerModal
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScanResult}
+        />
+      )}
       {!currentUser ? (
         <LoginPage />
       ) : isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-slate-800">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
           <LoadingSpinner />
           {error && (
-            <p className="mt-4 text-sm text-red-500 dark:text-red-400 px-4 text-center">
+            <p className="mt-4 text-sm text-ko px-4 text-center">
               {error} —{' '}
               <button onClick={() => fetchInitialData()} className="underline hover:no-underline">
                 Reintentar
@@ -236,10 +287,10 @@ const App: React.FC = () => {
           )}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-800 p-8">
-          <div className="bg-white dark:bg-slate-700 rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Error de carga</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-bg p-8">
+          <div className="bg-surface rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold text-txt mb-2">Error de carga</h2>
+            <p className="text-txt-2 mb-6">{error}</p>
             <button
               onClick={() => fetchInitialData()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors"
@@ -249,7 +300,12 @@ const App: React.FC = () => {
           </div>
         </div>
       ) : (
-        <Layout>
+        <Layout
+          onCreateWO={handleCreateWorkOrderRequest}
+          onCreateIncident={handleCreateIncidentRequest}
+          onCreatePreventive={handleCreatePreventiveRequest}
+          onCreateActuation={handleCreateActuationRequest}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={activeModule}

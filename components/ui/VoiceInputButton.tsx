@@ -23,15 +23,16 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 type="button"
                 onClick={handleStart}
                 title="Dictar por voz"
-                className={`p-2 rounded-xl transition-all ${isRecording
-                    ? 'bg-red-100 text-red-600 animate-pulse shadow-md shadow-red-500/30'
-                    : 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-300 dark:border-red-800 hover:border-red-500'
+                className={`p-2 rounded-[10px] transition-all border ${isRecording
+                    ? 'text-ko animate-pulse border-ko-border'
+                    : 'text-ko border-ko-border hover:bg-ko-dim'
                 }`}
+                style={isRecording ? { background: 'var(--reddim)' } : undefined}
             >
                 {isRecording ? <Loader2 size={16} className="animate-spin" /> : <Mic size={16} />}
             </button>
             {recognitionError && (
-                <p className="text-[10px] text-red-500 mt-1 font-medium absolute top-full right-0 whitespace-nowrap z-10">
+                <p className="text-[10px] text-ko mt-1 font-medium absolute top-full right-0 whitespace-nowrap z-10">
                     Error al escuchar
                 </p>
             )}

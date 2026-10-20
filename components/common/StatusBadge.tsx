@@ -24,7 +24,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     const Icon = config.icon;
 
     return (
-        <span className={`px-2 py-1 rounded-full text-[11px] font-bold uppercase border flex items-center gap-1.5 w-fit ${config.bgClass} ${className}`}>
+        <span className={`bdg ${config.bgClass} !text-[11px] !uppercase gap-1.5 w-fit ${className}`}>
             {showIcon && <Icon size={14} className={type === 'incident' ? (config as any).colorClass : ''} />}
             {config.label}
         </span>

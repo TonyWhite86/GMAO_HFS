@@ -43,32 +43,32 @@ export const DuplicateWarning: React.FC<DuplicateWarningProps> = ({ name, manufa
     if (similarItems.length === 0) return null;
 
     return (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="bg-warn-dim border border-warn-border rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-start gap-3">
-                <div className="p-1.5 bg-amber-100 dark:bg-amber-800 rounded-lg text-amber-600 dark:text-amber-400">
+                <div className="p-1.5 bg-warn-dim rounded-lg text-warn">
                     <AlertCircle size={20} />
                 </div>
                 <div className="flex-1">
-                    <h4 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">
+                    <h4 className="text-sm font-bold text-warn mb-1">
                         ¿Ya existe este artículo?
                     </h4>
-                    <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mb-3">
+                    <p className="text-xs text-warn/80 mb-3">
                         Hemos encontrado {similarItems.length} {similarItems.length === 1 ? 'artículo que coincide' : 'artículos que coinciden'} con tu búsqueda. Por favor, revísalos para evitar duplicados.
                     </p>
 
                     <div className="space-y-2">
                         {similarItems.map(item => (
-                            <div key={item.id} className="bg-white/60 dark:bg-slate-800/40 p-2 rounded-lg border border-amber-100 dark:border-amber-800/50 flex items-center justify-between group transition-all hover:bg-white dark:hover:bg-slate-900">
+                            <div key={item.id} className="bg-surface/40 p-2 rounded-lg border border-warn-border flex items-center justify-between group transition-all hover:bg-surface">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">
+                                    <div className="p-1.5 bg-surface-2 rounded text-txt-2">
                                         <Package size={14} />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{item.name}</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">{item.sku} {item.manufacturer ? `· ${item.manufacturer}` : ''}</div>
+                                        <div className="text-xs font-bold text-txt-2">{item.name}</div>
+                                        <div className="text-[10px] text-txt-2 font-mono">{item.sku} {item.manufacturer ? `· ${item.manufacturer}` : ''}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-warn opacity-0 group-hover:opacity-100 transition-opacity">
                                     Ver artículo <ArrowRight size={10} />
                                 </div>
                             </div>

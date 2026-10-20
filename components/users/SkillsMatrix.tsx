@@ -87,11 +87,11 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
     }, {} as Record<string, Skill[]>);
 
     if (loading && skills.length === 0) {
-        return <div className="p-8 text-center text-slate-500">Cargando matriz...</div>;
+        return <div className="p-8 text-center text-txt-2">Cargando matriz...</div>;
     }
 
     if (skills.length === 0) {
-        return <div className="p-8 text-center text-slate-500">No hay habilidades definidas. Crea algunas primero.</div>;
+        return <div className="p-8 text-center text-txt-2">No hay habilidades definidas. Crea algunas primero.</div>;
     }
 
     return (
@@ -101,12 +101,12 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                     <thead>
                         {/* Category Header */}
                         <tr>
-                            <th className="p-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 sticky left-0 z-20 min-w-[200px]"></th>
+                            <th className="p-2 bg-surface-2 border border-line sticky left-0 z-20 min-w-[200px]"></th>
                             {Object.entries(skillsByCategory).map(([category, catSkills]) => (
                                 <th
                                     key={category}
                                     colSpan={catSkills.length}
-                                    className="p-2 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 text-center text-xs font-bold uppercase text-slate-600 dark:text-slate-300"
+                                    className="p-2 bg-surface-2 border border-line text-center text-xs font-bold uppercase text-txt-2"
                                 >
                                     {category}
                                 </th>
@@ -114,7 +114,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                         </tr>
                         {/* Skill Header */}
                         <tr>
-                            <th className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 sticky left-0 z-20 text-left font-bold text-slate-700 dark:text-slate-300 shadow-sm">
+                            <th className="p-3 bg-surface-2 border border-line sticky left-0 z-20 text-left font-bold text-txt-2 shadow-sm">
                                 <div className="flex items-center gap-2">
                                     <LayoutGrid size={16} />
                                     Técnico
@@ -123,11 +123,11 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                             {skills.map(skill => (
                                 <th
                                     key={skill.id}
-                                    className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 min-w-[100px] text-center"
+                                    className="p-2 bg-surface border border-line min-w-[100px] text-center"
                                     title={skill.description}
                                 >
                                     <div className="flex flex-col items-center">
-                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap px-2">{skill.name}</span>
+                                        <span className="text-xs font-semibold text-txt-2 whitespace-nowrap px-2">{skill.name}</span>
                                     </div>
                                 </th>
                             ))}
@@ -135,10 +135,10 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                     </thead>
                     <tbody>
                         {matrixUsers.map(user => (
-                            <tr key={user.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
-                                <td className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 sticky left-0 z-10 font-medium text-sm text-slate-800 dark:text-slate-200 shadow-sm">
+                            <tr key={user.id} className="hover:bg-surface-2 transition-colors">
+                                <td className="p-3 bg-surface border border-line sticky left-0 z-10 font-medium text-sm text-txt-2 shadow-sm">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs">
+                                        <div className="w-6 h-6 rounded-full bg-surface-3 flex items-center justify-center text-xs">
                                             {user.name.charAt(0)}
                                         </div>
                                         {user.name}
@@ -148,19 +148,19 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                                     const level = getSkillLevel(user.id, skill.id);
                                     // Color scale for levels
                                     const getBgColor = (lvl: number) => {
-                                        if (lvl === 0) return 'bg-slate-100 dark:bg-slate-700/50';
-                                        if (lvl === 1) return 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400';
-                                        if (lvl === 2) return 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400';
-                                        if (lvl === 3) return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400';
-                                        if (lvl === 4) return 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400';
-                                        if (lvl === 5) return 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-bold';
+                                        if (lvl === 0) return 'bg-surface-2';
+                                        if (lvl === 1) return 'bg-ko-dim  text-ko';
+                                        if (lvl === 2) return 'bg-warn-dim  text-warn ';
+                                        if (lvl === 3) return 'bg-warn-dim text-warn';
+                                        if (lvl === 4) return 'bg-ok-dim  text-ok';
+                                        if (lvl === 5) return 'bg-accent-dim  text-accent font-bold';
                                         return '';
                                     };
 
                                     return (
                                         <td
                                             key={skill.id}
-                                            className="p-1 border border-slate-200 dark:border-slate-800 text-center relative"
+                                            className="p-1 border border-line text-center relative"
                                         >
                                             <button
                                                 onClick={() => handleLevelChange(user.id, skill.id, (prev) => prev >= 5 ? 0 : prev + 1)}
@@ -177,12 +177,12 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ users, refreshTrigge
                     </tbody>
                 </table>
             </div>
-            <div className="mt-4 flex gap-4 text-xs text-slate-500 justify-end px-4">
-                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-red-100 rounded"></span> 1: Aprendiz</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-100 rounded"></span> 2: Básico</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-100 rounded"></span> 3: Autónomo</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-green-100 rounded"></span> 4: Avanzado</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-100 rounded"></span> 5: Experto</div>
+            <div className="mt-4 flex gap-4 text-xs text-txt-2 justify-end px-4">
+                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-ko-dim rounded"></span> 1: Aprendiz</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-warn-dim rounded"></span> 2: Básico</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-warn-dim rounded"></span> 3: Autónomo</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-ok-dim rounded"></span> 4: Avanzado</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-accent-dim rounded"></span> 5: Experto</div>
             </div>
         </div>
     );

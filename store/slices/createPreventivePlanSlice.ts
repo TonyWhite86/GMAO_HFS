@@ -1,33 +1,34 @@
 import { StateCreator } from 'zustand';
 import type { AppState } from '../appState';
-import { PreventivePlan, WOStatus, WOPriority, WOType } from '../../types';
+import { PreventivePlan } from '../../types';
 import { preventivePlanService } from '../../services/preventivePlanService';
 import { workOrderService } from '../../services/workOrderService';
+import { PlanTargetsInput } from '../../utils/preventiveTargets';
 import { toast } from 'sonner';
 
 export interface PreventivePlanSlice {
     preventivePlans: PreventivePlan[];
     setPreventivePlans: (plans: PreventivePlan[]) => void;
-    addPreventivePlan: (plan: PreventivePlan, launchFirst?: boolean) => Promise<void>;
-    updatePreventivePlan: (plan: PreventivePlan) => Promise<void>;
+    addPreventivePlan: (plan: PreventivePlan, targets?: PlanTargetsInput, launchFirst?: boolean) => Promise<void>;
+    updatePreventivePlan: (plan: PreventivePlan, targets?: PlanTargetsInput) => Promise<void>;
     deletePreventivePlan: (id: string) => Promise<void>;
-    generateWorkOrderFromPlan: (planId: string, customDate?: string) => Promise<void>;
+    generateWorkOrderFromPlan: (planId: string) => Promise<void>;
+    updatePlanTarget: (targetId: string, nextRun: string) => Promise<void>;
 }
 
 export const createPreventivePlanSlice: StateCreator<AppState, [], [], PreventivePlanSlice> = (set, get) => ({
     preventivePlans: [],
-    setPreventivePlans: (plans) => set({ preventivePlans: plans }),
-    addPreventivePlan: async (plan, launchFirst) => {
-        try {
-            const newPlan = await preventivePlanService.create(plan);
-            toast.success('Plan preventivo creado');
-            set((state) => {
-                if (state.preventivePlans.find((p) => p.id === newPlan.id)) return state;
-                return { preventivePlans: [...state.preventivePlans, newPlan] };
-            });
+    setPreventivePlans: (preventivePlans) => set({ preventivePlans }),
 
+    addPreventivePlan: async (plan, targets, launchFirst) => {
+        try {
+            const newPlan = await preventivePlanService.create(plan, targets);
+            toast.success('Plan preventivo creado');
+            // Refrescar para traer los objetivos materializados
+            const plans = await preventivePlanService.getAll();
+            set({ preventivePlans: plans });
             if (launchFirst) {
-                await get().generateWorkOrderFromPlan(newPlan.id, new Date().toISOString());
+                await get().generateWorkOrderFromPlan(newPlan.id);
             }
         } catch (error) {
             console.error(error);
@@ -35,19 +36,20 @@ export const createPreventivePlanSlice: StateCreator<AppState, [], [], Preventiv
             throw error;
         }
     },
-    updatePreventivePlan: async (plan) => {
+
+    updatePreventivePlan: async (plan, targets) => {
         try {
-            await preventivePlanService.update(plan);
+            await preventivePlanService.update(plan, targets);
             toast.success('Plan preventivo actualizado');
-            set((state) => ({
-                preventivePlans: state.preventivePlans.map((p) => p.id === plan.id ? plan : p)
-            }));
+            const plans = await preventivePlanService.getAll();
+            set({ preventivePlans: plans });
         } catch (error) {
             console.error(error);
             toast.error('Error al actualizar plan');
             throw error;
         }
     },
+
     deletePreventivePlan: async (id) => {
         try {
             await preventivePlanService.delete(id);
@@ -61,64 +63,34 @@ export const createPreventivePlanSlice: StateCreator<AppState, [], [], Preventiv
             throw error;
         }
     },
-    generateWorkOrderFromPlan: async (planId, customDate) => {
-        const state = get();
-        const plan = state.preventivePlans.find((p) => p.id === planId);
-        if (!plan) return;
 
-        const eq = state.equipment.find((e) => e.id === plan.equipmentId);
-        const section = plan.section || eq?.sections?.[0] || 'Producción';
-        const scheduledDate = customDate || plan.nextRun || new Date().toISOString();
-
-        const nextWO = {
-            id: '',
-            title: plan.name,
-            description: plan.description || `Mantenimiento Preventivo: ${plan.name}`,
-            type: WOType.PREVENTIVE,
-            status: WOStatus.SCHEDULED,
-            priority: WOPriority.MEDIUM,
-            equipmentId: plan.equipmentId,
-            assignedUserId: null,
-            createdBy: state.currentUser?.id || null,
-            createdAt: new Date().toISOString(),
-            scheduledDate: scheduledDate,
-            section: section,
-            relatedPlanId: plan.id,
-            statusHistory: [{ status: WOStatus.SCHEDULED, timestamp: new Date().toISOString() }],
-            usedParts: [],
-            attachments: [],
-            comments: [],
-            subtasks: plan.tasks?.map((t) => ({
-                id: crypto.randomUUID(),
-                description: t.description,
-                completed: false,
-                assignedUserIds: t.assignedUserIds || []
-            })) || []
-        };
-
+    generateWorkOrderFromPlan: async (planId) => {
         try {
-            const nextRun = new Date(scheduledDate);
-            nextRun.setUTCDate(nextRun.getUTCDate() + plan.frequencyDays);
-            const nextRunIso = nextRun.toISOString();
-            const lastRunIso = new Date().toISOString();
-
-            await preventivePlanService.updateDates(plan.id, lastRunIso, nextRunIso);
-
-            const newWO = await workOrderService.create(nextWO);
-            toast.success(`Orden preventiva lanzada para el ${new Date(scheduledDate).toLocaleDateString()}`);
-
-            set((state) => ({
-                workOrders: state.workOrders.find((w) => w.id === newWO.id)
-                    ? state.workOrders
-                    : [newWO, ...state.workOrders],
-                preventivePlans: state.preventivePlans.map((p) =>
-                    p.id === plan.id ? { ...p, lastRun: lastRunIso, nextRun: nextRunIso } : p
-                )
-            }));
-
+            // Motor en BD: una OT por objetivo (título «Plan — Equipo») y rueda
+            // el ciclo de cada uno.
+            await preventivePlanService.launchPlan(planId);
+            toast.success('Órdenes preventivas lanzadas');
+            const [plans, workOrders] = await Promise.all([
+                preventivePlanService.getAll(),
+                workOrderService.getAll()
+            ]);
+            set({ preventivePlans: plans, workOrders });
         } catch (error) {
             console.error(error);
-            toast.error('Error al lanzar orden preventiva');
+            toast.error('Error al lanzar el plan');
+            throw error;
+        }
+    },
+
+    updatePlanTarget: async (targetId, nextRun) => {
+        try {
+            await preventivePlanService.updateTarget(targetId, nextRun);
+            const plans = await preventivePlanService.getAll();
+            set({ preventivePlans: plans });
+            toast.success('Ciclo del objetivo actualizado');
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al actualizar el ciclo');
             throw error;
         }
     }

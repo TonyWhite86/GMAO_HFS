@@ -34,7 +34,7 @@ export const CommentTimeline: React.FC<CommentTimelineProps> = ({
     return (
         <div className="space-y-4">
             {title && (
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <h3 className="text-xs font-bold text-txt-3 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <MessageSquare size={16} /> {title}
                 </h3>
             )}
@@ -50,23 +50,34 @@ export const CommentTimeline: React.FC<CommentTimelineProps> = ({
                             className={`flex gap-3 ${comment.userId === currentUserId ? 'flex-row-reverse' : ''}`}
                         >
                             {!comment.isSystem && (
-                                <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center text-xs font-bold text-white shrink-0 ${comment.userId === currentUserId ? 'bg-blue-600' : 'bg-slate-400'}`}>
+                                <div className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center text-xs font-bold text-white shrink-0"
+                                    style={{ background: comment.userId === currentUserId ? 'var(--accent)' : 'var(--text3)' }}>
                                     {(comment.userName || 'U').charAt(0)}
                                 </div>
                             )}
 
-                            <div className={`max-w-[85%] rounded-lg p-3 ${comment.isSystem
-                                ? `text-sm border ${comment.status ? WO_STATUS_CONFIG[comment.status]?.bgClass : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 italic border-slate-200 dark:border-slate-700'} text-center w-full`
-                                : (comment.userId === currentUserId
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200')
-                                }`}>
+                            <div
+                                className={`max-w-[85%] rounded-lg p-3 ${comment.isSystem
+                                    ? `text-sm border ${comment.status ? WO_STATUS_CONFIG[comment.status]?.bgClass : 'bg-surface-2 text-txt-2 italic border-line'} text-center w-full`
+                                    : (comment.userId === currentUserId
+                                        ? 'text-white'
+                                        : 'bg-surface border border-line text-txt')
+                                    }`}
+                                style={!comment.isSystem && comment.userId === currentUserId ? { background: 'var(--btn-primary-bg)' } : undefined}
+                            >
                                 {!comment.isSystem && (
                                     <div className="flex justify-between items-center gap-4 mb-1">
                                         <span className="text-xs opacity-70 font-bold">{comment.userName}</span>
                                         <span className="text-[10px] opacity-50">
                                             {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
+                                    </div>
+                                )}
+                                {comment.isSystem && (
+                                    <div className="flex items-center justify-center gap-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-txt-3">
+                                        <span>{new Date(comment.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                        <span>·</span>
+                                        <span>{new Date(comment.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
                                 )}
 
@@ -78,15 +89,15 @@ export const CommentTimeline: React.FC<CommentTimelineProps> = ({
                                         {comment.attachments.map((att, idx) => (
                                             <div
                                                 key={idx}
-                                                className="relative group cursor-pointer overflow-hidden rounded border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800"
+                                                className="relative group cursor-pointer overflow-hidden rounded border border-line bg-surface-2"
                                                 onClick={() => setViewMedia({ type: att.type as any, url: att.url, name: att.name })}
                                             >
                                                 <div className="w-20 h-20">
                                                     {att.type === 'image' ? (
                                                         <img src={att.url} alt={att.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-700">
-                                                            <StopCircle size={20} className="text-slate-400" />
+                                                        <div className="w-full h-full flex items-center justify-center bg-surface-3">
+                                                            <StopCircle size={20} className="text-txt-3" />
                                                         </div>
                                                     )}
                                                 </div>
@@ -98,7 +109,7 @@ export const CommentTimeline: React.FC<CommentTimelineProps> = ({
                         </div>
                     ))
                 ) : (
-                    <div className="text-center py-8 text-slate-400 text-sm italic">
+                    <div className="text-center py-8 text-txt-3 text-sm italic">
                         {emptyMessage}
                     </div>
                 )}

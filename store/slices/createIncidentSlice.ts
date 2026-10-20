@@ -25,6 +25,7 @@ export interface IncidentSlice {
     }) => Promise<{ incidentId: string; stoppageId: string | null }>;
     updateIncident: (id: string, updates: Partial<Incident>) => Promise<void>;
     transitionIncidentStatus: (id: string, status: IncidentStatus, reason?: string, solution?: string) => Promise<void>;
+    confirmIncidentClose: (id: string, accept: boolean, comment?: string) => Promise<void>;
     addIncidentComment: (comment: Partial<IncidentComment>) => Promise<void>;
     convertToWorkOrder: (incidentId: string, woData: any) => Promise<void>;
 }
@@ -142,44 +143,68 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
             throw new Error('Incidencia no encontrada');
         }
 
-        const finalReason = reason !== undefined ? reason : (incident.reason || undefined);
-
-        // Validación optimista para el toast inmediato; la BD vuelve a validar.
-        if (status === IncidentStatus.IN_REVIEW && !finalReason?.trim()) {
-            toast.error('Indica el motivo para pasar a En Revisión');
-            throw new Error('Falta motivo');
-        }
-        if (status === IncidentStatus.RESOLVED) {
-            if (!finalReason?.trim()) {
-                toast.error('Indica el motivo antes de resolver la incidencia');
-                throw new Error('Falta motivo');
-            }
-            if (!solution?.trim()) {
-                toast.error('Indica la solución para resolver la incidencia');
-                throw new Error('Falta solución');
-            }
-        }
-
-        const resolvedAt = status === IncidentStatus.RESOLVED ? new Date().toISOString() : null;
-        const resolvedBy = status === IncidentStatus.RESOLVED ? get().currentUser?.id : null;
+        // Misma regla que la BD: si quien cierra NO es el creador, el cierre
+        // queda Pendiente de Confirmación de Cierre (la BD manda; realtime refresca).
+        const currentUser = get().currentUser;
+        const closesDirectly = status === IncidentStatus.CLOSED
+            && incident.createdBy === currentUser?.id;
+        const effectiveStatus = status === IncidentStatus.CLOSED && !closesDirectly
+            ? IncidentStatus.PENDING_CLOSE
+            : status;
+        const sealsResolution = effectiveStatus === IncidentStatus.CLOSED
+            || effectiveStatus === IncidentStatus.PENDING_CLOSE;
+        const resolvedAt = sealsResolution ? new Date().toISOString() : null;
+        const resolvedBy = sealsResolution ? currentUser?.id : null;
 
         try {
-            // RPC atómica: valida transiciones, exige motivo/solución y sella
-            // resolved_at/resolved_by en la BD (no falsificables desde el cliente).
-            await incidentService.transition(id, status, finalReason ?? null, solution ?? null);
+            // RPC atómica: valida la transición y sella resolved_at/resolved_by
+            // en la BD (no falsificables desde el cliente).
+            await incidentService.transition(id, status, reason ?? null, solution ?? null);
             set((state) => ({
                 incidents: state.incidents.map(inc => inc.id === id ? {
                     ...inc,
-                    status,
-                    reason: finalReason ?? inc.reason,
-                    solution: solution !== undefined ? solution : inc.solution,
+                    status: effectiveStatus,
+                    reason: reason !== undefined ? (reason || null) : inc.reason,
+                    solution: solution !== undefined ? (solution || null) : inc.solution,
                     resolvedAt,
                     resolvedBy,
-                    resolvedByName: resolvedBy ? get().currentUser?.name : undefined
+                    resolvedByName: resolvedBy ? currentUser?.name : undefined
                 } : inc)
             }));
-            toast.success(`Incidencia ${status.toLowerCase()}`);
+            if (effectiveStatus === IncidentStatus.PENDING_CLOSE) {
+                toast.success('Cierre propuesto — pendiente de confirmación del creador');
+            } else {
+                toast.success(`Incidencia: ${effectiveStatus.toLowerCase()}`);
+            }
         } catch (error) {
+            throw error;
+        }
+    },
+
+    confirmIncidentClose: async (id, accept, comment) => {
+        const incident = get().incidents.find((i) => i.id === id);
+        if (!incident) {
+            toast.error('Incidencia no encontrada');
+            throw new Error('Incidencia no encontrada');
+        }
+        if (!accept && !comment?.trim()) {
+            toast.error('Indica por qué la incidencia no está resuelta');
+            throw new Error('Falta comentario');
+        }
+        try {
+            await incidentService.confirmClose(id, accept, comment ?? null);
+            set((state) => ({
+                incidents: state.incidents.map(inc => inc.id === id ? {
+                    ...inc,
+                    status: accept ? IncidentStatus.CLOSED : IncidentStatus.OPEN,
+                    resolvedAt: accept ? inc.resolvedAt : null,
+                    resolvedBy: accept ? inc.resolvedBy : null,
+                    resolvedByName: accept ? inc.resolvedByName : undefined
+                } : inc)
+            }));
+            toast.success(accept ? 'Cierre confirmado' : 'Incidencia reabierta');
+        } catch (error) {
+            toast.error('Error al confirmar el cierre');
             throw error;
         }
     },
@@ -220,13 +245,16 @@ export const createIncidentSlice: StateCreator<AppState, [], [], IncidentSlice> 
                 assignedUserId: woData.assignedUserId,
                 scheduledDate: woData.scheduledDate,
                 subtasks: woData.subtasks || [],
-                attachments: (woData.attachments?.length ? woData.attachments : [])
+                attachments: (woData.attachments?.length ? woData.attachments : []),
+                isExternal: woData.isExternal || false,
+                contractorId: woData.contractorId || null,
+                externalPrice: woData.externalPrice ?? null
             });
 
             set((state) => ({
                 incidents: state.incidents.map(inc => inc.id === incidentId ? {
                     ...inc,
-                    status: IncidentStatus.CONVERTED,
+                    status: IncidentStatus.SCHEDULED,
                     workOrderId,
                     section: woData.section
                 } : inc)

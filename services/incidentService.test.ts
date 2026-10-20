@@ -130,7 +130,7 @@ describe('incidentService', () => {
                 id: 'inc1', title: 'Fuga', status: 'Resuelta',
                 created_at: '2026-07-15'
             }));
-            const result = await incidentService.update('inc1', { status: IncidentStatus.RESOLVED });
+            const result = await incidentService.update('inc1', { status: IncidentStatus.CLOSED });
             expect(result.status).toBe('Resuelta');
         });
     });
@@ -209,13 +209,13 @@ describe('incidentService', () => {
             const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
             (supabase as any).rpc = rpc;
 
-            await incidentService.transition('inc1', 'Resuelta', 'motivo', 'sol', null);
+            await incidentService.transition('inc1', 'Cerrada', null, null, null);
 
             expect(rpc).toHaveBeenCalledWith('transition_incident', {
                 p_id: 'inc1',
-                p_status: 'Resuelta',
-                p_reason: 'motivo',
-                p_solution: 'sol',
+                p_status: 'Cerrada',
+                p_reason: null,
+                p_solution: null,
                 p_comment: null
             });
         });

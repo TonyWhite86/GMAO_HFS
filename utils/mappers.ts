@@ -3,7 +3,9 @@ import {
     PurchaseOrder, Incident, User, Section, Attachment,
     Comment, SubTask, IncidentComment, IncidentStatus, WorkOrderEvent,
     Skill, UserSkill, InventoryMovement, UserPermission,
-    IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus
+    IncidentCategory, EquipmentStoppage, StoppageReasonType, StoppageStatus,
+    Contractor, ChecklistTemplate, ChecklistItem, ChecklistAnswer,
+    EquipmentAcceptance, EquipmentGroup, PreventivePlanTarget
 } from '../types';
 
 export const mapSkill = (s: any): Skill => ({
@@ -62,6 +64,7 @@ export const mapEquipment = (e: any, allAttachments: any[] = []): Equipment => (
             name: a.name,
             type: a.type as 'file' | 'folder',
             url: a.url,
+            category: a.category ?? null,
             date: a.created_at || new Date().toISOString()
         }))
 });
@@ -135,6 +138,13 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     assignedUserId: wo.assigned_user_id,
     collaborators: wo.collaborators,
     section: wo.section,
+    isExternal: wo.is_external ?? false,
+    closureChecklist: (Array.isArray(wo.closure_checklist) ? wo.closure_checklist : [])
+        .map((it: any) => ({ id: it.id, text: it.text })),
+    checklistAnswers: wo.checklist_answers ?? {},
+    contractorId: wo.contractor_id ?? null,
+    contractorName: wo.contractor?.name ?? null,
+    externalPrice: wo.external_price != null ? Number(wo.external_price) : null,
     createdBy: wo.created_by,
     createdAt: wo.created_at,
     scheduledDate: wo.scheduled_date,
@@ -174,16 +184,19 @@ export const mapInventoryItem = (i: any): InventoryItem => ({
     linkedEquipmentIds: i.linked_equipment_ids || []
 });
 
-export const mapPreventivePlan = (p: any): PreventivePlan => ({
+export const mapPreventivePlan = (p: any, existing?: PreventivePlan): PreventivePlan => ({
     id: p.id,
     name: p.name,
     description: p.description,
-    equipmentId: p.equipment_id,
+    equipmentId: p.equipment_id ?? undefined,
     frequencyDays: p.frequency_days,
     lastRun: p.last_run,
     nextRun: p.next_run,
     tasks: p.tasks || [],
-    section: p.section
+    section: p.section,
+    targets: Array.isArray(p.targets)
+        ? p.targets.map(mapPreventivePlanTarget)
+        : existing?.targets  // el payload realtime no trae el join
 });
 
 export const mapPurchaseOrder = (po: any): PurchaseOrder => ({
@@ -263,6 +276,71 @@ export const mapIncidentComment = (c: any): IncidentComment => ({
     isSystem: c.is_system,
     createdAt: c.created_at,
     attachments: c.attachments || []
+});
+
+export const mapEquipmentAcceptance = (a: any): EquipmentAcceptance => ({
+    equipmentId: a.equipment_id,
+    manualsOk: a.manuals_ok ?? false,
+    conformityOk: a.conformity_ok ?? false,
+    signoffs: (Array.isArray(a.signoffs) ? a.signoffs : []).map((x: any) => ({
+        id: x.id,
+        department: x.department,
+        userId: x.user_id ?? null,
+        userName: x.user_name ?? null,
+        date: x.date
+    })),
+    trainings: (Array.isArray(a.trainings) ? a.trainings : []).map((x: any) => ({
+        id: x.id,
+        trainee: x.trainee,
+        traineeId: x.trainee_id ?? null,
+        trainer: x.trainer,
+        trainerId: x.trainer_id ?? null,
+        date: x.date
+    })),
+    updatedBy: a.updated_by ?? null,
+    updatedAt: a.updated_at
+});
+
+export const mapChecklistTemplate = (t: any): ChecklistTemplate => ({
+    id: t.id,
+    name: t.name,
+    items: (Array.isArray(t.items) ? t.items : []).map((it: any) => ({
+        id: it.id,
+        text: it.text
+    })),
+    active: t.active ?? true,
+    createdBy: t.created_by ?? null,
+    createdAt: t.created_at
+});
+
+export const mapEquipmentGroup = (g: any): EquipmentGroup => ({
+    id: g.id,
+    name: g.name,
+    description: g.description ?? null,
+    equipmentIds: Array.isArray(g.equipment_ids) ? g.equipment_ids : [],
+    active: g.active ?? true,
+    createdBy: g.created_by ?? null,
+    createdAt: g.created_at
+});
+
+export const mapPreventivePlanTarget = (t: any): PreventivePlanTarget => ({
+    id: t.id,
+    planId: t.plan_id,
+    equipmentId: t.equipment_id,
+    sourceGroupId: t.source_group_id ?? null,
+    lastRun: t.last_run ?? null,
+    nextRun: t.next_run
+});
+
+export const mapContractor = (c: any): Contractor => ({
+    id: c.id,
+    name: c.name,
+    contact: c.contact ?? null,
+    phone: c.phone ?? null,
+    email: c.email ?? null,
+    notes: c.notes ?? null,
+    active: c.active ?? true,
+    createdAt: c.created_at
 });
 
 export const mapIncidentCategory = (c: any): IncidentCategory => ({

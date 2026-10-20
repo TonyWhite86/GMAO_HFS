@@ -82,3 +82,16 @@ export const canManageIncident = (
     if (!canSeeIncident(incident, user, categories, sections)) return false;
     return user.role === UserRole.SECTION_MANAGER || isWildcardUser(user, sections);
 };
+
+/** ¿Puede convertir la incidencia en una Orden de Trabajo?
+ *  Solo Admin o personal de sección comodín (Mantenimiento/Ingeniería).
+ *  Un observador nunca puede (isWildcardUser lo excluye).
+ *  Espejo de `convert_incident_to_wo` en `database/hfs_all.sql`. */
+export const canConvertIncident = (
+    user: Pick<User, 'role' | 'sections'> | null | undefined,
+    sections: Pick<Section, 'name' | 'isWildcard'>[] = []
+): boolean => {
+    if (!user) return false;
+    if (user.role === UserRole.ADMIN) return true;
+    return isWildcardUser(user, sections);
+};

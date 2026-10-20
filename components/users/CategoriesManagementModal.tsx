@@ -96,7 +96,7 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
 
     return (
         <Modal onClose={onClose}>
-            <Modal.Header onClose={onClose} icon={<Tag size={24} className="text-blue-500" />}>
+            <Modal.Header onClose={onClose} icon={<Tag size={24} className="text-accent" />}>
                 {editingCategory ? 'Editar Categoría' : 'Nueva Categoría de Incidencia'}
             </Modal.Header>
 
@@ -104,70 +104,70 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="flex gap-3 items-end">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Nombre *</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Nombre *</label>
                             <input
                                 type="text"
                                 required
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Ej. Falta de personal"
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-line bg-surface text-txt focus:ring-2 focus:ring-accent outline-none"
                             />
                         </div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 pb-2 cursor-pointer whitespace-nowrap">
+                        <label className="flex items-center gap-2 text-sm font-medium text-txt-2 pb-2 cursor-pointer whitespace-nowrap">
                             <input
                                 type="checkbox"
                                 checked={isActive}
                                 onChange={(e) => setIsActive(e.target.checked)}
-                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="rounded border-line-2 text-accent focus:ring-accent"
                             />
                             Activa
                         </label>
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 pb-2 cursor-pointer whitespace-nowrap">
+                        <label className="flex items-center gap-2 text-sm font-medium text-txt-2 pb-2 cursor-pointer whitespace-nowrap">
                             <input
                                 type="checkbox"
                                 checked={isDefault}
                                 onChange={(e) => setIsDefault(e.target.checked)}
-                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                className="rounded border-line-2 text-ok focus:ring-ok"
                             />
                             Por defecto
                         </label>
                     </div>
-                    <p className="text-xs text-slate-400 -mt-3">
+                    <p className="text-xs text-txt-3 -mt-3">
                         La categoría por defecto es la que se preselecciona al crear una incidencia. Solo puede haber una.
                     </p>
 
                     <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Visibilidad</p>
-                        <p className="text-xs text-slate-400 mb-2">
+                        <p className="text-sm font-medium text-txt-2 mb-1">Visibilidad</p>
+                        <p className="text-xs text-txt-3 mb-2">
                             Sin marcar nada, la categoría la ve todo el mundo. Si marcas secciones o roles, solo la verán esos usuarios (el Admin siempre ve todo).
                         </p>
 
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Secciones</p>
+                        <p className="text-xs font-bold text-txt-3 uppercase tracking-wider mb-1">Secciones</p>
                         <div className="grid grid-cols-2 gap-1.5 mb-3 max-h-32 overflow-y-auto custom-scrollbar p-1">
                             {sections.map(s => (
-                                <label key={s.id} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
+                                <label key={s.id} className="flex items-center gap-2 text-xs text-txt-2 cursor-pointer p-1 hover:bg-surface-2 rounded">
                                     <input
                                         type="checkbox"
                                         checked={visibleSections.includes(s.name)}
                                         onChange={() => toggle(visibleSections, s.name, setVisibleSections)}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-line-2 text-accent focus:ring-accent"
                                     />
                                     {s.name}
                                 </label>
                             ))}
-                            {sections.length === 0 && <span className="text-xs text-slate-400">No hay secciones</span>}
+                            {sections.length === 0 && <span className="text-xs text-txt-3">No hay secciones</span>}
                         </div>
 
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Roles</p>
+                        <p className="text-xs font-bold text-txt-3 uppercase tracking-wider mb-1">Roles</p>
                         <div className="grid grid-cols-2 gap-1.5 p-1">
                             {ALL_ROLES.map(role => (
-                                <label key={role} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
+                                <label key={role} className="flex items-center gap-2 text-xs text-txt-2 cursor-pointer p-1 hover:bg-surface-2 rounded">
                                     <input
                                         type="checkbox"
                                         checked={visibleRoles.includes(role)}
                                         onChange={() => toggle(visibleRoles, role, setVisibleRoles)}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-line-2 text-accent focus:ring-accent"
                                     />
                                     {role}
                                 </label>
@@ -175,7 +175,7 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex justify-end gap-3 pt-2 border-t border-line">
                         {!editingCategory && name.trim() && (
                             <button
                                 type="button"
@@ -184,7 +184,7 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
                                     setVisibleSections([]);
                                     setVisibleRoles([]);
                                 }}
-                                className="px-4 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm"
+                                className="px-4 py-2 text-txt-2 hover:bg-surface-2 rounded-lg text-sm"
                             >
                                 Limpiar
                             </button>
@@ -192,7 +192,7 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                            className="px-6 py-2 bg-accent hover:bg-accent-2 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
                         >
                             {editingCategory ? <Save size={16} /> : <Plus size={16} />}
                             {editingCategory ? 'Guardar Cambios' : 'Crear Categoría'}
@@ -202,32 +202,32 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
 
                 {!editingCategory && (
                     <div className="mt-6">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Categorías existentes</p>
+                        <p className="text-xs font-bold text-txt-3 uppercase tracking-wider mb-2">Categorías existentes</p>
                         <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                             {incidentCategories.map(c => (
-                                <div key={c.id} className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2">
+                                <div key={c.id} className="flex items-center justify-between gap-2 bg-surface-2 border border-line rounded-lg px-3 py-2">
                                     <div className="min-w-0">
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                        <p className="text-sm font-bold text-txt flex items-center gap-2">
                                             {c.name}
                                             {c.isDefault && (
-                                                <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Por defecto</span>
+                                                <span className="text-[10px] bg-ok-dim text-ok px-1.5 py-0.5 rounded-full">Por defecto</span>
                                             )}
                                             {!c.isActive && (
-                                                <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded-full">Inactiva</span>
+                                                <span className="text-[10px] bg-surface-3 text-txt-2 px-1.5 py-0.5 rounded-full">Inactiva</span>
                                             )}
                                         </p>
-                                        <p className="text-[11px] text-slate-400 truncate">{visibilitySummary(c)}</p>
+                                        <p className="text-[11px] text-txt-3 truncate">{visibilitySummary(c)}</p>
                                     </div>
                                     <button
                                         onClick={() => handleDelete(c)}
-                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        className="p-1.5 text-txt-3 hover:text-ko hover:bg-ko-dim rounded transition-colors"
                                     >
                                         <Trash2 size={15} />
                                     </button>
                                 </div>
                             ))}
                             {incidentCategories.length === 0 && (
-                                <p className="text-xs text-slate-400">No hay categorías creadas</p>
+                                <p className="text-xs text-txt-3">No hay categorías creadas</p>
                             )}
                         </div>
                     </div>
@@ -238,7 +238,7 @@ export const CategoriesManagementModal: React.FC<CategoriesManagementModalProps>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-6 py-2.5 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 text-txt-2 font-bold text-sm hover:bg-surface-2 rounded-xl transition-colors flex items-center gap-2"
                 >
                     <X size={16} />
                     Cerrar

@@ -96,7 +96,7 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
         <Modal onClose={handleCancel}>
             <Modal.Header
                 onClose={handleCancel}
-                icon={<div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400"><Box size={24} /></div>}
+                icon={<div className="p-2 bg-accent-dim rounded-lg text-accent"><Box size={24} /></div>}
             >
                 Nuevo Artículo de Inventario
             </Modal.Header>
@@ -110,10 +110,10 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
                                 <img
                                     src={newItem.image}
                                     alt="Vista previa"
-                                    className="w-40 h-40 object-cover rounded-2xl shadow-md border-4 border-white dark:border-slate-800"
+                                    className="w-40 h-40 object-cover rounded-2xl shadow-md border-4 border-white border-line"
                                 />
                             ) : (
-                                <div className="w-40 h-40 bg-slate-100 dark:bg-slate-700 rounded-2xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                <div className="w-40 h-40 bg-surface-2 rounded-2xl flex flex-col items-center justify-center text-txt-3 border-2 border-dashed border-line">
                                     <ImageIcon size={40} className="mb-2 opacity-50" />
                                     <span className="text-[10px] font-bold uppercase tracking-wider">Sin imagen</span>
                                 </div>
@@ -122,7 +122,7 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="p-2 bg-white rounded-full text-slate-800 hover:bg-blue-50 transition-colors mr-2"
+                                    className="p-2 bg-surface rounded-full text-txt hover:bg-accent-dim transition-colors mr-2"
                                 >
                                     <Upload size={20} />
                                 </button>
@@ -135,7 +135,7 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
                                                 setNewItem({ ...newItem, image: undefined });
                                             }
                                         }}
-                                        className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 transition-colors"
+                                        className="p-2 bg-surface rounded-full text-ko hover:bg-ko-dim transition-colors"
                                     >
                                         <Trash2 size={20} />
                                     </button>
@@ -245,7 +245,7 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
                             type="number"
                             value={isNaN(newItem.minStock) ? '' : newItem.minStock}
                             onChange={e => setNewItem({ ...newItem, minStock: e.target.value === '' ? NaN : parseInt(e.target.value) })}
-                            className="font-bold text-red-600 dark:text-red-400"
+                            className="font-bold text-ko"
                         />
                     </div>
 
@@ -273,9 +273,9 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
 
                     {/* QR Code Section */}
                     <div className="md:col-span-2">
-                        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-800">
+                        <div className="bg-surface-2 p-4 rounded-xl flex items-center justify-between border border-line">
                             <div className="flex items-center gap-3">
-                                <div className="bg-white p-2 rounded border border-slate-200">
+                                <div className="bg-surface p-2 rounded border border-line">
                                     <QRCodeSVG
                                         value={newItem.qrCode || newItem.sku || 'N/A'}
                                         size={48}
@@ -283,8 +283,8 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
                                     />
                                 </div>
                                 <div>
-                                    <div className="text-xs text-slate-400 font-mono mb-0.5">Vista Previa QR</div>
-                                    <div className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{newItem.qrCode || newItem.sku || 'N/A'}</div>
+                                    <div className="text-xs text-txt-3 font-mono mb-0.5">Vista Previa QR</div>
+                                    <div className="font-mono text-sm font-bold text-txt-2">{newItem.qrCode || newItem.sku || 'N/A'}</div>
                                 </div>
                             </div>
                             <div className="flex-1 ml-6">
@@ -303,14 +303,14 @@ export const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ onCl
             <Modal.Footer>
                 <button
                     onClick={handleCancel}
-                    className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                    className="px-4 py-2 text-txt-2 hover:bg-surface-3 rounded-lg transition-colors font-medium"
                 >
                     Cancelar
                 </button>
                 <button
                     form="create-inventory-form"
                     type="submit"
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                    className="px-6 py-2 btn btn-primary text-white rounded-lg font-medium shadow-lg shadow-accent/20 transition-all flex items-center gap-2"
                 >
                     <Save size={18} /> Crear Artículo
                 </button>

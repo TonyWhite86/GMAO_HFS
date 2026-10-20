@@ -55,6 +55,7 @@ export const incidentService = {
         if (updates.workOrderId !== undefined) rawUpdates.work_order_id = updates.workOrderId;
         if (updates.attachments !== undefined) rawUpdates.attachments = updates.attachments;
         if (updates.section !== undefined) rawUpdates.section = updates.section;
+        if (updates.createdAt !== undefined) rawUpdates.created_at = updates.createdAt;
 
         const { data, error } = await supabase
             .from('incidents')
@@ -97,6 +98,16 @@ export const incidentService = {
         if (error) throw error;
     },
 
+    /** Confirmación del cierre por el creador: acepta (→ Resuelta) o rechaza (→ Abierta). */
+    confirmClose: async (id: string, accept: boolean, comment?: string | null) => {
+        const { error } = await supabase.rpc('confirm_incident_close', {
+            p_id: id,
+            p_accept: accept,
+            p_comment: comment ?? null
+        });
+        if (error) throw error;
+    },
+
     /** Conversión a OT atómica e idempotente. Devuelve el id de la OT. */
     convertToWorkOrder: async (incidentId: string, payload: {
         title: string;
@@ -109,6 +120,9 @@ export const incidentService = {
         scheduledDate?: string | null;
         subtasks?: unknown[];
         attachments?: unknown[];
+        isExternal?: boolean;
+        contractorId?: string | null;
+        externalPrice?: number | null;
     }) => {
         const { data, error } = await supabase.rpc('convert_incident_to_wo', {
             p_incident_id: incidentId,
@@ -121,7 +135,10 @@ export const incidentService = {
             p_assigned_user_id: payload.assignedUserId ?? null,
             p_scheduled_date: payload.scheduledDate ?? null,
             p_subtasks: payload.subtasks ?? [],
-            p_attachments: payload.attachments ?? []
+            p_attachments: payload.attachments ?? [],
+            p_is_external: payload.isExternal ?? false,
+            p_contractor_id: payload.contractorId ?? null,
+            p_external_price: payload.externalPrice ?? null
         });
         if (error) throw error;
         return data as string;

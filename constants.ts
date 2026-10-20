@@ -2,35 +2,43 @@ import { WOStatus, WOPriority, WOType, IncidentStatus, StoppageReasonType, Stopp
 import {
     AlertCircle, Clock, CheckCircle2, XCircle, FileText,
     AlertTriangle, PlayCircle, PauseCircle, Calendar,
-    ArrowRight, Info, Wrench, Building2
+    Info, Wrench, Building2
 } from 'lucide-react';
+
+// Semántica de color (Pulso): pendiente=ámbar, activo=azul, completado=verde,
+// cancelado=rojo; tipo: correctivo=azul, preventivo=verde, mejora=púrpura.
+// Clases = variantes .bdg-* de index.css (tema-aware).
 
 export const WO_STATUS_CONFIG = {
     [WOStatus.PENDING]: {
         label: 'Pendiente',
         icon: AlertCircle,
-        bgClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+        bgClass: 'bdg-amber',
+        dotColor: 'var(--amber)',
         actionIcon: PlayCircle,
         actionLabel: 'Empezar'
     },
     [WOStatus.SCHEDULED]: {
         label: 'Programada',
         icon: Calendar,
-        bgClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+        bgClass: 'bdg-purple',
+        dotColor: 'var(--purple)',
         actionIcon: Calendar,
         actionLabel: 'Programar'
     },
     [WOStatus.IN_PROGRESS]: {
         label: 'En Progreso',
         icon: Clock,
-        bgClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        bgClass: 'bdg-accent',
+        dotColor: 'var(--accent)',
         actionIcon: PauseCircle,
         actionLabel: 'Pausar'
     },
     [WOStatus.COMPLETED]: {
         label: 'Completada',
         icon: CheckCircle2,
-        bgClass: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
+        bgClass: 'bdg-green',
+        dotColor: 'var(--green)',
         actionIcon: CheckCircle2,
         actionLabel: 'Finalizar'
     }
@@ -40,32 +48,50 @@ export const INCIDENT_STATUS_CONFIG = {
     [IncidentStatus.OPEN]: {
         label: 'Abierta',
         icon: AlertCircle,
-        colorClass: 'text-amber-500',
-        bgClass: 'bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/50'
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
     },
-    [IncidentStatus.IN_REVIEW]: {
-        label: 'En Revisión',
+    [IncidentStatus.IN_PROGRESS]: {
+        label: 'En Curso',
+        icon: PlayCircle,
+        colorClass: 'text-accent',
+        bgClass: 'bdg-accent'
+    },
+    [IncidentStatus.PAUSED_MATERIAL]: {
+        label: 'Pausada Material',
+        icon: PauseCircle,
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
+    },
+    [IncidentStatus.PAUSED_BUDGET]: {
+        label: 'Pausada Presupuesto',
+        icon: PauseCircle,
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
+    },
+    [IncidentStatus.PAUSED_EXTERNAL]: {
+        label: 'Pausada Externos',
+        icon: PauseCircle,
+        colorClass: 'text-spec',
+        bgClass: 'bdg-purple'
+    },
+    [IncidentStatus.SCHEDULED]: {
+        label: 'Programada Intervención',
+        icon: Calendar,
+        colorClass: 'text-spec',
+        bgClass: 'bdg-purple'
+    },
+    [IncidentStatus.PENDING_CLOSE]: {
+        label: 'Pendiente de Confirmación',
         icon: Clock,
-        colorClass: 'text-blue-500',
-        bgClass: 'bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/50'
+        colorClass: 'text-warn',
+        bgClass: 'bdg-amber'
     },
-    [IncidentStatus.CONVERTED]: {
-        label: 'Convertida a OT',
-        icon: FileText,
-        colorClass: 'text-purple-500',
-        bgClass: 'bg-purple-100/50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200/50 dark:border-purple-800/50'
-    },
-    [IncidentStatus.RESOLVED]: {
-        label: 'Resuelta',
+    [IncidentStatus.CLOSED]: {
+        label: 'Cerrada',
         icon: CheckCircle2,
-        colorClass: 'text-emerald-500',
-        bgClass: 'bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/50'
-    },
-    [IncidentStatus.CANCELLED]: {
-        label: 'Cancelada',
-        icon: XCircle,
-        colorClass: 'text-slate-400',
-        bgClass: 'bg-slate-100/50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400 border-slate-200/50 dark:border-slate-700/50'
+        colorClass: 'text-ok',
+        bgClass: 'bdg-green'
     }
 };
 
@@ -74,25 +100,29 @@ export const PRIORITY_CONFIG = {
         label: 'Crítica',
         icon: AlertTriangle,
         color: 'red',
-        bgClass: 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/40 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-500/20 shadow-sm shadow-red-500/10'
+        bgClass: 'bg-ko-dim text-ko border-ko-border',
+        dotColor: 'var(--red)'
     },
     [WOPriority.HIGH]: {
         label: 'Alta',
         icon: AlertTriangle,
         color: 'orange',
-        bgClass: 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20 shadow-sm shadow-amber-500/10'
+        bgClass: 'bg-warn-dim text-warn border-warn-border',
+        dotColor: 'var(--amber)'
     },
     [WOPriority.MEDIUM]: {
         label: 'Media',
         icon: Clock,
         color: 'blue',
-        bgClass: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/20 shadow-sm shadow-blue-500/10'
+        bgClass: 'bg-accent-dim text-accent border-accent-border',
+        dotColor: 'var(--accent)'
     },
     [WOPriority.LOW]: {
         label: 'Baja',
         icon: Clock,
         color: 'slate',
-        bgClass: 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/20 dark:to-slate-800/40 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm shadow-slate-500/5'
+        bgClass: 'bg-surface-3 text-txt-2 border-line',
+        dotColor: 'var(--text3)'
     }
 };
 
@@ -112,20 +142,23 @@ export const PERMISSION_LEVELS = [
 export const WAREHOUSE_KEYWORDS = ['almacen', 'logistica'];
 
 export const getStatusColor = (status: WOStatus): string =>
-    WO_STATUS_CONFIG[status]?.bgClass || 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300 border-gray-200 dark:border-slate-600';
+    WO_STATUS_CONFIG[status]?.bgClass || 'bdg-gray';
 
 export const WO_TYPE_CONFIG = {
     [WOType.CORRECTIVE]: {
         label: 'Correctivo',
-        bgClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+        bgClass: 'bdg-accent',
+        dotColor: 'var(--accent)'
     },
     [WOType.PREVENTIVE]: {
         label: 'Preventivo',
-        bgClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+        bgClass: 'bdg-green',
+        dotColor: 'var(--green)'
     },
     [WOType.PLANNED]: {
         label: 'Actuación',
-        bgClass: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+        bgClass: 'bdg-purple',
+        dotColor: 'var(--purple)'
     }
 };
 
@@ -134,29 +167,29 @@ export const WO_TYPE_CONFIG = {
 export const STOPPAGE_REASON_FALLBACK = {
     label: 'Otro',
     icon: Wrench,
-    bgClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+    bgClass: 'bdg-gray'
 };
 
 export const STOPPAGE_REASON_CONFIG = {
     [StoppageReasonType.IMPROVEMENT]: {
         label: 'Mejora',
         icon: Wrench,
-        bgClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+        bgClass: 'bdg-purple'
     },
     [StoppageReasonType.MAINTENANCE]: {
         label: 'Mantenimiento',
         icon: Wrench,
-        bgClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+        bgClass: 'bdg-green'
     },
     [StoppageReasonType.THIRD_PARTY]: {
         label: 'Intervención de terceros',
         icon: Building2,
-        bgClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+        bgClass: 'bdg-amber'
     },
     [StoppageReasonType.OTHER]: {
         label: 'Otro',
         icon: Info,
-        bgClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300'
+        bgClass: 'bdg-gray'
     }
 };
 
@@ -164,21 +197,32 @@ export const STOPPAGE_STATUS_CONFIG = {
     [StoppageStatus.SCHEDULED]: {
         label: 'Programada',
         icon: Calendar,
-        bgClass: 'bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/50'
+        bgClass: 'bdg-accent'
     },
     [StoppageStatus.IN_PROGRESS]: {
         label: 'En curso',
         icon: PlayCircle,
-        bgClass: 'bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/50'
+        bgClass: 'bdg-amber'
     },
     [StoppageStatus.COMPLETED]: {
         label: 'Completada',
         icon: CheckCircle2,
-        bgClass: 'bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/50'
+        bgClass: 'bdg-green'
     },
     [StoppageStatus.CANCELLED]: {
         label: 'Cancelada',
         icon: XCircle,
-        bgClass: 'bg-slate-100/50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400 border-slate-700/50'
+        bgClass: 'bdg-red'
     }
+};
+
+// Punto de color por estado de equipo (árbol de Equipos). Colores = variables del tema.
+export const EQUIPMENT_STATUS_DOT: Record<string, string> = {
+    'Nuevo': 'var(--accent)',
+    'En Producción': 'var(--green)',
+    'Almacén': 'var(--accent2)',
+    'Reparación': 'var(--amber)',
+    'Averiado': 'var(--red)',
+    'Inactivo': 'var(--text3)',
+    'Baja': 'var(--text3)'
 };

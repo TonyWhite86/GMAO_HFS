@@ -9,7 +9,7 @@ export interface WorkOrderSlice {
     setWorkOrders: (workOrders: WorkOrder[]) => void;
     addWorkOrder: (wo: WorkOrder) => Promise<WorkOrder>;
     updateWorkOrder: (wo: WorkOrder) => Promise<void>;
-    transitionWorkOrder: (id: string, action: 'start' | 'pause' | 'resume' | 'complete', note?: string | null, manualMinutes?: number | null) => Promise<void>;
+    transitionWorkOrder: (id: string, action: 'start' | 'pause' | 'resume' | 'complete', note?: string | null, manualMinutes?: number | null, checklistAnswers?: Record<string, { sel?: 'si' | 'no' | null; val?: string | null }> | null) => Promise<void>;
     /** Fusión optimista en el store, SIN escribir en BD. */
     patchWorkOrderLocal: (id: string, patch: Partial<WorkOrder>) => void;
     addComment: (comment: Comment, workOrderId: string) => Promise<void>;
@@ -89,7 +89,7 @@ export const createWorkOrderSlice: StateCreator<AppState, [], [], WorkOrderSlice
             workOrders: state.workOrders.map(w => w.id === id ? { ...w, ...patch } : w)
         }));
     },
-    transitionWorkOrder: async (id, action, note, manualMinutes) => {
+    transitionWorkOrder: async (id, action, note, manualMinutes, checklistAnswers) => {
         try {
             const oldWO = get().workOrders.find((w) => w.id === id);
             // RPC atómica: append a status_history, time_spent_minutes derivado
@@ -97,7 +97,7 @@ export const createWorkOrderSlice: StateCreator<AppState, [], [], WorkOrderSlice
             // única dueña de esos campos. Si la OT pertenece a un plan
             // preventivo y se completa, la propia RPC lanza la siguiente
             // (launch_plan_next_wo) — no hay que volver a hacerlo aquí.
-            await workOrderService.transition(id, action, note ?? null, manualMinutes ?? null);
+            await workOrderService.transition(id, action, note ?? null, manualMinutes ?? null, checklistAnswers ?? null);
 
             const now = new Date().toISOString();
             const histStatus = action === 'pause' ? WOStatus.PENDING

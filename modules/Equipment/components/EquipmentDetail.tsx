@@ -9,6 +9,7 @@ import { CreateWorkOrderModal } from '../../../components/CreateWorkOrderModal';
 import { CreatePlannedModal } from '../../../components/CreatePlannedModal';
 import { EquipmentHeader } from './EquipmentHeader';
 import { EquipmentWorkOrders } from './EquipmentWorkOrders';
+import { EquipmentAcceptancePanel } from './EquipmentAcceptancePanel';
 import { EquipmentDocuments } from './EquipmentDocuments';
 import { EquipmentParts } from './EquipmentParts';
 
@@ -32,8 +33,8 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
     const { currentUser, users, workOrders, inventory, addWorkOrder, sections, equipment: allEquipmentList } = useAppStore();
 
     const { isAdmin, isSectionManager } = usePermissions(currentUser);
-    const [activeMainTab, setActiveMainTab] = useState<'work_orders' | 'docs' | 'parts'>('work_orders');
-    const [mobileSubView, setMobileSubView] = useState<'main' | 'work_orders' | 'docs' | 'parts'>('main');
+    const [activeMainTab, setActiveMainTab] = useState<'work_orders' | 'docs' | 'parts' | 'acceptance'>('work_orders');
+    const [mobileSubView, setMobileSubView] = useState<'main' | 'work_orders' | 'docs' | 'parts' | 'acceptance'>('main');
     const [isPhotoZoomed, setIsPhotoZoomed] = useState(false);
     const [isCreateWOModalOpen, setIsCreateWOModalOpen] = useState(false);
     const [isSelectTypeModalOpen, setIsSelectTypeModalOpen] = useState(false);
@@ -44,8 +45,8 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
 
     if (!selectedEquipment) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600 sticky top-0">
-                <FolderOpen size={64} className="mx-auto mb-4 text-slate-200 dark:text-slate-700" />
+            <div className="flex flex-col items-center justify-center h-full text-txt-3 sticky top-0">
+                <FolderOpen size={64} className="mx-auto mb-4 text-txt-3" />
                 <p>Selecciona un equipo para ver los detalles</p>
             </div>
         );
@@ -82,7 +83,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
         }
     };
 
-    const handleNavigateMobile = (view: 'work_orders' | 'docs' | 'parts') => {
+    const handleNavigateMobile = (view: 'work_orders' | 'docs' | 'parts' | 'acceptance') => {
         setMobileSubView(view);
         setActiveMainTab(view);
     };
@@ -112,11 +113,12 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
             />
 
             {/* Tabs Navigation (Desktop) */}
-            <div className="hidden md:block border-b border-slate-200 dark:border-slate-700">
+            <div className="hidden md:block border-b border-line">
                 <nav className="-mb-px flex sm:space-x-8">
-                    <button onClick={() => setActiveMainTab('work_orders')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'work_orders' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500'}`}>Órdenes</button>
-                    <button onClick={() => setActiveMainTab('docs')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'docs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500'}`}>Docs</button>
-                    <button onClick={() => setActiveMainTab('parts')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'parts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500'}`}>Recambios</button>
+                    <button onClick={() => setActiveMainTab('work_orders')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'work_orders' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Órdenes</button>
+                    <button onClick={() => setActiveMainTab('docs')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'docs' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Docs</button>
+                    <button onClick={() => setActiveMainTab('parts')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'parts' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Recambios</button>
+                    <button onClick={() => setActiveMainTab('acceptance')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeMainTab === 'acceptance' ? 'border-accent text-accent' : 'border-transparent text-txt-2'}`}>Aceptación</button>
                 </nav>
             </div>
 
@@ -131,12 +133,15 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
                 {activeMainTab === 'parts' && (
                     <EquipmentParts selectedEquipment={selectedEquipment} onSelectInventoryItem={onSelectInventoryItem} currentUser={currentUser} />
                 )}
+                {activeMainTab === 'acceptance' && (
+                    <EquipmentAcceptancePanel equipment={selectedEquipment} />
+                )}
             </div>
 
             {/* Photo Zoom Modal */}
             {isPhotoZoomed && selectedEquipment.photoUrl && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsPhotoZoomed(false)}>
-                    <button className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all" onClick={() => setIsPhotoZoomed(false)}>
+                    <button className="absolute top-6 right-6 text-white/70 hover:text-white bg-surface/10 p-2 rounded-full hover:bg-surface/20 transition-all" onClick={() => setIsPhotoZoomed(false)}>
                         <X size={32} />
                     </button>
                     <img src={selectedEquipment.photoUrl} alt={selectedEquipment.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()} />

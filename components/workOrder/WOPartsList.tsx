@@ -50,13 +50,13 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
     return (
         <div>
             <div className="flex items-center justify-between mb-4">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <label className="block text-xs font-bold text-txt-2 uppercase tracking-wider flex items-center gap-2">
                     <Package size={16} /> Repuestos y Materiales
                 </label>
                 {isEditing && !showPartSearch && (
                     <button
                         onClick={() => setShowPartSearch(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-xs font-medium active:scale-95 shadow-sm shadow-blue-600/20"
+                        className="flex items-center gap-2 px-3 py-1.5 btn btn-primary text-white rounded-lg transition-all text-xs font-medium active:scale-95 shadow-sm shadow-accent/20"
                     >
                         <Plus size={14} />
                         <span>Añadir Repuesto</span>
@@ -66,23 +66,23 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
 
             {/* Search Box */}
             {isEditing && showPartSearch && (
-                <div className="mb-4 p-4 bg-slate-800/20 rounded-2xl animate-fadeIn border border-slate-800/60 shadow-sm relative">
+                <div className="mb-4 p-4 bg-surface-2 rounded-2xl animate-fadeIn border border-line/60 shadow-sm relative">
                     <button
                         onClick={() => setShowPartSearch(false)}
-                        className="absolute top-3 right-3 p-1.5 text-slate-500 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                        className="absolute top-3 right-3 p-1.5 text-txt-2 hover:text-white rounded-lg hover:bg-surface-3 transition-colors"
                     >
                         <X size={16} />
                     </button>
 
                     <div className="flex flex-col gap-3 mt-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Buscar Repuesto</label>
+                        <label className="text-[10px] font-bold text-txt-2 uppercase tracking-widest">Buscar Repuesto</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1">
-                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-2" />
                                 <input
                                     type="text"
                                     placeholder="Nombre, SKU o escanear..."
-                                    className="w-full pl-10 pr-10 p-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all placeholder:text-slate-600"
+                                    className="w-full pl-10 pr-10 p-3 bg-surface-3 border border-line rounded-xl text-white outline-none focus:ring-2 focus:ring-accent text-sm transition-all placeholder:text-txt-2"
                                     value={partSearch}
                                     onChange={(e) => setPartSearch(e.target.value)}
                                     autoFocus
@@ -90,7 +90,7 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setIsQRModalOpen(true)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-400 transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-txt-3 hover:text-accent transition-colors"
                                     title="Escanear QR"
                                 >
                                     <QrCode size={18} />
@@ -100,7 +100,7 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
                                 <input
                                     type="number"
                                     min="1"
-                                    className="w-full p-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-center outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+                                    className="w-full p-3 bg-surface-3 border border-line rounded-xl text-white text-center outline-none focus:ring-2 focus:ring-accent text-sm transition-all"
                                     value={isNaN(partQty) ? '' : partQty}
                                     onChange={(e) => setPartQty(e.target.value === '' ? NaN : parseInt(e.target.value))}
                                 />
@@ -110,7 +110,7 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
 
                     {/* Results Dropdown */}
                     {partSearch && (
-                        <div className="mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg max-h-48 overflow-y-auto shadow-xl z-20">
+                        <div className="mt-2 bg-surface border border-line rounded-lg max-h-48 overflow-y-auto shadow-xl z-20">
                             {filteredParts.length > 0 ? (
                                 filteredParts.map(part => (
                                     <div
@@ -129,28 +129,28 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
                                             setShowPartSearch(false);
                                             setPartQty(1);
                                         }}
-                                        className="p-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer text-sm flex justify-between items-center border-b border-slate-100 dark:border-slate-800 last:border-0 group"
+                                        className="p-3 hover:bg-accent-dim cursor-pointer text-sm flex justify-between items-center border-b border-line last:border-0 group"
                                     >
                                         <div>
-                                            <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                            <div className="font-semibold text-txt-2 flex items-center gap-2">
                                                 {part.name}
-                                                {part.qrCode === partSearch && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded border border-green-200">Coincidencia QR</span>}
+                                                {part.qrCode === partSearch && <span className="text-[10px] bg-ok-dim text-ok px-1.5 py-0.5 rounded border border-ok-border">Coincidencia QR</span>}
                                             </div>
-                                            <div className="text-xs text-slate-500 font-mono mt-0.5">{part.sku}</div>
+                                            <div className="text-xs text-txt-2 font-mono mt-0.5">{part.sku}</div>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-xs text-slate-400 block mb-1">Stock: {part.quantity}</span>
-                                            <span className="inline-flex items-center gap-1 text-blue-600 font-medium text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-blue-100 px-2 py-1 rounded">
+                                            <span className="text-xs text-txt-3 block mb-1">Stock: {part.quantity}</span>
+                                            <span className="inline-flex items-center gap-1 text-accent font-medium text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-accent-dim px-2 py-1 rounded">
                                                 Añadir <Plus size={14} />
                                             </span>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-4 text-center text-slate-500">
+                                <div className="p-4 text-center text-txt-2">
                                     <Package size={24} className="mx-auto mb-2 opacity-50" />
                                     <p className="text-sm">No se encontraron repuestos</p>
-                                    <p className="text-xs text-slate-400 mt-1">Prueba con otro término o SKU</p>
+                                    <p className="text-xs text-txt-3 mt-1">Prueba con otro término o SKU</p>
                                 </div>
                             )}
                         </div>
@@ -159,10 +159,10 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
             )}
 
             {/* List of Used Parts */}
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
                 {(editedWO.usedParts && editedWO.usedParts.length > 0) ? (
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">
+                        <thead className="bg-surface-2 text-txt-2 font-medium">
                             <tr>
                                 <th className="p-3">Repuesto</th>
                                 <th className="p-3 w-32 sm:w-48 text-center">SKU</th>
@@ -170,21 +170,21 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
                                 {isEditing && <th className="p-3 w-12"></th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {editedWO.usedParts.map((part, idx) => (
-                                <tr key={idx} className="group hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">{getPartName(part.partId)}</td>
-                                    <td className="p-3 text-slate-500 text-xs font-mono whitespace-nowrap text-center">
-                                        <span className="px-2 py-1 bg-slate-200/50 dark:bg-slate-700 rounded">
+                                <tr key={idx} className="group hover:bg-surface-2 transition-colors">
+                                    <td className="p-3 text-txt-2 font-medium">{getPartName(part.partId)}</td>
+                                    <td className="p-3 text-txt-2 text-xs font-mono whitespace-nowrap text-center">
+                                        <span className="px-2 py-1 bg-surface-3/50 bg-surface rounded">
                                             {getPartSku(part.partId)}
                                         </span>
                                     </td>
-                                    <td className="p-3 text-center text-slate-700 dark:text-slate-300 font-bold">{part.quantity}</td>
+                                    <td className="p-3 text-center text-txt-2 font-bold">{part.quantity}</td>
                                     {isEditing && (
                                         <td className="p-3 text-center">
                                             <button
                                                 onClick={() => handleRemovePart(part.partId)}
-                                                className="p-1 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all opacity-0 group-hover:opacity-100"
+                                                className="p-1 text-ko hover:text-ko hover:bg-ko-dim rounded transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 <X size={14} />
                                             </button>
@@ -195,7 +195,7 @@ export const WOPartsList: React.FC<WOPartsListProps> = ({
                         </tbody>
                     </table>
                 ) : (
-                    <div className="p-3 text-center text-slate-400 text-sm italic">
+                    <div className="p-3 text-center text-txt-3 text-sm italic">
                         No se han asignado repuestos.
                     </div>
                 )}

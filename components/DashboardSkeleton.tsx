@@ -28,7 +28,7 @@ export const DashboardSkeleton: React.FC = () => {
             {/* Task Cards Skeleton */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-white dark:bg-slate-700 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                    <div key={i} className="bg-surface p-4 rounded-xl border border-line space-y-4">
                         <div className="flex justify-between">
                             <Skeleton className="h-5 w-24 rounded-full" />
                             <Skeleton className="h-4 w-12" />
@@ -40,7 +40,7 @@ export const DashboardSkeleton: React.FC = () => {
                                 <Skeleton className="h-4 w-3/4" />
                             </div>
                         </div>
-                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between">
+                        <div className="pt-3 border-t border-line flex justify-between">
                             <Skeleton className="h-5 w-20 rounded-full" />
                             <div className="flex gap-2">
                                 <Skeleton className="h-8 w-20 rounded-lg" />

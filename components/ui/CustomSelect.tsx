@@ -49,7 +49,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     return (
         <div className={`relative ${className}`} ref={containerRef}>
             {label && (
-                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-txt-2 mb-1">
                     {label}
                 </label>
             )}
@@ -58,19 +58,18 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={`
-                    w-full flex items-center justify-between border text-left transition-all
-                    ${size === 'sm' ? 'px-2 py-1 text-[11px] rounded-md' : 'p-3 text-sm rounded-xl'}
-                    ${error ? 'border-red-500 ring-1 ring-red-500 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700'}
-                    ${disabled ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-400 cursor-not-allowed' : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white hover:border-blue-400 dark:hover:border-slate-600'}
-                    ${isOpen ? 'ring-2 ring-blue-500 border-transparent' : ''}
+                    fld-input w-full flex items-center justify-between text-left
+                    ${size === 'sm' ? 'px-2 py-1 text-[11px] rounded-md' : 'p-3 text-sm rounded-[6px]'}
+                    ${error ? 'error' : ''}
+                    ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
                 `}
             >
-                <span className={`block truncate ${!value ? 'text-slate-400' : ''}`}>
+                <span className={`block truncate ${!value ? 'text-txt-3' : ''}`}>
                     {selectedLabel}
                 </span>
                 <ChevronDown
                     size={size === 'sm' ? 14 : 20}
-                    className={`ml-2 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`ml-2 text-txt-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -82,7 +81,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="lg:hidden fixed inset-0 bg-black/60 z-[9990] flex items-end sm:items-center justify-center backdrop-blur-sm"
+                            className="lg:hidden fixed inset-0 z-[9990] flex items-end sm:items-center justify-center"
+                            style={{ background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)' }}
                             onClick={() => setIsOpen(false)}
                         >
                             {/* Mobile Drawer/Modal */}
@@ -91,15 +91,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                                 animate={{ y: 0 }}
                                 exit={{ y: "100%" }}
                                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                className="w-full sm:w-[500px] max-h-[70vh] bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                                className="w-full sm:w-[500px] max-h-[70vh] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden"
+                                style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-xl)' }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-100 dark:bg-slate-800">
-                                    <h3 className="font-bold text-lg text-slate-800 dark:text-gray-100">{label || placeholder}</h3>
+                                <div className="p-4 border-b border-line flex justify-between items-center" style={{ background: 'var(--surface2)' }}>
+                                    <h3 className="font-bold text-lg text-txt">{label || placeholder}</h3>
                                     <button
                                         type="button"
                                         onClick={() => setIsOpen(false)}
-                                        className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full text-slate-500"
+                                        className="p-2 rounded-full text-txt-2"
+                                        style={{ background: 'var(--surface3)' }}
                                     >
                                         <ChevronDown size={20} className="rotate-180" />
                                     </button>
@@ -114,11 +116,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                                                 setIsOpen(false);
                                             }}
                                             className={`
-                                                w-full flex items-center justify-between px-4 py-4 text-left rounded-xl transition-all
+                                                w-full flex items-center justify-between px-4 py-4 text-left rounded-[10px] transition-all border
                                                 ${value === option.value
-                                                    ? 'bg-blue-600 text-white shadow-md'
-                                                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'}
+                                                    ? 'text-white'
+                                                    : 'text-txt-2 hover:bg-surface-2 border-transparent'}
                                             `}
+                                            style={value === option.value
+                                                ? { background: 'var(--btn-primary-bg)', borderColor: 'transparent' }
+                                                : undefined}
                                         >
                                             <span className="text-lg font-medium">{option.label}</span>
                                             {value === option.value && <Check size={20} className="ml-2 flex-shrink-0" />}
@@ -134,7 +139,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.15 }}
-                            className="hidden lg:block absolute z-50 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-auto custom-scrollbar"
+                            className="hidden lg:block absolute z-50 w-full mt-1 border border-line rounded-[10px] max-h-60 overflow-auto custom-scrollbar"
+                            style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-lg)' }}
                         >
                             <div className="py-1">
                                 {options.map((option) => (
@@ -148,9 +154,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                                         className={`
                                             w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors
                                             ${value === option.value
-                                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
-                                                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'}
+                                                ? 'text-accent font-medium'
+                                                : 'text-txt-2 hover:bg-surface-2'}
                                         `}
+                                        style={value === option.value ? { background: 'var(--accentdim)' } : undefined}
                                     >
                                         <span className="truncate">{option.label}</span>
                                         {value === option.value && <Check size={16} className="ml-2 flex-shrink-0" />}

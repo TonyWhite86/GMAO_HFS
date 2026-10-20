@@ -150,7 +150,7 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
         <Modal onClose={handleCancel} size="lg">
             <Modal.Header
                 onClose={handleCancel}
-                icon={<div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400"><Camera size={20} /></div>}
+                icon={<div className="p-2 bg-accent-dim rounded-lg text-accent"><Camera size={20} /></div>}
             >
                 {isEditMode ? 'Editar Equipo' : 'Crear Nuevo Equipo'}
             </Modal.Header>
@@ -159,16 +159,16 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
                 <form id="equipment-form" onSubmit={handleSave} className="space-y-6">
                     {/* Photo Upload */}
                     <div className="flex justify-center">
-                        <div className="relative group cursor-pointer w-32 h-32 rounded-xl bg-slate-100 dark:bg-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+                        <div className="relative group cursor-pointer w-32 h-32 rounded-xl bg-surface-2 border-2 border-dashed border-line flex items-center justify-center overflow-hidden">
                             {isUploading ? (
-                                <div className="flex flex-col items-center justify-center text-blue-500">
+                                <div className="flex flex-col items-center justify-center text-accent">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current mb-2"></div>
                                     <span className="text-xs font-medium">Subiendo...</span>
                                 </div>
                             ) : previewPhoto ? (
                                 <img src={previewPhoto} alt="Preview" className="w-full h-full object-cover" />
                             ) : (
-                                <div className="text-center text-slate-400">
+                                <div className="text-center text-txt-3">
                                     <Camera size={24} className="mx-auto mb-1" />
                                     <span className="text-xs">Subir Foto</span>
                                 </div>
@@ -179,49 +179,49 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Código Interno</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Código Interno</label>
                             <div className="relative">
                                 <input
                                     type="text"
                                     required
                                     value={newEqData.code || ''}
                                     onChange={e => setNewEqData({ ...newEqData, code: e.target.value })}
-                                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-colors ${isCodeDuplicate
-                                            ? 'border-red-500 dark:border-red-500 pr-10'
-                                            : 'border-slate-300 dark:border-slate-600'
+                                    className={`w-full px-3 py-2 border rounded-lg bg-surface text-txt focus:ring-2 focus:ring-accent transition-colors ${isCodeDuplicate
+                                            ? 'border-ko pr-10'
+                                            : 'border-line'
                                         }`}
                                     placeholder="EQ-2025-..."
                                 />
                                 {isCodeDuplicate && (
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <AlertCircle className="h-5 w-5 text-red-500" />
+                                        <AlertCircle className="h-5 w-5 text-ko" />
                                     </div>
                                 )}
                             </div>
                             {isCodeDuplicate && (
-                                <p className="mt-1 text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                                <p className="mt-1 text-xs text-ko font-medium animate-in fade-in slide-in-from-top-1 duration-200">
                                     Este código ya está en uso por otro equipo
                                 </p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre del Equipo</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Nombre del Equipo</label>
                             <input
                                 type="text"
                                 required
                                 value={newEqData.name}
                                 onChange={e => setNewEqData({ ...newEqData, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt focus:ring-2 focus:ring-accent"
                                 placeholder="Ej. Compresor B"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Equipo Superior (Padre)</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Equipo Superior (Padre)</label>
                             <select
                                 value={newEqData.parentId || ''}
                                 onChange={e => setNewEqData({ ...newEqData, parentId: e.target.value || undefined })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt"
                             >
                                 <option value="">-- Ninguno (Raíz) --</option>
                                 {equipmentList.map(eq => (
@@ -231,10 +231,10 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
                         </div>
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Secciones</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border border-slate-300 dark:border-slate-600 rounded-lg p-3 bg-white dark:bg-slate-700">
+                            <label className="block text-sm font-medium text-txt-2 mb-2">Secciones</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border border-line rounded-lg p-3 bg-surface">
                                 {sections.map(section => (
-                                    <label key={section.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer text-xs font-medium ${newEqData.sections?.includes(section.name) ? 'bg-blue-50 text-blue-600' : ''}`}>
+                                    <label key={section.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer text-xs font-medium ${newEqData.sections?.includes(section.name) ? 'bg-accent-dim text-accent' : ''}`}>
                                         <input
                                             type="checkbox"
                                             className="hidden"
@@ -245,7 +245,7 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
                                                 setNewEqData({ ...newEqData, sections: next });
                                             }}
                                         />
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${newEqData.sections?.includes(section.name) ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300'}`}>
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${newEqData.sections?.includes(section.name) ? 'bg-accent border-accent text-white' : 'border-line-2'}`}>
                                             {newEqData.sections?.includes(section.name) && <Check size={12} />}
                                         </div>
                                         {section.name}
@@ -255,20 +255,20 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ubicación Física</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Ubicación Física</label>
                             <input
                                 type="text"
                                 value={newEqData.location || ''}
                                 onChange={e => setNewEqData({ ...newEqData, location: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Estado</label>
                             <select
                                 value={newEqData.status}
                                 onChange={e => setNewEqData({ ...newEqData, status: e.target.value as any })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt"
                             >
                                 <option value="Operativo">Operativo</option>
                                 <option value="En Producción">En Producción</option>
@@ -280,21 +280,21 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fabricante</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Fabricante</label>
                             <input
                                 type="text"
                                 value={newEqData.manufacturer || ''}
                                 onChange={e => setNewEqData({ ...newEqData, manufacturer: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nº Serie</label>
+                            <label className="block text-sm font-medium text-txt-2 mb-1">Nº Serie</label>
                             <input
                                 type="text"
                                 value={newEqData.serialNumber || ''}
                                 onChange={e => setNewEqData({ ...newEqData, serialNumber: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-txt"
                             />
                         </div>
                     </div>
@@ -302,12 +302,12 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
             </Modal.Body>
 
             <Modal.Footer>
-                <button type="button" onClick={handleCancel} className="px-4 py-2 text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancelar</button>
+                <button type="button" onClick={handleCancel} className="px-4 py-2 text-txt-2 font-medium hover:bg-surface-2 rounded-lg transition-colors">Cancelar</button>
                 <button
                     type="submit"
                     form="equipment-form"
                     disabled={isSubmitDisabled}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 py-2 btn btn-primary text-white font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                     {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
                     {isEditMode ? 'Guardar Cambios' : 'Crear Equipo'}

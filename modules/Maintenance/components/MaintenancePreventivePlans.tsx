@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { PreventivePlan, Equipment, SortKey } from '../../../types';
 import { GenericTable } from '../../../components/GenericTable';
-import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare } from 'lucide-react';
+import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare, Building2, Cog, AlertTriangle } from 'lucide-react';
+import { resolvePlanSummary } from '../../../utils/preventiveTargets';
+import { useAppStore } from '../../../store/useAppStore';
 
 interface MaintenancePreventivePlansProps {
     plans: PreventivePlan[];
@@ -22,16 +24,40 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     onEdit,
     onDelete
 }) => {
+    const equipmentGroups = useAppStore(s => s.equipmentGroups);
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
 
+    // Estado del ciclo agregado: próximo vencimiento entre los objetivos
+    const planCycle = (plan: PreventivePlan) => {
+        const summary = resolvePlanSummary(plan.targets || [], equipmentGroups);
+        const next = summary.nextRun ? new Date(summary.nextRun).getTime() : new Date(plan.nextRun).getTime();
+        const now = Date.now();
+        const days = Math.ceil((next - now) / 86400000);
+        const total = Math.max(plan.frequencyDays || 1, 1);
+        const elapsed = plan.lastRun
+            ? Math.min(total, Math.max(0, Math.floor((now - new Date(plan.lastRun).getTime()) / 86400000)))
+            : total;
+        return {
+            days,
+            pct: Math.min(100, Math.max(0, Math.round((elapsed / total) * 100))),
+            overdue: summary.overdueCount > 0 || next <= now,
+            overdueCount: summary.overdueCount,
+            summary
+        };
+    };
+
     // Initial Filter & Sort
     const filteredPlans = useMemo(() => {
         let result = plans.filter(plan => {
-            const eqName = equipment.find(e => e.id === plan.equipmentId)?.name || '';
+            const targetNames = (plan.targets || [])
+                .map(t => equipment.find(e => e.id === t.equipmentId)?.name || '')
+                .concat(planCycle(plan).summary.groupNames)
+                .join(' ')
+                .toLowerCase();
             const matchesText = (plan.name || '').toLowerCase().includes(filterText.toLowerCase()) ||
-                eqName.toLowerCase().includes(filterText.toLowerCase());
+                targetNames.includes(filterText.toLowerCase());
             return matchesText;
         });
 
@@ -70,36 +96,90 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
             sortKey: "name",
             render: (plan: PreventivePlan) => (
                 <div>
-                    <div className="font-medium text-slate-900 dark:text-white">{plan.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{plan.tasks.length} tareas definidas</div>
+                    <div className="font-medium text-txt">{plan.name}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {plan.tasks.slice(0, 3).map((t, i) => (
+                            <span key={t.id || i} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-spec-dim text-spec border border-spec-border">
+                                {t.description}
+                            </span>
+                        ))}
+                        {plan.tasks.length > 3 && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-surface-2 text-txt-3">
+                                +{plan.tasks.length - 3}
+                            </span>
+                        )}
+                        {plan.tasks.length === 0 && (
+                            <span className="text-xs text-txt-3 italic">Sin tareas definidas</span>
+                        )}
+                    </div>
                 </div>
             )
         },
         {
-            header: "Equipo",
+            header: "Objetivos",
             render: (plan: PreventivePlan) => {
-                const eq = equipment.find(e => e.id === plan.equipmentId);
-                if (!eq) return 'Unknown';
-                return eq.code ? `[${eq.code}] ${eq.name}` : eq.name;
+                const sum = planCycle(plan).summary;
+                return (
+                    <div className="flex flex-wrap items-center gap-1">
+                        {sum.groupNames.map(n => (
+                            <span key={n} className="bdg bdg-accent">
+                                <Building2 size={10} />
+                                {n}
+                            </span>
+                        ))}
+                        {sum.directCount > 0 && (
+                            <span className="bdg bdg-gray">
+                                <Cog size={10} />
+                                {sum.directCount} suelto{sum.directCount === 1 ? '' : 's'}
+                            </span>
+                        )}
+                        {sum.equipmentCount === 0 && <span className="text-xs text-txt-3 italic">Sin objetivos</span>}
+                    </div>
+                );
             }
         },
         {
             header: "Frecuencia",
             render: (plan: PreventivePlan) => (
-                <div className="flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300">
-                    <RefreshCw size={14} className="text-slate-400" />
+                <div className="flex items-center gap-1 text-sm text-txt-2">
+                    <RefreshCw size={14} className="text-txt-3" />
                     <span>Cada {plan.frequencyDays} días</span>
                 </div>
             )
         },
         {
-            header: "Próxima Ejecución",
+            header: "Ciclo / Próxima Ejecución",
             sortKey: "nextRun",
-            render: (plan: PreventivePlan) => (
-                <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">
-                    {new Date(plan.nextRun).toLocaleDateString()}
-                </span>
-            )
+            render: (plan: PreventivePlan) => {
+                const c = planCycle(plan);
+                return (
+                    <div className="min-w-[150px]">
+                        <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${c.overdue ? 'text-ko font-bold' : 'text-spec'}`}>
+                                {new Date(plan.nextRun).toLocaleDateString()}
+                            </span>
+                            {c.summary.overdueCount > 0 ? (
+                                <span className="bdg bdg-red shrink-0">
+                                    <AlertTriangle size={10} /> {c.summary.overdueCount} vencido{c.summary.overdueCount === 1 ? '' : 's'}
+                                </span>
+                            ) : c.days <= 7 ? (
+                                <span className="bdg bdg-amber shrink-0">Vence en {c.days}d</span>
+                            ) : null}
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-surface-2 overflow-hidden mt-1" title={`Día ${Math.min(c.pct, 100)}% del ciclo`}>
+                            <div
+                                className="h-full rounded-full"
+                                style={{ width: `${c.pct}%`, background: c.overdue ? 'var(--red)' : c.days <= 7 ? 'var(--amber)' : 'var(--purple)' }}
+                            />
+                        </div>
+                        {plan.lastRun && (
+                            <div className="text-[9px] text-txt-3 mt-0.5">
+                                Última: {new Date(plan.lastRun).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
         },
         {
             header: "Acciones",
@@ -108,7 +188,7 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                 <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                         onClick={() => onLaunch(plan.id)}
-                        className="p-1.5 rounded text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                        className="p-1.5 rounded text-spec hover:text-spec hover:bg-spec-dim transition-colors"
                         title="Lanzar Orden Manualmente"
                     >
                         <PlayCircle size={18} />
@@ -116,8 +196,8 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                     <button
                         onClick={() => onEdit(plan)}
                         className={`p-1.5 rounded transition-colors ${canManage
-                            ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                            : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            ? 'text-txt-2 hover:text-accent hover:bg-accent-dim '
+                            : 'text-txt-2 hover:text-accent hover:bg-accent-dim '
                             }`}
                         title={canManage ? "Editar" : "Ver Detalles"}
                     >
@@ -130,7 +210,7 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                                     onDelete(plan.id);
                                 }
                             }}
-                            className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            className="p-1.5 text-txt-2 hover:text-ko hover:bg-ko-dim rounded transition-colors"
                         >
                             <Trash2 size={16} />
                         </button>
@@ -141,19 +221,19 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     ], [equipment, canManage, onLaunch, onDelete, sortConfig]);
 
     const renderCard = (plan: PreventivePlan) => {
-        const eq = equipment.find(e => e.id === plan.equipmentId);
+        const sum = planCycle(plan).summary;
         return (
             <div
                 key={plan.id}
                 onClick={() => onEdit(plan)}
-                className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md"
+                className="bg-surface p-4 rounded-xl shadow-sm border border-line active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md"
             >
                 <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+                    <h3 className="font-bold text-txt">{plan.name}</h3>
                     <div className="flex gap-1">
                         <button
                             onClick={(e) => { e.stopPropagation(); onLaunch(plan.id); }}
-                            className="p-1 text-purple-500 hover:scale-110 transition-transform"
+                            className="p-1 text-spec hover:scale-110 transition-transform"
                             title="Lanzar Orden"
                         >
                             <PlayCircle size={18} />
@@ -162,13 +242,13 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                             <>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onEdit(plan); }}
-                                    className="p-1 text-slate-400 hover:text-blue-500"
+                                    className="p-1 text-txt-3 hover:text-accent"
                                 >
                                     <Edit2 size={16} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); if (confirm('¿Borrar plan?')) onDelete(plan.id); }}
-                                    className="p-1 text-slate-400 hover:text-red-500"
+                                    className="p-1 text-txt-3 hover:text-ko"
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -176,15 +256,20 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 mb-1">
-                    <Wrench size={14} className="text-slate-400" />
-                    <span className="truncate">{eq?.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap text-xs text-txt-2 mb-1">
+                    {sum.groupNames.map(n => (
+                        <span key={n} className="bdg bdg-accent"><Building2 size={10} /> {n}</span>
+                    ))}
+                    {sum.directCount > 0 && (
+                        <span className="bdg bdg-gray"><Cog size={10} /> {sum.directCount} suelto{sum.directCount === 1 ? '' : 's'}</span>
+                    )}
+                    {sum.equipmentCount === 0 && <span className="italic text-txt-3">Sin objetivos</span>}
                 </div>
                 {plan.description && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">{plan.description}</p>
+                    <p className="text-xs text-txt-2 mb-3 line-clamp-2">{plan.description}</p>
                 )}
 
-                <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex justify-between items-center text-xs text-txt-2 pt-2 border-t border-line">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                             <RefreshCw size={12} />
@@ -195,9 +280,22 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                             <span>{plan.tasks.length} tareas</span>
                         </div>
                     </div>
-                    <div className="text-purple-600 dark:text-purple-400 font-medium">
-                        Próx: {new Date(plan.nextRun).toLocaleDateString()}
+                    <div className={`font-medium ${planCycle(plan).overdue ? 'text-ko font-bold' : 'text-spec'}`}>
+                        {planCycle(plan).overdue
+                            ? 'VENCIDO'
+                            : planCycle(plan).days <= 7
+                                ? `Vence en ${planCycle(plan).days}d`
+                                : `Próx: ${new Date(plan.nextRun).toLocaleDateString()}`}
                     </div>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-surface-2 overflow-hidden mt-2">
+                    <div
+                        className="h-full rounded-full"
+                        style={{
+                            width: `${planCycle(plan).pct}%`,
+                            background: planCycle(plan).overdue ? 'var(--red)' : planCycle(plan).days <= 7 ? 'var(--amber)' : 'var(--purple)'
+                        }}
+                    />
                 </div>
             </div>
         );
@@ -206,21 +304,21 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     return (
         <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-surface p-4 rounded-xl shadow-sm border border-line">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={18} />
                     <input
                         type="text"
                         placeholder="Buscar planes preventivos..."
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-10 pr-4 py-2 border border-line rounded-lg bg-surface-2 text-txt focus:ring-2 focus:ring-accent"
                     />
                 </div>
             </div>
 
             {filteredPlans.length > 0 ? (
-                <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-surface rounded-xl shadow-sm border border-line overflow-hidden">
                     <GenericTable
                         columns={columns}
                         data={filteredPlans}
@@ -232,10 +330,10 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                     />
                 </div>
             ) : (
-                <div className="text-center py-12 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 border-dashed">
-                    <CheckSquare size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-white">No hay planes preventivos</h3>
-                    <p className="text-slate-500 dark:text-slate-400">Define nuevos planes para automatizar el mantenimiento.</p>
+                <div className="text-center py-12 bg-surface rounded-xl border border-line border-dashed">
+                    <CheckSquare size={48} className="mx-auto text-txt-3 mb-4" />
+                    <h3 className="text-lg font-medium text-txt">No hay planes preventivos</h3>
+                    <p className="text-txt-2">Define nuevos planes para automatizar el mantenimiento.</p>
                 </div>
             )}
         </div>

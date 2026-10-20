@@ -12,6 +12,9 @@ import { createIncidentSlice } from './slices/createIncidentSlice';
 import { createStoppageSlice } from './slices/createStoppageSlice';
 import { createDataSlice } from './slices/createDataSlice';
 import { createPermissionSlice } from './slices/createPermissionSlice';
+import { createContractorSlice } from './slices/createContractorSlice';
+import { createChecklistTemplateSlice } from './slices/createChecklistTemplateSlice';
+import { createEquipmentGroupSlice } from './slices/createEquipmentGroupSlice';
 
 export const useAppStore = create<AppState>((...a) => ({
     ...createAuthSlice(...a),
@@ -26,4 +29,7 @@ export const useAppStore = create<AppState>((...a) => ({
     ...createStoppageSlice(...a),
     ...createDataSlice(...a),
     ...createPermissionSlice(...a),
+    ...createContractorSlice(...a),
+    ...createChecklistTemplateSlice(...a),
+    ...createEquipmentGroupSlice(...a),
 }));

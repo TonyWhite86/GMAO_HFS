@@ -3,6 +3,7 @@ import {
     canViewIncidentCategory,
     canSeeIncident,
     canManageIncident,
+    canConvertIncident,
     isObserver,
     isWildcardUser
 } from './incidentVisibility';
@@ -197,5 +198,41 @@ describe('canManageIncident', () => {
     it('el observador nunca gestiona', () => {
         const obs = { role: UserRole.OBSERVER_L1, sections: ['Mantenimiento', 'Mecanizado'] } as User;
         expect(canManageIncident(sinSeccion, obs, [], all)).toBe(false);
+    });
+});
+
+describe('canConvertIncident', () => {
+    const all = sections();
+
+    it('el Admin puede convertir', () => {
+        const admin = { role: UserRole.ADMIN, sections: [] } as User;
+        expect(canConvertIncident(admin, all)).toBe(true);
+    });
+
+    it('Mantenimiento e Ingeniería (comodín) pueden convertir, con cualquier rol', () => {
+        const mant = { role: UserRole.TECHNICIAN, sections: ['Mantenimiento'] } as User;
+        const ing = { role: UserRole.SECTION_MANAGER, sections: ['Ingeniería'] } as User;
+        expect(canConvertIncident(mant, all)).toBe(true);
+        expect(canConvertIncident(ing, all)).toBe(true);
+    });
+
+    it('un Responsable Sección de una sección normal NO convierte', () => {
+        const resp = { role: UserRole.SECTION_MANAGER, sections: ['Mecanizado'] } as User;
+        expect(canConvertIncident(resp, all)).toBe(false);
+    });
+
+    it('un Técnico de una sección normal NO convierte', () => {
+        expect(canConvertIncident(baseUser, all)).toBe(false);
+    });
+
+    it('el observador nunca convierte aunque esté en Mantenimiento', () => {
+        const obs = { role: UserRole.OBSERVER_L1, sections: ['Mantenimiento', 'Ingeniería'] } as User;
+        expect(canConvertIncident(obs, all)).toBe(false);
+    });
+
+    it('sin usuario o sin catálogo de secciones no hay conversión', () => {
+        expect(canConvertIncident(null, all)).toBe(false);
+        const mant = { role: UserRole.TECHNICIAN, sections: ['Mantenimiento'] } as User;
+        expect(canConvertIncident(mant, [])).toBe(false);
     });
 });

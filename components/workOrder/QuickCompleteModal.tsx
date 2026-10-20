@@ -3,8 +3,9 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, MessageSquare, Paperclip, X, FileText, UploadCloud, CheckSquare } from 'lucide-react';
 import { VoiceInputButton } from '../ui/VoiceInputButton';
-import { WorkOrder, WOStatus, InventoryItem, User, Attachment, Comment } from '../../types';
+import { WorkOrder, WOStatus, InventoryItem, User, Attachment, Comment, ChecklistAnswer } from '../../types';
 import { WOPartsList } from './WOPartsList'; // Assuming this is in the same directory or adjust path
+import { WOChecklistComplete, isChecklistComplete } from './WOChecklistComplete';
 import { useAppStore } from '../../store/useAppStore';
 import { computeActiveMinutes } from '../../utils/timeTracking';
 
@@ -28,6 +29,9 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
         attachments: workOrder.attachments || []
     });
 
+    const checklistItems = workOrder.closureChecklist || [];
+    const [checklistAnswers, setChecklistAnswers] = useState<Record<string, ChecklistAnswer>>({});
+    const checklistOk = isChecklistComplete(checklistItems, checklistAnswers);
     const [hours, setHours] = useState(Math.floor(initialMins / 60));
     const [minutes, setMinutes] = useState(initialMins % 60);
 
@@ -55,6 +59,7 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
     };
 
     const handleFinalConfirm = async () => {
+        if (!checklistOk) return;
         const safeHours = isNaN(hours) ? 0 : hours;
         const safeMinutes = isNaN(minutes) ? 0 : minutes;
         const finalTime = safeHours * 60 + safeMinutes;
@@ -65,7 +70,8 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
                 workOrder.id,
                 'complete',
                 null,
-                finalTime
+                finalTime,
+                checklistItems.length > 0 ? checklistAnswers : null
             );
         } catch (e) {
             console.error('Error completando la OT:', e);
@@ -95,6 +101,7 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
             closedAt: timestamp,
             timeSpentMinutes: finalTime,
             statusHistory: newHistory,
+            checklistAnswers: checklistItems.length > 0 ? checklistAnswers : editedWO.checklistAnswers,
             comments: [...(workOrder.comments || []), sysComment]
         };
 
@@ -107,16 +114,16 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
             <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
-                className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
+                className="bg-surface w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
             >
                 {/* Header */}
-                <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-100 dark:bg-slate-800/50">
+                <div className="p-5 border-b border-line flex justify-between items-center bg-surface-2">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Finalizar Orden</h2>
-                        <p className="text-xs text-slate-500 font-mono tracking-wider mt-0.5">#{workOrder.id}</p>
+                        <h2 className="text-xl font-bold text-txt">Finalizar Orden</h2>
+                        <p className="text-xs text-txt-2 font-mono tracking-wider mt-0.5">#{workOrder.id}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
-                        <X size={24} className="text-slate-400" />
+                    <button onClick={onClose} className="p-2 hover:bg-surface-3 rounded-full transition-colors">
+                        <X size={24} className="text-txt-3" />
                     </button>
                 </div>
 
@@ -124,30 +131,30 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                     {/* Time Input */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                            <Clock size={18} className="text-blue-500" /> Tiempo Invertido
+                        <label className="text-sm font-bold text-txt-2 flex items-center gap-2">
+                            <Clock size={18} className="text-accent" /> Tiempo Invertido
                         </label>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="relative">
                                 <input
                                     type="number"
                                     min="0"
-                                    className="w-full p-4 bg-slate-100 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-center font-bold text-xl text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all"
+                                    className="w-full p-4 bg-surface-2 border-2 border-line rounded-2xl text-center font-bold text-xl text-txt outline-none focus:border-accent transition-all"
                                     value={isNaN(hours) ? '' : hours}
                                     onChange={e => setHours(e.target.value === '' ? NaN : Math.max(0, parseInt(e.target.value)))}
                                 />
-                                <span className="absolute left-1/2 -translate-x-1/2 -bottom-2 px-2 bg-white dark:bg-slate-800 text-[10px] uppercase font-black text-slate-400">Horas</span>
+                                <span className="absolute left-1/2 -translate-x-1/2 -bottom-2 px-2 bg-surface text-[10px] uppercase font-black text-txt-3">Horas</span>
                             </div>
                             <div className="relative">
                                 <input
                                     type="number"
                                     min="0"
                                     max="59"
-                                    className="w-full p-4 bg-slate-100 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-center font-bold text-xl text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all"
+                                    className="w-full p-4 bg-surface-2 border-2 border-line rounded-2xl text-center font-bold text-xl text-txt outline-none focus:border-accent transition-all"
                                     value={isNaN(minutes) ? '' : minutes}
                                     onChange={e => setMinutes(e.target.value === '' ? NaN : Math.min(59, Math.max(0, parseInt(e.target.value))))}
                                 />
-                                <span className="absolute left-1/2 -translate-x-1/2 -bottom-2 px-2 bg-white dark:bg-slate-800 text-[10px] uppercase font-black text-slate-400">Minutos</span>
+                                <span className="absolute left-1/2 -translate-x-1/2 -bottom-2 px-2 bg-surface text-[10px] uppercase font-black text-txt-3">Minutos</span>
                             </div>
                         </div>
                     </div>
@@ -155,15 +162,15 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
                     {/* Description */}
                     <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                <MessageSquare size={18} className="text-purple-500" /> Notas Finales
+                            <label className="text-sm font-bold text-txt-2 flex items-center gap-2">
+                                <MessageSquare size={18} className="text-spec" /> Notas Finales
                             </label>
                             <VoiceInputButton
                                 onTranscript={text => setEditedWO(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text }))}
                             />
                         </div>
                         <textarea
-                            className="w-full p-4 bg-slate-100 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm text-slate-900 dark:text-white outline-none focus:border-purple-500 transition-all min-h-[100px] resize-none"
+                            className="w-full p-4 bg-surface-2 border-2 border-line rounded-2xl text-sm text-txt outline-none focus:border-spec transition-all min-h-[100px] resize-none"
                             placeholder="Añada cualquier detalle sobre el trabajo realizado..."
                             value={editedWO.description}
                             onChange={e => setEditedWO({ ...editedWO, description: e.target.value })}
@@ -182,46 +189,61 @@ export const QuickCompleteModal: React.FC<QuickCompleteModalProps> = ({ workOrde
 
                     {/* Attachments */}
                     <div className="space-y-4">
-                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                            <Paperclip size={18} className="text-emerald-500" /> Fotos y Documentos
+                        <label className="text-sm font-bold text-txt-2 flex items-center gap-2">
+                            <Paperclip size={18} className="text-ok" /> Fotos y Documentos
                         </label>
 
                         <div className="flex flex-wrap gap-3">
                             {editedWO.attachments?.map((att) => (
                                 <div key={att.id} className="relative group">
                                     {att.type === 'image' ? (
-                                        <img src={att.url} alt={att.name} className="w-20 h-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
+                                        <img src={att.url} alt={att.name} className="w-20 h-20 object-cover rounded-xl border border-line" />
                                     ) : (
-                                        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center">
-                                            <FileText size={20} className="text-slate-400 mb-1" />
-                                            <span className="text-[8px] text-slate-500 truncate w-full">{att.name}</span>
+                                        <div className="w-20 h-20 bg-surface-2 rounded-xl border border-line flex flex-col items-center justify-center p-2 text-center">
+                                            <FileText size={20} className="text-txt-3 mb-1" />
+                                            <span className="text-[8px] text-txt-2 truncate w-full">{att.name}</span>
                                         </div>
                                     )}
                                     <button
                                         onClick={() => removeAttachment(att.id)}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-2 -right-2 text-white rounded-full p-1 shadow-lg opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'var(--red)' }}
                                     >
                                         <X size={12} />
                                     </button>
                                 </div>
                             ))}
-                            <label className="w-20 h-20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <UploadCloud size={24} className="text-slate-300" />
-                                <span className="text-[10px] font-bold text-slate-400 mt-1">Subir</span>
+                            <label className="w-20 h-20 border-2 border-dashed border-line rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-2 transition-colors">
+                                <UploadCloud size={24} className="text-txt-3" />
+                                <span className="text-[10px] font-bold text-txt-3 mt-1">Subir</span>
                                 <input type="file" multiple className="hidden" onChange={handleFileChange} accept="image/*,video/*,application/pdf" />
                             </label>
                         </div>
                     </div>
                 </div>
 
+                {/* Checklist de cierre */}
+                {checklistItems.length > 0 && (
+                    <div className="p-6 border-t border-line">
+                        <WOChecklistComplete
+                            items={checklistItems}
+                            answers={checklistAnswers}
+                            onChange={setChecklistAnswers}
+                        />
+                    </div>
+                )}
+
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50">
+                <div className="p-6 border-t border-line bg-surface-2">
                     <button
                         onClick={handleFinalConfirm}
-                        className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-green-600/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                        disabled={!checklistOk}
+                        className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 ${checklistOk
+                            ? 'bg-ok hover:bg-ok text-white shadow-ok/20'
+                            : 'bg-surface-3 text-txt-3 cursor-not-allowed shadow-none'
+                            }`}
                     >
                         <CheckSquare size={24} />
-                        Cerrar Orden de Trabajo
+                        {checklistOk ? 'Cerrar Orden de Trabajo' : 'Responde el checklist para cerrar'}
                     </button>
                 </div>
             </motion.div>

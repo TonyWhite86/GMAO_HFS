@@ -11,7 +11,7 @@ export const GenericSkeleton: React.FC = () => {
 
             <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="bg-white dark:bg-slate-700 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div key={i} className="bg-surface p-4 rounded-xl border border-line">
                         <div className="flex items-center gap-4">
                             <Skeleton className="w-12 h-12 rounded-lg" />
                             <div className="flex-1 space-y-2">

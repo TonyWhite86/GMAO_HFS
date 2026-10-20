@@ -11,6 +11,12 @@ export interface Column<T> {
     align?: 'left' | 'center' | 'right';
 }
 
+const ALIGN_CLASS: Record<'left' | 'center' | 'right', string> = {
+    left: 'text-left',
+    center: 'text-center',
+    right: 'text-right',
+};
+
 interface GenericTableProps<T> {
     data: T[];
     columns: Column<T>[];
@@ -117,7 +123,7 @@ export function GenericTable<T extends { id: string | number }>({
     if (isLoading) {
         return (
             <div className="flex justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
             </div>
         );
     }
@@ -127,19 +133,19 @@ export function GenericTable<T extends { id: string | number }>({
             {searchFilter && (
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-3" size={20} />
                         <input
                             type="text"
                             placeholder={searchPlaceholder || "Buscar..."}
                             value={searchTerm}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+                            className="fld-input w-full pl-10 pr-4 py-2 rounded-[6px] outline-none"
                         />
                     </div>
                     {onScan && (
                         <button
                             onClick={onScan}
-                            className="p-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                            className="btn btn-ghost"
                             title="Escanear Código QR"
                         >
                             <QrCode size={20} />
@@ -148,18 +154,19 @@ export function GenericTable<T extends { id: string | number }>({
                 </div>
             )}
 
-            <div className="hidden md:block bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
+            {/* Tabla escritorio */}
+            <div className="hidden md:block rounded-xl border border-line overflow-hidden" style={{ background: 'var(--surface)', boxShadow: 'var(--shadow)' }}>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                    <table className="tbl">
+                        <thead>
                             <tr>
                                 {columns.map((col, idx) => (
                                     <th
                                         key={idx}
-                                        className={`p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none ${col.sortKey ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800' : ''} ${col.className || ''} text-${col.align || 'left'}`}
+                                        className={`${col.sortKey ? 'cursor-pointer hover:bg-surface-2' : ''} ${col.className || ''} ${ALIGN_CLASS[col.align || 'left']}`}
                                         onClick={() => handleSort(col.sortKey)}
                                     >
-                                        <div className={`flex items-center ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
+                                        <div className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                                             {col.header}
                                             {getSortIcon(col.sortKey)}
                                         </div>
@@ -167,16 +174,16 @@ export function GenericTable<T extends { id: string | number }>({
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        <tbody>
                             {paginatedData.length > 0 ? (
                                 paginatedData.map((item) => (
                                     <tr
                                         key={item.id}
                                         onClick={() => onRowClick && onRowClick(item)}
-                                        className={`hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                                        className={onRowClick ? 'cursor-pointer' : '!cursor-default'}
                                     >
                                         {columns.map((col, colIdx) => (
-                                            <td key={colIdx} className={`p-4 text-sm text-slate-600 dark:text-slate-300 ${col.className || ''} text-${col.align || 'left'}`}>
+                                            <td key={colIdx} className={`${col.className || ''} ${ALIGN_CLASS[col.align || 'left']}`}>
                                                 {col.render ? col.render(item) : (col.accessor ? String(item[col.accessor]) : '')}
                                             </td>
                                         ))}
@@ -184,7 +191,7 @@ export function GenericTable<T extends { id: string | number }>({
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={columns.length} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                                    <td colSpan={columns.length} className="p-8 text-center text-txt-2">
                                         {emptyMessage}
                                     </td>
                                 </tr>
@@ -194,6 +201,7 @@ export function GenericTable<T extends { id: string | number }>({
                 </div>
             </div>
 
+            {/* Tarjetas móvil */}
             <div className="md:hidden space-y-4">
                 {paginatedData.length > 0 ? (
                     paginatedData.map((item) => (
@@ -206,7 +214,7 @@ export function GenericTable<T extends { id: string | number }>({
                         </div>
                     ))
                 ) : (
-                    <div className="p-8 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="p-8 text-center text-txt-2 card">
                         {emptyMessage}
                     </div>
                 )}
@@ -217,17 +225,17 @@ export function GenericTable<T extends { id: string | number }>({
                     <button
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 dark:text-slate-400 shadow-sm transition-all"
+                        className="btn btn-ghost btn-icon"
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    <span className="text-sm font-medium text-txt-2">
                         Página {currentPage} de {totalPages}
                     </span>
                     <button
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 dark:text-slate-400 shadow-sm transition-all"
+                        className="btn btn-ghost btn-icon"
                     >
                         <ChevronRight size={20} />
                     </button>

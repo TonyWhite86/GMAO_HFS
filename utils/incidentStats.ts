@@ -3,14 +3,15 @@ import { Incident, IncidentStatus } from '../types';
 export interface IncidentStats {
     total: number;
     open: number;
-    inReview: number;
-    resolved: number;
-    cancelled: number;
-    converted: number;
+    inProgress: number;
+    pausedMaterial: number;
+    pausedBudget: number;
+    pausedExternal: number;
+    scheduled: number;
+    pendingClose: number;
+    closed: number;
     resolutionRate: number;
     avgResolutionDays: number | null;
-    reasonsFilled: number;
-    solutionsFilled: number;
 }
 
 export interface MonthlyCount {
@@ -28,23 +29,24 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
     const total = incidents.length;
-    let open = 0, inReview = 0, resolved = 0, cancelled = 0, converted = 0;
-    let reasonsFilled = 0, solutionsFilled = 0;
+    let open = 0, inProgress = 0, pausedMaterial = 0, pausedBudget = 0, pausedExternal = 0;
+    let scheduled = 0, pendingClose = 0, closed = 0;
     let resolutionDaysSum = 0;
     let resolvedWithDates = 0;
 
     for (const inc of incidents) {
         switch (inc.status) {
             case IncidentStatus.OPEN: open++; break;
-            case IncidentStatus.IN_REVIEW: inReview++; break;
-            case IncidentStatus.RESOLVED: resolved++; break;
-            case IncidentStatus.CANCELLED: cancelled++; break;
-            case IncidentStatus.CONVERTED: converted++; break;
+            case IncidentStatus.IN_PROGRESS: inProgress++; break;
+            case IncidentStatus.PAUSED_MATERIAL: pausedMaterial++; break;
+            case IncidentStatus.PAUSED_BUDGET: pausedBudget++; break;
+            case IncidentStatus.PAUSED_EXTERNAL: pausedExternal++; break;
+            case IncidentStatus.SCHEDULED: scheduled++; break;
+            case IncidentStatus.PENDING_CLOSE: pendingClose++; break;
+            case IncidentStatus.CLOSED: closed++; break;
         }
-        if (inc.reason && inc.reason.trim()) reasonsFilled++;
-        if (inc.solution && inc.solution.trim()) solutionsFilled++;
 
-        if (inc.status === IncidentStatus.RESOLVED && inc.resolvedAt && inc.createdAt) {
+        if (inc.resolvedAt && inc.createdAt) {
             const days = (new Date(inc.resolvedAt).getTime() - new Date(inc.createdAt).getTime()) / MS_PER_DAY;
             if (days >= 0) {
                 resolutionDaysSum += days;
@@ -53,20 +55,20 @@ export const computeIncidentStats = (incidents: Incident[]): IncidentStats => {
         }
     }
 
-    const closedCount = resolved + cancelled;
     return {
         total,
         open,
-        inReview,
-        resolved,
-        cancelled,
-        converted,
-        resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+        inProgress,
+        pausedMaterial,
+        pausedBudget,
+        pausedExternal,
+        scheduled,
+        pendingClose,
+        closed,
+        resolutionRate: total > 0 ? Math.round((closed / total) * 100) : 0,
         avgResolutionDays: resolvedWithDates > 0
             ? Math.round((resolutionDaysSum / resolvedWithDates) * 10) / 10
-            : null,
-        reasonsFilled,
-        solutionsFilled
+            : null
     };
 };
 

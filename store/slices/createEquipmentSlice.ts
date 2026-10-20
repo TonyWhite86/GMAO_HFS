@@ -1,18 +1,24 @@
 import { StateCreator } from 'zustand';
-import { Equipment } from '../../types';
+import { Equipment, EquipmentAcceptance } from '../../types';
+import { equipmentAcceptanceService } from '../../services/equipmentAcceptanceService';
 import { equipmentService } from '../../services/equipmentService';
 import { toast } from 'sonner';
 
 export interface EquipmentSlice {
     equipment: Equipment[];
+    equipmentAcceptance: EquipmentAcceptance[];
     setEquipment: (equipment: Equipment[]) => void;
+    setEquipmentAcceptance: (rows: EquipmentAcceptance[]) => void;
     addEquipment: (eq: Equipment) => Promise<void>;
     updateEquipment: (eq: Equipment) => Promise<void>;
+    saveEquipmentAcceptance: (acceptance: EquipmentAcceptance) => Promise<void>;
 }
 
 export const createEquipmentSlice: StateCreator<EquipmentSlice, [], [], EquipmentSlice> = (set, get) => ({
     equipment: [],
+    equipmentAcceptance: [],
     setEquipment: (equipment) => set({ equipment }),
+    setEquipmentAcceptance: (equipmentAcceptance) => set({ equipmentAcceptance }),
     addEquipment: async (eq) => {
         try {
             const newEq = await equipmentService.create(eq);
@@ -37,6 +43,21 @@ export const createEquipmentSlice: StateCreator<EquipmentSlice, [], [], Equipmen
             }));
         } catch (error) {
             toast.error('Error al actualizar equipo');
+            throw error;
+        }
+    },
+
+    saveEquipmentAcceptance: async (acceptance) => {
+        try {
+            const saved = await equipmentAcceptanceService.save(acceptance);
+            set((state) => ({
+                equipmentAcceptance: state.equipmentAcceptance.some(a => a.equipmentId === saved.equipmentId)
+                    ? state.equipmentAcceptance.map(a => a.equipmentId === saved.equipmentId ? saved : a)
+                    : [...state.equipmentAcceptance, saved]
+            }));
+            toast.success('Aceptación de máquina actualizada');
+        } catch (error) {
+            toast.error('Error al guardar la aceptación');
             throw error;
         }
     }

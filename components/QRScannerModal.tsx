@@ -109,16 +109,16 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onScan 
 
     return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl relative">
+            <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden relative" style={{ boxShadow: 'var(--shadow-xl)' }}>
                 {/* Header */}
-                <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+                <div className="p-4 text-white flex justify-between items-center" style={{ background: 'var(--text)' }}>
                     <div className="flex items-center gap-2">
                         <Camera size={20} />
                         <span className="font-bold">Escanear QR</span>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-slate-800 rounded-full transition-colors"
+                        className="p-1 hover:bg-white/10 rounded-full transition-colors"
                     >
                         <X size={24} />
                     </button>
@@ -147,8 +147,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onScan 
                 </div>
 
                 {/* Footer Instructions */}
-                <div className="p-4 bg-slate-100 dark:bg-slate-700 text-center">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="p-4 bg-surface-2 text-center">
+                    <p className="text-xs text-txt-2">
                         Asegúrate de que haya suficiente luz.
                     </p>
                 </div>

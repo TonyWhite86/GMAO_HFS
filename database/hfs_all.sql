@@ -1614,61 +1614,98 @@ CREATE SEQUENCE IF NOT EXISTS public.purchase_order_number_seq;
 
 -- 1. Máquina de estados de INCIDENCIAS (trigger de blindaje) -------------------
 
+-- Migración de estados antiguos de incidencia → nueva máquina de 8 estados.
+-- (idempotente: solo reescribe los valores retirados)
+UPDATE public.incidents SET status = CASE status
+  WHEN 'En Revisión'        THEN 'En Curso'
+  WHEN 'Convertida a OT'    THEN 'Programada Intervención'
+  WHEN 'Pendiente de Confirmación' THEN 'Pendiente de Confirmación de Cierre'
+  WHEN 'Resuelta'           THEN 'Cerrada'
+  WHEN 'Cancelada'          THEN 'Cerrada'
+  ELSE status
+END
+WHERE status IN ('En Revisión', 'Convertida a OT', 'Pendiente de Confirmación', 'Resuelta', 'Cancelada');
+
 CREATE OR REPLACE FUNCTION public.enforce_incident_transition()
 RETURNS TRIGGER AS $$
 DECLARE
   v_role TEXT;
-  v_new_reason TEXT;
-  v_new_solution TEXT;
-  v_sealing BOOLEAN := false;  -- esta UPDATE es la que resuelve/cancela
+  v_sealing BOOLEAN := false;  -- esta UPDATE es la que cierra/reabre la resolución
+  v_active TEXT[] := ARRAY[
+    'Abierta', 'En Curso',
+    'Pausada Material', 'Pausada Presupuesto', 'Pausada Externos',
+    'Programada Intervención'
+  ];
 BEGIN
-  IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
-    -- Terminales
-    IF OLD.status IN ('Resuelta', 'Cancelada') THEN
-      RAISE EXCEPTION 'Una incidencia % no puede cambiar de estado', OLD.status;
-    END IF;
-
-    -- Transiciones legales
-    IF OLD.status = 'Abierta' AND NEW.status NOT IN
-       ('En Revisión', 'Resuelta', 'Cancelada', 'Convertida a OT') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-    END IF;
-    IF OLD.status = 'En Revisión' AND NEW.status NOT IN
-       ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-    END IF;
-    IF OLD.status = 'Convertida a OT' AND NEW.status NOT IN ('Resuelta', 'Cancelada') THEN
-      RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
-    END IF;
-
-    v_new_reason   := coalesce(nullif(trim(NEW.reason), ''), nullif(trim(OLD.reason), ''));
-    v_new_solution := coalesce(nullif(trim(NEW.solution), ''), nullif(trim(OLD.solution), ''));
-
-    IF NEW.status = 'En Revisión' AND v_new_reason IS NULL THEN
-      RAISE EXCEPTION 'Indica el motivo para pasar a En Revisión';
-    END IF;
-    IF NEW.status = 'Resuelta' THEN
-      IF v_new_reason IS NULL THEN
-        RAISE EXCEPTION 'Indica el motivo antes de resolver la incidencia';
-      END IF;
-      IF v_new_solution IS NULL THEN
-        RAISE EXCEPTION 'Indica la solución para resolver la incidencia';
-      END IF;
-      NEW.resolved_at := coalesce(NEW.resolved_at, now());
-      NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
-      v_sealing := true;
-    END IF;
-    IF NEW.status = 'Cancelada' THEN
-      NEW.resolved_at := NULL;
-      NEW.resolved_by := NULL;
-      v_sealing := true;
-    END IF;
-    IF NEW.status = 'Convertida a OT' AND NEW.work_order_id IS NULL THEN
-      RAISE EXCEPTION 'La conversión a OT debe indicar work_order_id';
+  -- created_at sólo lo edita un Admin (corrección de fecha de registro)
+  IF TG_OP = 'UPDATE' AND NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+    IF v_role IS DISTINCT FROM 'Admin' THEN
+      RAISE EXCEPTION 'Solo un Admin puede cambiar la fecha de una incidencia';
     END IF;
   END IF;
 
-  -- Fuera de la transición que resuelve/cancela, resolved_at/resolved_by no se
+  IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+    IF OLD.status = 'Cerrada' THEN
+      -- Terminal: sólo un Admin puede reabrir, y sólo a Abierta/En Curso
+      SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+      IF v_role IS DISTINCT FROM 'Admin' THEN
+        RAISE EXCEPTION 'Una incidencia Cerrada no puede cambiar de estado';
+      END IF;
+      IF NEW.status NOT IN ('Abierta', 'En Curso') THEN
+        RAISE EXCEPTION 'Una incidencia Cerrada sólo puede reabrirse a Abierta o En Curso';
+      END IF;
+      NEW.resolved_at := NULL;
+      NEW.resolved_by := NULL;
+      v_sealing := true;
+
+    ELSIF OLD.status = 'Pendiente de Confirmación de Cierre' THEN
+      -- Confirmar (→ Cerrada) o rechazar (→ Abierta): sólo el creador o un Admin
+      IF NEW.status NOT IN ('Cerrada', 'Abierta') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+      IF auth.uid() IS NOT NULL AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
+        SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+        IF v_role IS DISTINCT FROM 'Admin' THEN
+          RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar o rechazar el cierre';
+        END IF;
+      END IF;
+      IF NEW.status = 'Cerrada' THEN
+        NEW.resolved_at := coalesce(NEW.resolved_at, now());
+        NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
+      ELSE
+        -- Rechazo del creador: la resolución propuesta queda sin efecto
+        NEW.resolved_at := NULL;
+        NEW.resolved_by := NULL;
+      END IF;
+      v_sealing := true;
+
+    ELSE
+      -- Estados activos: intercambiables libremente entre sí, más el cierre
+      IF NOT (OLD.status = ANY(v_active)) THEN
+        RAISE EXCEPTION 'Estado de incidencia desconocido: %', OLD.status;
+      END IF;
+
+      -- Cierre ajeno: redirige a Pendiente de Confirmación de Cierre
+      IF NEW.status = 'Cerrada'
+         AND NEW.created_by IS DISTINCT FROM auth.uid() THEN
+        NEW.status := 'Pendiente de Confirmación de Cierre';
+      END IF;
+
+      IF NOT (NEW.status = ANY(v_active))
+         AND NEW.status NOT IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
+        RAISE EXCEPTION 'Transición no permitida: % -> %', OLD.status, NEW.status;
+      END IF;
+
+      IF NEW.status IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
+        NEW.resolved_at := coalesce(NEW.resolved_at, now());
+        NEW.resolved_by := coalesce(NEW.resolved_by, auth.uid());
+        v_sealing := true;
+      END IF;
+    END IF;
+  END IF;
+
+  -- Fuera de la transición que cierra/reabre, resolved_at/resolved_by no se
   -- tocan (salvo Admin).
   IF TG_OP = 'UPDATE' AND NOT v_sealing THEN
     IF NEW.resolved_at IS DISTINCT FROM OLD.resolved_at
@@ -1707,6 +1744,9 @@ DECLARE
   v_inc RECORD;
   v_final_reason TEXT;
   v_final_solution TEXT;
+  v_actor TEXT;
+  v_effective TEXT;
+  v_note TEXT;
 BEGIN
   SELECT * INTO v_inc FROM public.incidents WHERE id = p_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -1719,18 +1759,31 @@ BEGIN
   v_final_reason   := coalesce(nullif(trim(coalesce(p_reason, '')), ''), v_inc.reason);
   v_final_solution := coalesce(nullif(trim(coalesce(p_solution, '')), ''), v_inc.solution);
 
+  -- El trigger puede redirigir 'Cerrada' a 'Pendiente de Confirmación de Cierre'
+  -- (cierre propuesto por alguien que no es el creador).
+  v_effective := p_status;
+  IF p_status = 'Cerrada'
+     AND v_inc.status <> 'Pendiente de Confirmación de Cierre'
+     AND v_inc.created_by IS DISTINCT FROM auth.uid() THEN
+    v_effective := 'Pendiente de Confirmación de Cierre';
+  END IF;
+
   UPDATE public.incidents
   SET status   = p_status,
       reason   = v_final_reason,
       solution = v_final_solution
   WHERE id = p_id;
 
-  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
-  VALUES (
-    p_id, auth.uid(), 'Sistema',
-    coalesce(p_comment, 'Incidencia marcada como ' || lower(p_status)),
-    true
+  SELECT coalesce(name, 'Sistema') INTO v_actor
+  FROM public.profiles WHERE id = auth.uid();
+
+  v_note := coalesce(
+    p_comment,
+    v_actor || ' · ' || v_inc.status || ' → ' || v_effective
   );
+
+  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+  VALUES (p_id, auth.uid(), v_actor, v_note, true);
 
   RETURN p_id;
 END;
@@ -1749,7 +1802,10 @@ CREATE OR REPLACE FUNCTION public.convert_incident_to_wo(
   p_assigned_user_id UUID DEFAULT NULL,
   p_scheduled_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
   p_subtasks JSONB DEFAULT '[]'::jsonb,
-  p_attachments JSONB DEFAULT '[]'::jsonb
+  p_attachments JSONB DEFAULT '[]'::jsonb,
+  p_is_external BOOLEAN DEFAULT false,
+  p_contractor_id UUID DEFAULT NULL,
+  p_external_price NUMERIC DEFAULT NULL
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -1774,14 +1830,18 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Incidencia no encontrada';
   END IF;
-  IF NOT public.can_manage_incident(v_inc.section, v_inc.category_id) THEN
-    RAISE EXCEPTION 'No tienes permiso para gestionar esta incidencia';
+  -- Convertir a OT: sólo Admin o personal de sección comodín (Mantenimiento/Ingeniería)
+  IF NOT (public.is_admin() OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'Solo Mantenimiento/Ingeniería o un admin pueden convertir una incidencia a OT';
   END IF;
-  IF v_inc.status IN ('Resuelta', 'Cancelada', 'Convertida a OT') THEN
+  IF v_inc.status IN ('Cerrada', 'Pendiente de Confirmación de Cierre') THEN
     RAISE EXCEPTION 'La incidencia está en estado % y no se puede convertir', v_inc.status;
   END IF;
   IF p_title IS NULL OR trim(p_title) = '' OR p_section IS NULL OR trim(p_section) = '' THEN
     RAISE EXCEPTION 'La OT necesita título y sección';
+  END IF;
+  IF coalesce(p_is_external, false) AND p_contractor_id IS NULL THEN
+    RAISE EXCEPTION 'Una OT externa necesita una contrata';
   END IF;
 
   v_hist := jsonb_build_array(jsonb_build_object(
@@ -1796,7 +1856,8 @@ BEGIN
   INSERT INTO public.work_orders (
     title, description, type, status, priority, equipment_id, assigned_user_id,
     collaborators, section, created_by, created_at, scheduled_date,
-    status_history, collaborating_sections, used_parts, related_incident_id
+    status_history, collaborating_sections, used_parts, related_incident_id,
+    is_external, contractor_id, external_price
   ) VALUES (
     p_title,
     p_description,
@@ -1813,7 +1874,10 @@ BEGIN
     v_hist,
     '{}'::text[],
     '[]'::jsonb,
-    p_incident_id
+    p_incident_id,
+    coalesce(p_is_external, false),
+    p_contractor_id,
+    p_external_price
   )
   RETURNING id INTO v_wo_id;
 
@@ -1838,7 +1902,7 @@ BEGIN
   END LOOP;
 
   UPDATE public.incidents
-  SET status = 'Convertida a OT',
+  SET status = 'Programada Intervención',
       work_order_id = v_wo_id,
       section = p_section
   WHERE id = p_incident_id;
@@ -1848,6 +1912,116 @@ BEGIN
           'Incidencia convertida a Orden de Trabajo: ' || v_wo_id, true);
 
   RETURN v_wo_id;
+END;
+$$;
+
+-- 3bis. Confirmación de cierre por el creador ---------------------------------
+-- Al resolver una incidencia ajena, queda en 'Pendiente de Confirmación': el
+-- creador confirma (→ Resuelta) o rechaza (→ Abierta). A los 5 días sin
+-- respuesta se auto-confirma (auto_confirm_incident_closures).
+
+CREATE OR REPLACE FUNCTION public.confirm_incident_close(
+  p_id UUID,
+  p_accept BOOLEAN,
+  p_comment TEXT DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_inc RECORD;
+  v_actor TEXT;
+  v_note TEXT;
+BEGIN
+  SELECT * INTO v_inc FROM public.incidents WHERE id = p_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Incidencia no encontrada';
+  END IF;
+  IF v_inc.status <> 'Pendiente de Confirmación de Cierre' THEN
+    RAISE EXCEPTION 'La incidencia no está pendiente de confirmación de cierre';
+  END IF;
+  -- Confirmar o rechazar: sólo el creador o un Admin
+  IF v_inc.created_by IS DISTINCT FROM auth.uid() THEN
+    IF NOT public.is_admin() THEN
+      RAISE EXCEPTION 'Solo el creador o un Admin pueden confirmar el cierre';
+    END IF;
+  END IF;
+  IF NOT p_accept AND coalesce(nullif(trim(coalesce(p_comment, '')), ''), '') IS NULL THEN
+    RAISE EXCEPTION 'Indica por qué la incidencia no está resuelta';
+  END IF;
+
+  IF p_accept THEN
+    UPDATE public.incidents
+    SET status = 'Cerrada'
+    WHERE id = p_id;
+    v_note := 'Cierre confirmado por el creador';
+  ELSE
+    UPDATE public.incidents
+    SET status = 'Abierta'
+    WHERE id = p_id;
+    v_note := 'Cierre rechazado por el creador: ' || trim(p_comment);
+  END IF;
+
+  SELECT coalesce(name, 'Sistema') INTO v_actor
+  FROM public.profiles WHERE id = auth.uid();
+  v_note := v_actor || ' · ' || v_note;
+
+  INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+  VALUES (p_id, auth.uid(), v_actor, v_note, true);
+
+  RETURN p_id;
+END;
+$$;
+
+-- Auto-confirmación de cierres caducados (5 días sin respuesta del creador).
+CREATE OR REPLACE FUNCTION public.auto_confirm_incident_closures()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_rec RECORD;
+  v_n INTEGER := 0;
+BEGIN
+  FOR v_rec IN
+    SELECT id FROM public.incidents
+    WHERE status = 'Pendiente de Confirmación de Cierre'
+      AND resolved_at IS NOT NULL
+      AND resolved_at < now() - interval '5 days'
+  LOOP
+    UPDATE public.incidents
+    SET status = 'Cerrada'
+    WHERE id = v_rec.id;
+
+    INSERT INTO public.incident_comments (incident_id, user_id, user_name, text, is_system)
+    VALUES (v_rec.id, NULL, 'Sistema',
+            'Cierre auto-confirmado (5 días sin respuesta del creador)', true);
+
+    v_n := v_n + 1;
+  END LOOP;
+
+  IF v_n > 0 THEN
+    RAISE NOTICE 'Cierres auto-confirmados: %', v_n;
+  END IF;
+  RETURN v_n;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.unschedule('gmao-auto-confirm-closures');
+    PERFORM cron.schedule(
+      'gmao-auto-confirm-closures',
+      '40 6 * * *',
+      'SELECT public.auto_confirm_incident_closures()'
+    );
+  ELSE
+    RAISE WARNING 'pg_cron no está instalado: llama a public.auto_confirm_incident_closures() a mano o desde un job externo.';
+  END IF;
 END;
 $$;
 
@@ -1863,6 +2037,13 @@ BEGIN
       NEW.closed_at := coalesce(NEW.closed_at, now());
     ELSIF NEW.closed_at IS DISTINCT FROM OLD.closed_at THEN
       NEW.closed_at := OLD.closed_at;
+    END IF;
+    -- Checklist y respuestas quedan sellados tras el cierre
+    IF NEW.closure_checklist IS DISTINCT FROM OLD.closure_checklist THEN
+      NEW.closure_checklist := OLD.closure_checklist;
+    END IF;
+    IF NEW.checklist_answers IS DISTINCT FROM OLD.checklist_answers THEN
+      NEW.checklist_answers := OLD.checklist_answers;
     END IF;
 
     IF NEW.status IS DISTINCT FROM OLD.status THEN
@@ -2024,7 +2205,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -2737,7 +2918,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -2921,7 +3102,8 @@ CREATE OR REPLACE FUNCTION public.transition_work_order(
   p_id TEXT,
   p_action TEXT,
   p_note TEXT DEFAULT NULL,
-  p_manual_minutes INTEGER DEFAULT NULL
+  p_manual_minutes INTEGER DEFAULT NULL,
+  p_checklist_answers JSONB DEFAULT NULL
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -2940,6 +3122,9 @@ DECLARE
   v_status TEXT;
   v_msg TEXT;
   v_time_source TEXT := NULL;
+  v_item JSONB;
+  v_ans JSONB;
+  v_missing INTEGER := 0;
 BEGIN
   SELECT * INTO v_wo FROM public.work_orders WHERE id = p_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -3014,6 +3199,23 @@ BEGIN
 
   -- 2) Estado / tiempo / cierre. NO tocamos status_history.
   IF p_action = 'complete' THEN
+    -- Checklist de cierre: si hay puntos, todos deben estar respondidos
+    -- (respondido = sel sí/no o valor no vacío).
+    IF jsonb_array_length(coalesce(v_wo.closure_checklist, '[]'::jsonb)) > 0 THEN
+      FOR v_item IN SELECT * FROM jsonb_array_elements(coalesce(v_wo.closure_checklist, '[]'::jsonb))
+      LOOP
+        v_ans := coalesce(p_checklist_answers, '{}'::jsonb) -> (v_item->>'id');
+        IF v_ans IS NULL
+           OR (coalesce(v_ans->>'sel', '') NOT IN ('si', 'no')
+               AND coalesce(nullif(trim(coalesce(v_ans->>'val', '')), ''), '') IS NULL) THEN
+          v_missing := v_missing + 1;
+        END IF;
+      END LOOP;
+      IF v_missing > 0 THEN
+        RAISE EXCEPTION 'Faltan % puntos del checklist de cierre por responder', v_missing;
+      END IF;
+    END IF;
+
     UPDATE public.work_orders
     SET status = 'Completada',
         closed_at = v_now,
@@ -3021,7 +3223,8 @@ BEGIN
         time_source = v_time_source,
         time_recorded_by = auth.uid(),
         time_recorded_at = v_now,
-        pending_reason = NULL
+        pending_reason = NULL,
+        checklist_answers = coalesce(p_checklist_answers, checklist_answers)
     WHERE id = p_id;
   ELSIF p_action = 'pause' THEN
     UPDATE public.work_orders
@@ -3035,7 +3238,7 @@ BEGIN
 
   -- Plan preventivo: al completar, relanzar la siguiente OT del plan
   IF p_action = 'complete' AND v_wo.related_plan_id IS NOT NULL THEN
-    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id);
+    PERFORM public.launch_plan_next_wo(v_wo.related_plan_id, v_wo.equipment_id);
   END IF;
 
   RETURN p_id;
@@ -3738,20 +3941,21 @@ CREATE VIEW public.report_incident_stats AS
 SELECT
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
-  -- Postgres no tiene round(double precision, integer): hay que castear a numeric
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
+  -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents
@@ -3810,20 +4014,21 @@ SELECT
   category_id,
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
   -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents
@@ -3882,20 +4087,21 @@ SELECT
   category_id,
   count(*) AS total,
   count(*) FILTER (WHERE status = 'Abierta') AS open_count,
-  count(*) FILTER (WHERE status = 'En Revisión') AS in_review_count,
-  count(*) FILTER (WHERE status = 'Resuelta') AS resolved_count,
-  count(*) FILTER (WHERE status = 'Cancelada') AS cancelled_count,
-  count(*) FILTER (WHERE status = 'Convertida a OT') AS converted_count,
-  count(*) FILTER (WHERE reason IS NOT NULL AND trim(reason) <> '') AS reasons_filled,
-  count(*) FILTER (WHERE solution IS NOT NULL AND trim(solution) <> '') AS solutions_filled,
+  count(*) FILTER (WHERE status = 'En Curso') AS in_progress_count,
+  count(*) FILTER (WHERE status = 'Pausada Material') AS paused_material_count,
+  count(*) FILTER (WHERE status = 'Pausada Presupuesto') AS paused_budget_count,
+  count(*) FILTER (WHERE status = 'Pausada Externos') AS paused_external_count,
+  count(*) FILTER (WHERE status = 'Programada Intervención') AS scheduled_count,
+  count(*) FILTER (WHERE status = 'Pendiente de Confirmación de Cierre') AS pending_close_count,
+  count(*) FILTER (WHERE status = 'Cerrada') AS closed_count,
   -- Postgres no tiene round(double precision, integer): castear a numeric
   round(
-    ((count(*) FILTER (WHERE status = 'Resuelta'))::numeric
+    ((count(*) FILTER (WHERE status = 'Cerrada'))::numeric
      / greatest(count(*), 1)) * 100, 1
   ) AS resolution_rate,
   round(
     (avg(date_part('epoch', resolved_at - created_at) / 86400.0)
-      FILTER (WHERE status = 'Resuelta' AND resolved_at > created_at))::numeric,
+      FILTER (WHERE resolved_at IS NOT NULL AND resolved_at > created_at))::numeric,
     2
   ) AS avg_resolution_days
 FROM public.incidents
@@ -4068,6 +4274,478 @@ $$;
 -- 4. create_incident_with_stoppage: sin cambios de permisos --------------------
 -- Ya es SECURITY DEFINER, así que quien reporta una incidencia puede registrar
 -- su parada aunque no sea Admin. No se toca.
+
+-- ============================================================================
+-- CONTRATAS Y ÓRDENES DE TRABAJO EXTERNAS
+-- ============================================================================
+-- Una OT externa no se asigna a un técnico interno: se encarga a una contrata
+-- (catálogo `contractors`) y su `external_price` es el coste del trabajo.
+
+-- 1. Catálogo de contratas ----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.contractors (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  contact TEXT,
+  phone TEXT,
+  email TEXT,
+  notes TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.contractors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Contractors" ON public.contractors;
+DROP POLICY IF EXISTS "Manage Contractors" ON public.contractors;
+CREATE POLICY "Read Contractors" ON public.contractors
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Contractors" ON public.contractors
+  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+ALTER TABLE public.contractors REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'contractors'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE contractors;
+  END IF;
+END $$;
+
+-- 2. Columnas de trabajo externo en work_orders --------------------------------
+
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS is_external BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS contractor_id UUID REFERENCES public.contractors(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS external_price NUMERIC(12, 2);
+
+-- Checklist de cierre: puntos [{id, texto}] y respuestas {[id]: {sel, val}}
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS closure_checklist JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS checklist_answers JSONB DEFAULT '{}'::jsonb;
+
+
+-- 3. Plantillas de checklist (reutilizables al crear/editar OTs) ---------------
+
+CREATE TABLE IF NOT EXISTS public.checklist_templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.checklist_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Checklist Templates" ON public.checklist_templates;
+DROP POLICY IF EXISTS "Manage Checklist Templates" ON public.checklist_templates;
+CREATE POLICY "Read Checklist Templates" ON public.checklist_templates
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Checklist Templates" ON public.checklist_templates
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.checklist_templates REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'checklist_templates'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE checklist_templates;
+  END IF;
+END $$;
+
+-- ============================================================================
+-- ACEPTACIÓN DE MÁQUINA Y CATEGORÍAS DE DOCUMENTO
+-- ============================================================================
+-- La aceptación de máquina (vistos buenos, formaciones, manuales y conformidad)
+-- se registra por equipo; los documentos de equipo ganan una categoría para
+-- poder enlazarlos desde la aceptación.
+
+-- 1. Categoría de documento (solo documentación de equipo) --------------------
+
+ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS category TEXT;
+
+-- 2. Aceptación de máquina (1:1 por equipo) -----------------------------------
+
+CREATE TABLE IF NOT EXISTS public.equipment_acceptance (
+  equipment_id UUID PRIMARY KEY REFERENCES public.equipment(id) ON DELETE CASCADE,
+  manuals_ok BOOLEAN NOT NULL DEFAULT false,
+  conformity_ok BOOLEAN NOT NULL DEFAULT false,
+  signoffs JSONB NOT NULL DEFAULT '[]'::jsonb,
+  trainings JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.equipment_acceptance ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Equipment Acceptance" ON public.equipment_acceptance;
+DROP POLICY IF EXISTS "Manage Equipment Acceptance" ON public.equipment_acceptance;
+CREATE POLICY "Read Equipment Acceptance" ON public.equipment_acceptance
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Equipment Acceptance" ON public.equipment_acceptance
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.equipment_acceptance REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'equipment_acceptance'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE equipment_acceptance;
+  END IF;
+END $$;
+
+-- ============================================================================
+-- PREVENTIVOS MULTI-OBJETIVO: GRUOS DE EQUIPOS Y CICLOS POR EQUIPO
+-- ============================================================================
+-- Un plan preventivo se asigna a equipos sueltos y/o a grupos nombrados
+-- (equipment_groups). Cada equipo objetivo tiene su propio ciclo
+-- (preventive_plan_targets.next_run) y cada ejecución genera una OT por equipo.
+
+-- 1. Catálogo de grupos de equipos --------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.equipment_groups (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  equipment_ids UUID[] NOT NULL DEFAULT '{}',
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.equipment_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Equipment Groups" ON public.equipment_groups;
+DROP POLICY IF EXISTS "Manage Equipment Groups" ON public.equipment_groups;
+CREATE POLICY "Read Equipment Groups" ON public.equipment_groups
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Equipment Groups" ON public.equipment_groups
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.equipment_groups REPLICA IDENTITY FULL;
+
+-- 2. Asignación plan ↔ grupo (intención declarada del editor) -----------------
+
+CREATE TABLE IF NOT EXISTS public.preventive_plan_groups (
+  plan_id UUID NOT NULL REFERENCES public.preventive_plans(id) ON DELETE CASCADE,
+  group_id UUID NOT NULL REFERENCES public.equipment_groups(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (plan_id, group_id)
+);
+
+ALTER TABLE public.preventive_plan_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Plan Groups" ON public.preventive_plan_groups;
+DROP POLICY IF EXISTS "Manage Plan Groups" ON public.preventive_plan_groups;
+CREATE POLICY "Read Plan Groups" ON public.preventive_plan_groups
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Plan Groups" ON public.preventive_plan_groups
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+-- 3. Objetivos del plan con ciclo individual ---------------------------------
+
+CREATE TABLE IF NOT EXISTS public.preventive_plan_targets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  plan_id UUID NOT NULL REFERENCES public.preventive_plans(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL REFERENCES public.equipment(id) ON DELETE CASCADE,
+  source_group_id UUID REFERENCES public.equipment_groups(id) ON DELETE SET NULL,
+  last_run TIMESTAMP WITH TIME ZONE,
+  next_run TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE (plan_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_targets_due
+  ON public.preventive_plan_targets (next_run);
+CREATE INDEX IF NOT EXISTS idx_plan_targets_group
+  ON public.preventive_plan_targets (source_group_id);
+
+ALTER TABLE public.preventive_plan_targets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read Plan Targets" ON public.preventive_plan_targets;
+DROP POLICY IF EXISTS "Manage Plan Targets" ON public.preventive_plan_targets;
+CREATE POLICY "Read Plan Targets" ON public.preventive_plan_targets
+  FOR SELECT USING (public.can_read_ops_data());
+CREATE POLICY "Manage Plan Targets" ON public.preventive_plan_targets
+  FOR ALL USING (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  ) WITH CHECK (
+    public.is_admin()
+    OR public.role_in_profile('Responsable Sección')
+    OR public.is_wildcard_staff()
+  );
+
+ALTER TABLE public.preventive_plan_targets REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'equipment_groups'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE equipment_groups;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'preventive_plan_targets'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE preventive_plan_targets;
+  END IF;
+END $$;
+
+-- 4. Migración: planes existentes → objetivos --------------------------------
+-- Idempotente (ON CONFLICT DO NOTHING). Tras migrar, equipment_id se retira:
+-- su FK con ON DELETE CASCADE podía borrar el plan entero al borrar un equipo.
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'preventive_plans' AND column_name = 'equipment_id'
+  ) THEN
+    INSERT INTO public.preventive_plan_targets (plan_id, equipment_id, last_run, next_run)
+    SELECT p.id, p.equipment_id, p.last_run, p.next_run
+    FROM public.preventive_plans p
+    WHERE p.equipment_id IS NOT NULL
+    ON CONFLICT (plan_id, equipment_id) DO NOTHING;
+
+    ALTER TABLE public.preventive_plans DROP COLUMN equipment_id;
+    RAISE NOTICE 'preventive_plans.equipment_id migrado a preventive_plan_targets';
+  ELSE
+    RAISE NOTICE 'preventive_plans.equipment_id ya no existe: migración omitida';
+  END IF;
+END $$;
+
+-- 5. Sincronización automática de objetivos al editar un grupo ----------------
+-- Alta de miembros → el plan los recibe (ciclo desde hoy). Baja → se retiran
+-- SOLO los objetivos traídos por ese grupo (una asignación directa no se toca).
+
+CREATE OR REPLACE FUNCTION public.sync_group_plan_targets()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_plan RECORD;
+  v_member UUID;
+  v_old UUID[];
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.equipment_ids IS NOT DISTINCT FROM OLD.equipment_ids THEN
+      RETURN NULL;
+    END IF;
+    v_old := coalesce(OLD.equipment_ids, '{}');
+  ELSE
+    v_old := '{}';
+  END IF;
+
+  FOR v_plan IN
+    SELECT DISTINCT plan_id FROM public.preventive_plan_groups WHERE group_id = NEW.id
+  LOOP
+    -- Altas: miembros nuevos del grupo
+    FOR v_member IN
+      SELECT unnest(coalesce(NEW.equipment_ids, '{}'))
+      EXCEPT
+      SELECT unnest(v_old)
+    LOOP
+      INSERT INTO public.preventive_plan_targets (plan_id, equipment_id, source_group_id, next_run)
+      VALUES (v_plan.plan_id, v_member, NEW.id, now())
+      ON CONFLICT (plan_id, equipment_id) DO NOTHING;
+    END LOOP;
+
+    -- Bajas: solo objetivos de este grupo que ya no son miembros
+    DELETE FROM public.preventive_plan_targets t
+    WHERE t.source_group_id = NEW.id
+      AND t.plan_id = v_plan.plan_id
+      AND NOT (t.equipment_id = ANY (coalesce(NEW.equipment_ids, '{}')));
+  END LOOP;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_sync_group_plan_targets ON public.equipment_groups;
+CREATE TRIGGER trg_sync_group_plan_targets
+  AFTER INSERT OR UPDATE ON public.equipment_groups
+  FOR EACH ROW EXECUTE FUNCTION public.sync_group_plan_targets();
+
+-- 6. Motor de lanzamiento por objetivos ---------------------------------------
+-- launch_plan_target_wo(target): una OT por equipo (título «Plan — Equipo»),
+-- tareas del plan como subtareas y rueda el ciclo de ESE objetivo.
+
+CREATE OR REPLACE FUNCTION public.launch_plan_target_wo(p_target_id UUID)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_plan RECORD;
+  v_eq_name TEXT;
+  v_wo_id TEXT;
+  v_hist JSONB;
+  v_task JSONB;
+  v_next TIMESTAMPTZ;
+BEGIN
+  SELECT * INTO v_target FROM public.preventive_plan_targets WHERE id = p_target_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
+  END IF;
+
+  SELECT * INTO v_plan FROM public.preventive_plans WHERE id = v_target.plan_id;
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT name INTO v_eq_name FROM public.equipment WHERE id = v_target.equipment_id;
+
+  v_hist := jsonb_build_array(jsonb_build_object('status', 'Programada', 'timestamp', now()));
+
+  INSERT INTO public.work_orders (
+    title, description, type, status, priority, section, created_by,
+    created_at, scheduled_date, status_history, related_plan_id, equipment_id
+  ) VALUES (
+    v_plan.name || ' — ' || coalesce(v_eq_name, 'Equipo'),
+    coalesce(v_plan.description, ''),
+    'Preventivo',
+    'Programada',
+    'Media',
+    coalesce(nullif(v_plan.section, ''), 'Global'),
+    auth.uid(),
+    now(),
+    v_target.next_run,
+    v_hist,
+    v_plan.id,
+    v_target.equipment_id
+  )
+  RETURNING id INTO v_wo_id;
+
+  FOR v_task IN SELECT * FROM jsonb_array_elements(coalesce(v_plan.tasks, '[]'::jsonb))
+  LOOP
+    INSERT INTO public.subtasks (work_order_id, description, completed, assigned_user_ids)
+    VALUES (v_wo_id, coalesce(v_task->>'description', v_task->>'name', ''), false, '{}');
+  END LOOP;
+
+  -- Rueda el ciclo de este objetivo (si se perdieron semanas, una sola vez)
+  v_next := v_target.next_run + make_interval(days => coalesce(v_plan.frequency_days, 30));
+  IF v_next <= now() THEN
+    v_next := now() + make_interval(days => coalesce(v_plan.frequency_days, 30));
+  END IF;
+
+  UPDATE public.preventive_plan_targets
+  SET last_run = v_target.next_run,
+      next_run = v_next
+  WHERE id = p_target_id;
+
+  RETURN v_wo_id;
+END;
+$$;
+
+-- launch_plan_next_wo(plan, equipment?): sin equipo lanza TODOS los objetivos
+-- del plan; con equipo, solo el suyo (cadena al completar una OT).
+CREATE OR REPLACE FUNCTION public.launch_plan_next_wo(
+  p_plan_id UUID,
+  p_equipment_id UUID DEFAULT NULL
+)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_first TEXT;
+  v_wo TEXT;
+BEGIN
+  FOR v_target IN
+    SELECT id FROM public.preventive_plan_targets
+    WHERE plan_id = p_plan_id
+      AND (p_equipment_id IS NULL OR equipment_id = p_equipment_id)
+  LOOP
+    v_wo := public.launch_plan_target_wo(v_target.id);
+    IF v_first IS NULL THEN
+      v_first := v_wo;
+    END IF;
+  END LOOP;
+  RETURN v_first;
+END;
+$$;
+
+-- launch_due_preventive_plans: itera OBJETIVOS vencidos (un OT por equipo)
+CREATE OR REPLACE FUNCTION public.launch_due_preventive_plans()
+RETURNS TABLE(plan_id UUID, wo_id TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_target RECORD;
+  v_wo TEXT;
+  v_fired INT := 0;
+BEGIN
+  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
+    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
+  END IF;
+
+  FOR v_target IN
+    SELECT t.id, t.plan_id FROM public.preventive_plan_targets t
+    WHERE t.next_run <= now()
+    ORDER BY t.next_run
+  LOOP
+    v_wo := public.launch_plan_target_wo(v_target.id);
+    v_fired := v_fired + 1;
+    IF v_wo IS NOT NULL THEN
+      plan_id := v_target.plan_id;
+      wo_id := v_wo;
+      RETURN NEXT;
+    END IF;
+  END LOOP;
+
+  RAISE NOTICE 'Objetivos preventivos lanzados: %', v_fired;
+END;
+$$;
 
 -- ============================================================================
 -- DIAGNÓSTICO — revisa la salida de este bloque

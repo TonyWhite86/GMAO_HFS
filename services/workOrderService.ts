@@ -60,7 +60,11 @@ export const workOrderService = {
             collaborating_sections: wo.collaboratingSections || [],
             used_parts: wo.usedParts || [],
             related_plan_id: wo.relatedPlanId || null,
-            related_incident_id: wo.relatedIncidentId || null
+            related_incident_id: wo.relatedIncidentId || null,
+            is_external: wo.isExternal ?? false,
+            contractor_id: wo.isExternal ? (wo.contractorId || null) : null,
+            external_price: wo.isExternal ? (wo.externalPrice ?? null) : null,
+            closure_checklist: wo.closureChecklist || []
         };
 
         const { data: woData, error: woError } = await supabase
@@ -125,7 +129,11 @@ export const workOrderService = {
             collaborating_sections: wo.collaboratingSections || [],
             used_parts: wo.usedParts || [],
             related_plan_id: wo.relatedPlanId || null,
-            related_incident_id: wo.relatedIncidentId || null
+            related_incident_id: wo.relatedIncidentId || null,
+            is_external: wo.isExternal ?? false,
+            contractor_id: wo.isExternal ? (wo.contractorId || null) : null,
+            external_price: wo.isExternal ? (wo.externalPrice ?? null) : null,
+            closure_checklist: wo.closureChecklist || []
         };
 
         const { data, error: woError } = await supabase
@@ -215,12 +223,19 @@ export const workOrderService = {
     },
 
     /** Transición de estado atómica (start | pause | resume | complete). */
-    transition: async (id: string, action: 'start' | 'pause' | 'resume' | 'complete', note?: string | null, manualMinutes?: number | null) => {
+    transition: async (
+        id: string,
+        action: 'start' | 'pause' | 'resume' | 'complete',
+        note?: string | null,
+        manualMinutes?: number | null,
+        checklistAnswers?: Record<string, { sel?: 'si' | 'no' | null; val?: string | null }> | null
+    ) => {
         const { error } = await supabase.rpc('transition_work_order', {
             p_id: id,
             p_action: action,
             p_note: note ?? null,
-            p_manual_minutes: manualMinutes ?? null
+            p_manual_minutes: manualMinutes ?? null,
+            p_checklist_answers: checklistAnswers ?? null
         });
         if (error) throw error;
     },
