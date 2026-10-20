@@ -3510,7 +3510,9 @@ CREATE OR REPLACE FUNCTION public.create_incident_with_stoppage(
   p_with_stoppage BOOLEAN DEFAULT false,
   p_stoppage_title TEXT DEFAULT NULL,
   p_stoppage_start_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_stoppage_description TEXT DEFAULT NULL
+  p_stoppage_description TEXT DEFAULT NULL,
+  -- Fecha/hora de la incidencia elegida por el usuario (NULL = ahora)
+  p_created_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -3535,7 +3537,7 @@ BEGIN
 
   INSERT INTO public.incidents (
     title, description, priority, status, category_id, section,
-    equipment_id, created_by, attachments
+    equipment_id, created_by, attachments, created_at
   ) VALUES (
     trim(p_title),
     p_description,
@@ -3545,7 +3547,8 @@ BEGIN
     nullif(trim(coalesce(p_section, '')), ''),
     p_equipment_id,
     auth.uid(),
-    coalesce(p_attachments, '[]'::jsonb)
+    coalesce(p_attachments, '[]'::jsonb),
+    coalesce(p_created_at, now())
   )
   RETURNING id INTO v_incident_id;
 

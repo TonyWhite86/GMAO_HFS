@@ -31,7 +31,9 @@ export const incidentService = {
                 category_id: incident.categoryId || null,
                 equipment_id: incident.equipmentId || null,
                 work_order_id: incident.workOrderId || null,
-                attachments: incident.attachments || []
+                attachments: incident.attachments || [],
+                // Fecha de la incidencia elegida por el usuario (sin valor = ahora)
+                ...(incident.createdAt ? { created_at: incident.createdAt } : {})
             }])
             .select('*, creator:profiles!created_by(name), category:category_id(name), resolver:resolved_by(name)')
             .single();
@@ -160,6 +162,8 @@ export const incidentService = {
         stoppageTitle?: string | null;
         stoppageStartAt?: string | null;
         stoppageDescription?: string | null;
+        /** Fecha/hora de la incidencia elegida por el usuario (sin valor = ahora). */
+        createdAt?: string | null;
     }) => {
         const { data, error } = await supabase.rpc('create_incident_with_stoppage', {
             p_title: payload.title,
@@ -172,7 +176,8 @@ export const incidentService = {
             p_with_stoppage: payload.withStoppage ?? false,
             p_stoppage_title: payload.stoppageTitle ?? null,
             p_stoppage_start_at: payload.stoppageStartAt ?? null,
-            p_stoppage_description: payload.stoppageDescription ?? null
+            p_stoppage_description: payload.stoppageDescription ?? null,
+            p_created_at: payload.createdAt ?? null
         });
         if (error) {
             console.error('create_incident_with_stoppage:', error);
