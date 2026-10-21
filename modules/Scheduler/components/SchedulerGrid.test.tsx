@@ -73,4 +73,24 @@ describe('SchedulerGrid', () => {
         renderGrid([], []);
         expect(screen.getByText(/No hay técnicos asignados a la sección/)).toBeTruthy();
     });
+
+    it('una WO multi-día pinta la tarjeta el primer día y barra de continuación el resto', () => {
+        const multi = baseWo({
+            scheduledDate: new Date(2026, 6, 15, 9, 0).toISOString(),
+            scheduledEndDate: new Date(2026, 6, 16, 17, 0).toISOString()
+        });
+        renderGrid([multi]);
+        // Tarjeta completa (día de inicio) + barra "↳ título" (día de continuación)
+        expect(screen.getAllByText(/Cambio de rodamiento/).length).toBe(2);
+        expect(screen.getByText(/↳/)).toBeTruthy();
+    });
+
+    it('una WO multi-día no se duplica fuera de su rango', () => {
+        const multi = baseWo({
+            scheduledDate: new Date(2026, 6, 15, 9, 0).toISOString(),
+            scheduledEndDate: new Date(2026, 6, 15, 17, 0).toISOString() // mismo día
+        });
+        renderGrid([multi]);
+        expect(screen.getAllByText(/Cambio de rodamiento/)).toHaveLength(1);
+    });
 });

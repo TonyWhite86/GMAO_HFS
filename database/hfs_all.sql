@@ -3170,7 +3170,14 @@ BEGIN
   UPDATE public.work_orders
   SET assigned_user_id = CASE WHEN p_assign_main THEN p_user_id ELSE assigned_user_id END,
       status = CASE WHEN status IN ('Pendiente', 'Programada') THEN 'Programada' ELSE status END,
-      scheduled_date = coalesce(p_scheduled_date, scheduled_date)
+      -- Mover el inicio desplaza el fin el mismo delta: un trabajo multi-dia
+      -- conserva su duracion al arrastrarlo en el Programador.
+      scheduled_date = coalesce(p_scheduled_date, scheduled_date),
+      scheduled_end_date = CASE
+        WHEN p_scheduled_date IS NOT NULL AND scheduled_date IS NOT NULL AND scheduled_end_date IS NOT NULL
+        THEN scheduled_end_date + (p_scheduled_date - scheduled_date)
+        ELSE scheduled_end_date
+      END
   WHERE id = p_wo_id;
 
   IF p_subtask_ids IS NOT NULL AND array_length(p_subtask_ids, 1) > 0 THEN
@@ -3217,7 +3224,8 @@ BEGIN
 
   IF p_user_id IS NULL THEN
     UPDATE public.work_orders
-    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL, collaborators = '{}'
+    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL,
+        scheduled_end_date = NULL, collaborators = '{}'
     WHERE id = p_wo_id;
     UPDATE public.subtasks SET assigned_user_ids = '{}' WHERE work_order_id = p_wo_id;
   ELSE
@@ -3236,7 +3244,9 @@ BEGIN
     FROM public.work_orders WHERE id = p_wo_id;
 
     IF NOT v_remain THEN
-      UPDATE public.work_orders SET status = 'Pendiente', scheduled_date = NULL WHERE id = p_wo_id;
+      UPDATE public.work_orders
+      SET status = 'Pendiente', scheduled_date = NULL, scheduled_end_date = NULL
+      WHERE id = p_wo_id;
     END IF;
   END IF;
 

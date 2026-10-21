@@ -14,6 +14,7 @@ import { QuickStatusModal } from './workOrder/QuickStatusModal';
 import { VoiceInputButton } from './ui/VoiceInputButton';
 import { LiveTimer } from './LiveTimer';
 import { computeActiveMinutes, hasActiveSession } from '../utils/timeTracking';
+import { formatDateRange } from '../utils/dateUtils';
 
 const SLOW_SPIN_CSS = `
 @keyframes spin-slow {
@@ -209,6 +210,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         // FIX: Preserve Scheduled Date for IN_PROGRESS and COMPLETED
         if (newStatus === WOStatus.PENDING) {
             updated.scheduledDate = undefined;
+            updated.scheduledEndDate = null;
         } else if (newStatus === WOStatus.SCHEDULED && !updated.scheduledDate) {
             updated.scheduledDate = new Date(Date.now() + 86400000).toISOString();
         }
@@ -732,6 +734,12 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 <h3 className="text-xl sm:text-2xl font-bold text-txt mb-2">{editedWO.title}</h3>
                                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[11px] sm:text-sm text-txt-2">
                                     <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={14} className="opacity-70" /> Creada: {new Date(editedWO.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                    {editedWO.scheduledDate && (
+                                        <span className="flex items-center gap-1.5 whitespace-nowrap font-medium">
+                                            <Calendar size={14} className="opacity-70" />
+                                            {editedWO.scheduledEndDate ? 'Programada: ' + formatDateRange(editedWO.scheduledDate, editedWO.scheduledEndDate) : 'Programada: ' + new Date(editedWO.scheduledDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                        </span>
+                                    )}
                                     {editedWO.closedAt && <span className="flex items-center gap-1.5 text-ok font-bold whitespace-nowrap"><Check size={14} /> Finalizada: {new Date(editedWO.closedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
                                     <span className={`flex items-center gap-1.5 whitespace-nowrap px-2 py-0.5 rounded-lg transition-all duration-500 ${isRunning ? 'bg-accent-dim text-accent font-bold shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse' : editedWO.status === WOStatus.COMPLETED ? 'text-ok font-bold' : ''}`}>
                                         <Clock size={14} className={`opacity-70 ${isRunning ? 'animate-spin-slow' : ''}`} />
@@ -923,7 +931,8 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                         value={editedWO.scheduledDate ? toDatetimeLocalValue(editedWO.scheduledDate) : ''}
                                         onChange={(e) => setEditedWO({
                                             ...editedWO,
-                                            scheduledDate: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                                            scheduledDate: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                                            scheduledEndDate: e.target.value ? editedWO.scheduledEndDate : null
                                         })}
                                     />
                                 </div>
