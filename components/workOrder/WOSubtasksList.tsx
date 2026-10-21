@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { CheckSquare, Plus, Check, X, User as UserIcon, Trash2 } from 'lucide-react';
-import { WorkOrder, User, UserRole, SubTask } from '../../types';
+import { WorkOrder, User, UserRole, SubTask, Section } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
+import { canBeAssignedToWO } from '../../utils/incidentVisibility';
 
 interface WOSubtasksListProps {
     editedWO: WorkOrder;
@@ -19,6 +20,8 @@ export const WOSubtasksList: React.FC<WOSubtasksListProps> = ({
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const [newTaskAssignee, setNewTaskAssignee] = useState('');
     const [activeAssignTaskId, setActiveAssignTaskId] = useState<string | null>(null);
+    // Catálogo de secciones (para detectar comodines al asignar)
+    const catalogSections = useAppStore(s => s.sections) as Section[];
 
     return (
         <div>
@@ -56,8 +59,7 @@ export const WOSubtasksList: React.FC<WOSubtasksListProps> = ({
                                 {users
                                     .filter(u => {
                                         if (u.role === UserRole.OBSERVER_L1 || u.role === UserRole.OBSERVER_L2) return false;
-                                        const allowedSections = [editedWO.section, ...(editedWO.collaboratingSections || [])];
-                                        return u.sections.some(s => allowedSections.includes(s));
+                                        return canBeAssignedToWO(u, editedWO.section, editedWO.collaboratingSections || [], catalogSections);
                                     })
                                     .map(u => (
                                         <option key={u.id} value={u.id}>{u.name}</option>
@@ -179,8 +181,7 @@ export const WOSubtasksList: React.FC<WOSubtasksListProps> = ({
                                                             {users.filter(u => {
                                                                 if ((task.assignedUserIds || []).includes(u.id)) return false;
                                                                 if (u.role === UserRole.OBSERVER_L1 || u.role === UserRole.OBSERVER_L2) return false;
-                                                                const allowedSections = [editedWO.section, ...(editedWO.collaboratingSections || [])];
-                                                                return u.sections.some(s => allowedSections.includes(s));
+                                                                return canBeAssignedToWO(u, editedWO.section, editedWO.collaboratingSections || [], catalogSections);
                                                             }).map(u => (
                                                                 <button
                                                                     key={u.id}

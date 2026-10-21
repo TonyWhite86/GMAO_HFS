@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Clock, AlertTriangle, Wrench, ArrowRight, CheckCircle, PlayCircle, PauseCircle } from 'lucide-react';
+import { Clock, AlertTriangle, Wrench, ArrowRight, CheckCircle, PlayCircle, PauseCircle, Building2 } from 'lucide-react';
 import { WorkOrder, WOStatus, WOPriority, Equipment, User } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PRIORITY_CONFIG } from '../../constants';
@@ -57,8 +57,13 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                 onClick={onClick}
             >
                 <div className="flex justify-between items-start mb-2">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center flex-wrap">
                         <StatusBadge status={wo.status} type="workOrder" />
+                        {wo.isExternal && (
+                            <span className="bdg bdg-purple gap-1">
+                                <Building2 size={10} /> Externa{wo.contractorName ? ` · ${wo.contractorName}` : ''}
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-txt-2 bg-surface-2 px-2 py-0.5 rounded">
@@ -148,7 +153,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                     {/* Action Buttons */}
                     {wo.status !== WOStatus.COMPLETED && (onStatusAction || onComplete) && (
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            {onStatusAction && (
+                            {onStatusAction && !wo.isExternal && (
                                 <button
                                     onClick={() => {
                                         const nextStatus = isRunning ? WOStatus.PENDING : WOStatus.IN_PROGRESS;

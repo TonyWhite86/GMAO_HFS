@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { X, Check, Wrench, AlertCircle, User as UserIcon, Calendar, ClipboardCheck } from 'lucide-react';
 import { Incident, WOType, WOStatus, WOPriority, UserRole } from '../../../types';
+import { canBeAssignedToWO } from '../../../utils/incidentVisibility';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { EquipmentSelector } from '../../../components/EquipmentSelector';
 import { Modal } from '../../../components/ui/Modal';
@@ -63,7 +64,6 @@ export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOp
         try {
             await convertToWorkOrder(incident.id, {
                 ...woData,
-                assignedUserId: woData.isExternal ? '' : woData.assignedUserId,
                 externalPrice: woData.isExternal && woData.externalPrice ? Number(woData.externalPrice) : null
             });
             onClose();
@@ -163,15 +163,15 @@ export const ConvertIncidentModal: React.FC<ConvertIncidentModalProps> = ({ isOp
                     </div>
 
                     {/* Responsible */}
-                    <div style={woData.isExternal ? { display: 'none' } : undefined}>
-                        <label className="block text-[10px] font-black text-txt-3 uppercase tracking-widest mb-1.5 ml-1">Responsable OT (Opcional)</label>
+                    <div>
+                        <label className="block text-[10px] font-black text-txt-3 uppercase tracking-widest mb-1.5 ml-1">Responsable interno (Opcional, sigue el caso)</label>
                         <CustomSelect
                             value={woData.assignedUserId}
                             onChange={(val) => setWoData({ ...woData, assignedUserId: val })}
                             options={[
                                 { value: '', label: 'Dejar sin asignar (asigna Jefe de Sección)' },
                                 ...users
-                                    .filter(u => u.role !== UserRole.OBSERVER_L1 && u.role !== UserRole.OBSERVER_L2 && (!woData.section || u.sections.includes(woData.section)))
+                                    .filter(u => canBeAssignedToWO(u, woData.section, [], sections))
                                     .map(u => ({ value: u.id, label: u.name }))
                             ]}
                             placeholder="Asignar a..."

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarClock, PlayCircle, PauseCircle, CheckSquare, CalendarPlus, AlertTriangle, CheckCircle, Search, History } from 'lucide-react';
+import { CalendarClock, PlayCircle, PauseCircle, CheckSquare, CalendarPlus, AlertTriangle, CheckCircle, Search, History, Building2 } from 'lucide-react';
 import { WorkOrder, WOStatus, User, Equipment } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -68,7 +68,7 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     <CalendarPlus size={16} />
                 </button>
             )}
-            {wo.status === WOStatus.PENDING && (
+            {!wo.isExternal && wo.status === WOStatus.PENDING && (
                 <button
                     onClick={() => onStatusAction(wo, WOStatus.IN_PROGRESS)}
                     className="p-1.5 text-txt-3 hover:text-ok hover:bg-ok-dim rounded-md transition-colors"
@@ -77,7 +77,7 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     <PlayCircle size={16} />
                 </button>
             )}
-            {wo.status === WOStatus.IN_PROGRESS && (
+            {!wo.isExternal && wo.status === WOStatus.IN_PROGRESS && (
                 <button
                     onClick={() => onStatusAction(wo, WOStatus.PENDING)}
                     className="p-1.5 text-txt-3 hover:text-warn hover:bg-warn-dim rounded-md transition-colors"
@@ -112,6 +112,11 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-txt text-sm truncate">{wo.title}</span>
+                        {wo.isExternal && (
+                            <span className="bdg bdg-purple shrink-0">
+                                <Building2 size={10} /> Externa{wo.contractorName ? ` · ${wo.contractorName}` : ''}
+                            </span>
+                        )}
                         {due === 'Vencida' && (
                             <span className="bdg bdg-red shrink-0">
                                 <AlertTriangle size={10} /> Vencida

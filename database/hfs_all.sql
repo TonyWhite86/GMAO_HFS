@@ -2314,126 +2314,10 @@ $$;
 
 -- 8. RPC: asignación / desasignación de OT ------------------------------------
 
-CREATE OR REPLACE FUNCTION public.assign_work_order(
-  p_wo_id TEXT,
-  p_user_id UUID,
-  p_scheduled_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_subtask_ids UUID[] DEFAULT NULL,
-  p_assign_main BOOLEAN DEFAULT true
-)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_wo RECORD;
-  v_target RECORD;
-  v_allowed TEXT[];
-  v_is_target_admin BOOLEAN;
-BEGIN
-  SELECT * INTO v_wo FROM public.work_orders WHERE id = p_wo_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Orden de trabajo no encontrada';
-  END IF;
-  IF NOT public.work_order_visible_to_me(v_wo.section, v_wo.collaborating_sections, v_wo.assigned_user_id, v_wo.collaborators) THEN
-    RAISE EXCEPTION 'No tienes permiso sobre esta orden de trabajo';
-  END IF;
+-- assign_work_order / unassign_work_order se definen UNA sola vez en la seccion
+-- "Asignacion de OTs (log_wo_event)" (mas abajo). No duplicar aqui: una copia
+-- antigua llego a pisar la buena via parche temporal.
 
-  SELECT * INTO v_target FROM public.profiles WHERE id = p_user_id AND active;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'El usuario destino no existe o está desactivado';
-  END IF;
-  IF v_target.role LIKE 'Observador%' THEN
-    RAISE EXCEPTION 'Un observador no puede recibir asignaciones';
-  END IF;
-
-  v_allowed := array_remove(ARRAY[v_wo.section] || coalesce(v_wo.collaborating_sections, '{}'), 'Global');
-  v_is_target_admin := (v_target.role = 'Admin');
-  IF NOT v_is_target_admin
-     AND NOT (coalesce(v_target.sections, '{}') && array_remove(v_allowed, NULL))
-     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global') THEN
-    RAISE EXCEPTION 'El técnico debe pertenecer a la sección ''%'' o a sus secciones colaboradoras', v_wo.section;
-  END IF;
-
-  UPDATE public.work_orders
-  SET assigned_user_id = CASE WHEN p_assign_main THEN p_user_id ELSE assigned_user_id END,
-      status = CASE WHEN status IN ('Pendiente', 'Programada') THEN 'Programada' ELSE status END,
-      scheduled_date = coalesce(p_scheduled_date, scheduled_date)
-  WHERE id = p_wo_id;
-
-  IF p_subtask_ids IS NOT NULL AND array_length(p_subtask_ids, 1) > 0 THEN
-    UPDATE public.subtasks
-    SET assigned_user_ids = array_append(
-      array_remove(coalesce(assigned_user_ids, '{}'), p_user_id),
-      p_user_id
-    )
-    WHERE work_order_id = p_wo_id AND id = ANY(p_subtask_ids);
-  END IF;
-
-  INSERT INTO public.comments (work_order_id, user_id, user_name, text, is_system)
-  VALUES (p_wo_id, auth.uid(), 'Sistema',
-          'Asignada a ' || v_target.name ||
-          CASE WHEN p_scheduled_date IS NOT NULL
-               THEN ' para el ' || to_char(p_scheduled_date, 'DD/MM/YYYY') ELSE '' END,
-          true);
-
-  RETURN p_wo_id;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.unassign_work_order(
-  p_wo_id TEXT,
-  p_user_id UUID DEFAULT NULL
-)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_wo RECORD;
-  v_remain BOOLEAN;
-BEGIN
-  SELECT * INTO v_wo FROM public.work_orders WHERE id = p_wo_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Orden de trabajo no encontrada';
-  END IF;
-  IF NOT public.work_order_visible_to_me(v_wo.section, v_wo.collaborating_sections, v_wo.assigned_user_id, v_wo.collaborators) THEN
-    RAISE EXCEPTION 'No tienes permiso sobre esta orden de trabajo';
-  END IF;
-
-  IF p_user_id IS NULL THEN
-    UPDATE public.work_orders
-    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL
-    WHERE id = p_wo_id;
-    UPDATE public.subtasks SET assigned_user_ids = '{}' WHERE work_order_id = p_wo_id;
-    UPDATE public.work_orders SET collaborators = '{}' WHERE id = p_wo_id;
-  ELSE
-    UPDATE public.work_orders
-    SET assigned_user_id = CASE WHEN assigned_user_id = p_user_id THEN NULL ELSE assigned_user_id END,
-        collaborators = array_remove(coalesce(collaborators, '{}'), p_user_id)
-    WHERE id = p_wo_id;
-    UPDATE public.subtasks
-    SET assigned_user_ids = array_remove(coalesce(assigned_user_ids, '{}'), p_user_id)
-    WHERE work_order_id = p_wo_id;
-
-    SELECT (assigned_user_id IS NOT NULL)
-        OR EXISTS (SELECT 1 FROM public.subtasks WHERE work_order_id = p_wo_id AND cardinality(coalesce(assigned_user_ids, '{}')) > 0)
-        OR cardinality(coalesce(collaborators, '{}')) > 0
-    INTO v_remain
-    FROM public.work_orders WHERE id = p_wo_id;
-
-    IF NOT v_remain THEN
-      UPDATE public.work_orders
-      SET status = 'Pendiente', scheduled_date = NULL
-      WHERE id = p_wo_id;
-    END IF;
-  END IF;
-
-  RETURN p_wo_id;
-END;
-$$;
 
 -- 9. RPC: recepción de material de un pedido (atómica) ------------------------
 -- p_items: [{"item_id": "uuid", "quantity": 3}]
@@ -3281,9 +3165,15 @@ BEGIN
   END IF;
 
   v_allowed := array_remove(ARRAY[v_wo.section] || coalesce(v_wo.collaborating_sections, '{}'), 'Global');
+  -- Asignable: Admin, tecnico comodin (Mantenimiento/Ingenieria: gestionan todo),
+  -- o tecnico de la seccion principal/colaboradora ('Global' cualquiera).
   IF v_target.role <> 'Admin'
      AND NOT (coalesce(v_target.sections, '{}') && array_remove(v_allowed, NULL))
-     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global') THEN
+     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global')
+     AND NOT EXISTS (
+       SELECT 1 FROM public.sections sec
+       WHERE sec.is_wildcard AND sec.name = ANY(coalesce(v_target.sections, '{}'))
+     ) THEN
     RAISE EXCEPTION 'El técnico debe pertenecer a la sección ''%'' o a sus secciones colaboradoras', v_wo.section;
   END IF;
 

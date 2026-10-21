@@ -4,6 +4,7 @@ import {
     canSeeIncident,
     canManageIncident,
     canConvertIncident,
+    canBeAssignedToWO,
     isObserver,
     isWildcardUser
 } from './incidentVisibility';
@@ -234,5 +235,39 @@ describe('canConvertIncident', () => {
         expect(canConvertIncident(null, all)).toBe(false);
         const mant = { role: UserRole.TECHNICIAN, sections: ['Mantenimiento'] } as User;
         expect(canConvertIncident(mant, [])).toBe(false);
+    });
+});
+
+describe('canBeAssignedToWO (espejo de assign_work_order)', () => {
+    it('un observador nunca recibe asignaciones', () => {
+        const obs = { ...baseUser, role: UserRole.OBSERVER_L1, sections: ['Mecanizado'] } as User;
+        expect(canBeAssignedToWO(obs, 'Mecanizado', [], sections())).toBe(false);
+    });
+
+    it('un Admin puede recibir cualquier OT', () => {
+        const admin = { ...baseUser, role: UserRole.ADMIN, sections: [] } as User;
+        expect(canBeAssignedToWO(admin, 'Producción', [], sections())).toBe(true);
+    });
+
+    it('un comodín puede recibir cualquier OT', () => {
+        const wild = { ...baseUser, sections: ['Mantenimiento'] } as User;
+        expect(canBeAssignedToWO(wild, 'Producción', [], sections())).toBe(true);
+    });
+
+    it('técnico de la sección principal: sí', () => {
+        expect(canBeAssignedToWO(baseUser, 'Mecanizado', [], sections())).toBe(true);
+    });
+
+    it('técnico de sección colaboradora: sí', () => {
+        expect(canBeAssignedToWO(baseUser, 'Producción', ['Mecanizado'], sections())).toBe(true);
+    });
+
+    it('técnico de otra sección: no', () => {
+        expect(canBeAssignedToWO(baseUser, 'Producción', ['Calidad'], sections())).toBe(false);
+    });
+
+    it("'Global' en principal o colaboradora deja asignar a cualquiera", () => {
+        expect(canBeAssignedToWO(baseUser, 'Global', [], sections())).toBe(true);
+        expect(canBeAssignedToWO(baseUser, 'Producción', ['Global'], sections())).toBe(true);
     });
 });

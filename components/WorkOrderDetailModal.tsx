@@ -103,6 +103,9 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
     // Track newly uploaded files in this session for cleanup on cancel
     const newlyUploadedFilesRef = useRef<string[]>([]);
 
+    // Catálogo de contratas (para marcar la OT como externa en edición)
+    const contractors = useAppStore(st => st.contractors);
+
     // Calculate Available Sections
     const availableSections = useMemo(() => {
         if (currentUser.role === UserRole.ADMIN) return sections.map(s => s.name);
@@ -288,6 +291,10 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         if (!editedWO.title.trim() || !editedWO.equipmentId || !editedWO.section) {
             setShowValidationErrors(true);
             toast.error('Por favor, rellene todos los campos obligatorios (*)');
+            return;
+        }
+        if (editedWO.isExternal && !editedWO.contractorId) {
+            toast.error('Una OT externa necesita una contrata');
             return;
         }
 
@@ -811,13 +818,13 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 <>
                                     {editedWO.isExternal && (
                                         <div className="mb-2 p-2 rounded-lg bg-spec-dim border border-spec-border text-xs text-spec">
-                                            OT externa{editedWO.contractorName ? ` — ${editedWO.contractorName}` : ''}: sin responsable interno.
+                                            Lo ejecuta{editedWO.contractorName ? ` ${editedWO.contractorName}` : ' una contrata'} (externa). El responsable interno sigue el caso.
                                         </div>
                                     )}
-                                    <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</label>
+                                    <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable interno (sigue el caso)</label>
                                 </>
                             ) : (
-                                <span className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</span>
+                                <span className="block text-sm font-medium text-txt-2 mb-2">Responsable interno</span>
                             )}
                             {isEditing ? (
                                 <CustomSelect
@@ -841,6 +848,51 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* Trabajo externo (editable) */}
+                        {isEditing && (
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-txt-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!editedWO.isExternal}
+                                        onChange={(e) => setEditedWO({
+                                            ...editedWO,
+                                            isExternal: e.target.checked,
+                                            contractorId: e.target.checked ? (editedWO.contractorId ?? '') : null,
+                                            externalPrice: e.target.checked ? (editedWO.externalPrice ?? null) : null
+                                        })}
+                                        className="w-4 h-4"
+                                    />
+                                    Lo ejecuta una contrata (trabajo externo)
+                                </label>
+                                {editedWO.isExternal && (
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-line bg-surface-2">
+                                        <CustomSelect
+                                            label="Contrata"
+                                            value={editedWO.contractorId || ''}
+                                            onChange={(val) => setEditedWO({ ...editedWO, contractorId: val })}
+                                            options={contractors
+                                                .filter(c => c.active)
+                                                .map(c => ({ value: c.id, label: c.name }))}
+                                            placeholder="Selecciona la contrata…"
+                                        />
+                                        <div>
+                                            <label className="block text-sm font-medium text-txt-2 mb-2">Precio (€)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={editedWO.externalPrice ?? ''}
+                                                onChange={(e) => setEditedWO({ ...editedWO, externalPrice: e.target.value ? Number(e.target.value) : null })}
+                                                placeholder="0.00"
+                                                className="fld-input w-full p-2.5 rounded-[6px] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Admin Dates */}
                         {isEditing && currentUser.role === UserRole.ADMIN && (
