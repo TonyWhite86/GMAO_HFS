@@ -3586,57 +3586,24 @@ END;
 $$;
 
 -- 4. RPC: cerrar una parada abierta -------------------------------------------
-
-CREATE OR REPLACE FUNCTION public.complete_stoppage(
-  p_id UUID,
-  p_end_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_status TEXT DEFAULT 'Completada'
-)
-RETURNS UUID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_stop RECORD;
-  v_end TIMESTAMP WITH TIME ZONE;
-BEGIN
-  IF NOT (public.can_read_ops_data() AND public.can_manage_stoppages()) THEN
-    RAISE EXCEPTION 'No puedes gestionar paradas';
-  END IF;
-
-  SELECT * INTO v_stop FROM public.equipment_stoppages WHERE id = p_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Parada no encontrada';
-  END IF;
-  IF v_stop.status IN ('Completada', 'Cancelada') THEN
-    RETURN p_id;  -- idempotente
-  END IF;
-
-  v_end := coalesce(p_end_at, now());
-  IF v_end <= v_stop.start_at THEN
-    RAISE EXCEPTION 'El fin debe ser posterior al inicio de la parada';
-  END IF;
-
-  UPDATE public.equipment_stoppages
-  SET end_at = v_end,
-      status = coalesce(nullif(p_status, ''), 'Completada')
-  WHERE id = p_id;
-
-  RETURN p_id;
-END;
-$$;
+-- complete_stoppage se define UNA sola vez en la seccion
+-- "complete_stoppage: Admin o creador" (mas abajo). No duplicar aqui: una
+-- copia antigua de esta funcion llego a pisar la buena via parche temporal.
 
 -- 5. Auto-cierre al resolver/cancelar la incidencia ----------------------------
 
 CREATE OR REPLACE FUNCTION public.close_stoppages_for_incident()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Al resolver (queda en Pendiente de Confirmacion de Cierre) o al cerrar la
+  -- incidencia, su parada abierta se cierra como Completada. El fin se sella
+  -- con la fecha real del trabajo (resolved_at). Si el creador rechaza el
+  -- cierre (-> Abierta), la parada ya cerrada no se reabre.
   IF NEW.status IS DISTINCT FROM OLD.status
-     AND NEW.status IN ('Resuelta', 'Cancelada') THEN
+     AND NEW.status IN ('Pendiente de Confirmación de Cierre', 'Cerrada') THEN
     UPDATE public.equipment_stoppages
-    SET end_at = now(),
-        status = CASE WHEN NEW.status = 'Resuelta' THEN 'Completada' ELSE 'Cancelada' END
+    SET end_at = greatest(start_at + interval '1 second', coalesce(NEW.resolved_at, now())),
+        status = 'Completada'
     WHERE incident_id = NEW.id
       AND status NOT IN ('Completada', 'Cancelada');
   END IF;
