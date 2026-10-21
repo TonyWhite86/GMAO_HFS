@@ -194,6 +194,9 @@ export const mapPreventivePlan = (p: any, existing?: PreventivePlan): Preventive
     nextRun: p.next_run,
     tasks: p.tasks || [],
     section: p.section,
+    collaboratingSections: p.collaborating_sections || [],
+    collaborators: p.collaborators || [],
+    assignedUserId: p.assigned_user_id ?? null,
     targets: Array.isArray(p.targets)
         ? p.targets.map(mapPreventivePlanTarget)
         : existing?.targets  // el payload realtime no trae el join

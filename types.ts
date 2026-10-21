@@ -322,6 +322,12 @@ export interface PreventivePlan {
   nextRun: string;
   assignedGroupId?: string;
   section?: string;
+  /** Secciones que también ven/gestionan el plan (además de la principal). */
+  collaboratingSections?: string[];
+  /** Usuarios que siguen el plan. */
+  collaborators?: string[];
+  /** Responsable interno (sigue el caso). */
+  assignedUserId?: string | null;
   /** Objetivos con ciclo individual (equipos sueltos y/o de grupos). */
   targets?: PreventivePlanTarget[];
 }

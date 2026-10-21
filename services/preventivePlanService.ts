@@ -104,7 +104,10 @@ export const preventivePlanService = {
             last_run: plan.lastRun ?? null,
             next_run: plan.nextRun,
             tasks: plan.tasks,
-            section: plan.section
+            section: plan.section,
+            collaborating_sections: plan.collaboratingSections || [],
+            collaborators: plan.collaborators || [],
+            assigned_user_id: plan.assignedUserId ?? null
         }]).select().single();
 
         if (error) throw error;
@@ -122,7 +125,10 @@ export const preventivePlanService = {
                 last_run: plan.lastRun ?? null,
                 next_run: plan.nextRun,
                 tasks: plan.tasks,
-                section: plan.section
+                section: plan.section,
+                collaborating_sections: plan.collaboratingSections || [],
+                collaborators: plan.collaborators || [],
+                assigned_user_id: plan.assignedUserId ?? null
             })
             .eq('id', plan.id)
             .select()

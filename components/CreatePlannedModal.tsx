@@ -11,6 +11,7 @@ import { Modal } from './ui/Modal';
 import { FormInput } from './ui/FormInput';
 import { FormTextarea } from './ui/FormTextarea';
 import { VoiceInputButton } from './ui/VoiceInputButton';
+import { AudiencePicker } from './common/AudiencePicker';
 
 interface CreatePlannedModalProps {
     onClose: () => void;
@@ -38,6 +39,9 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
     const [contractorId, setContractorId] = useState('');
     const [externalPrice, setExternalPrice] = useState('');
     const contractors = useAppStore(s => s.contractors);
+    // Audiencia: secciones que también ven/gestionan + usuarios que siguen el caso
+    const [collaboratingSections, setCollaboratingSections] = useState<string[]>([]);
+    const [collaborators, setCollaborators] = useState<string[]>([]);
 
     // Subtaks State
     const [subtasks, setSubtasks] = useState<SubTask[]>([]);
@@ -83,6 +87,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             section,
             createdBy: currentUser.id,
             assignedUserId: assignedUserId || undefined,
+            collaboratingSections: collaboratingSections.length > 0 ? collaboratingSections : [],
+            collaborators: collaborators.length > 0 ? collaborators : [],
             isExternal,
             contractorId: isExternal ? contractorId : undefined,
             externalPrice: isExternal && externalPrice ? Number(externalPrice) : undefined,
@@ -98,7 +104,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
     };
 
     // Asignables: mismo criterio que assign_work_order en BD (helper compartido).
-    const filteredUsers = users.filter(u => canBeAssignedToWO(u, section, [], sections));
+    const filteredUsers = users.filter(u => canBeAssignedToWO(u, section, collaboratingSections, sections));
 
     return (
         <Modal onClose={onClose}>
@@ -232,6 +238,17 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* Audiencia: secciones colaboradoras + colaboradores */}
+                        <AudiencePicker
+                            sections={sections}
+                            users={users}
+                            mainSection={section}
+                            collaboratingSections={collaboratingSections}
+                            onCollaboratingSectionsChange={setCollaboratingSections}
+                            collaborators={collaborators}
+                            onCollaboratorsChange={setCollaborators}
+                        />
                     </div>
 
                     {/* Bulk Assignment UI (Conditional) */}

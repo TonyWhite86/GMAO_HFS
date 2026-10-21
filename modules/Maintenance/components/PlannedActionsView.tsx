@@ -117,6 +117,9 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                                 <Building2 size={10} /> Externa{wo.contractorName ? ` · ${wo.contractorName}` : ''}
                             </span>
                         )}
+                        {(wo.collaboratingSections || []).map(sec => (
+                            <span key={sec} className="bdg bdg-purple shrink-0">{sec}</span>
+                        ))}
                         {due === 'Vencida' && (
                             <span className="bdg bdg-red shrink-0">
                                 <AlertTriangle size={10} /> Vencida

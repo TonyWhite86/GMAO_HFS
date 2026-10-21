@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PreventivePlan, Equipment, User, SubTask, UserRole, Section } from '../../../types';
+import { AudiencePicker } from '../../../components/common/AudiencePicker';
+import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { PlanTargetsPicker } from './PlanTargetsPicker';
 import { useAppStore } from '../../../store/useAppStore';
 import { PlanTargetsInput, expandTargetEquipment } from '../../../utils/preventiveTargets';
@@ -41,6 +43,10 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
     const [tasks, setTasks] = useState<SubTask[]>([]);
     const [launchNow, setLaunchNow] = useState(false);
     const [section, setSection] = useState('');
+    // Audiencia y responsable interno del plan
+    const [collaboratingSections, setCollaboratingSections] = useState<string[]>([]);
+    const [collaborators, setCollaborators] = useState<string[]>([]);
+    const [assignedUserId, setAssignedUserId] = useState('');
 
     useEffect(() => {
         if (editingPlan) {
@@ -49,6 +55,9 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
             setFrequency(editingPlan.frequencyDays);
             setTasks(editingPlan.tasks);
             setSection(editingPlan.section || '');
+            setCollaboratingSections(editingPlan.collaboratingSections || []);
+            setCollaborators(editingPlan.collaborators || []);
+            setAssignedUserId(editingPlan.assignedUserId || '');
             const targets = editingPlan.targets || [];
             setSelectedEquipment(targets.filter(t => !t.sourceGroupId).map(t => t.equipmentId));
             setSelectedGroups([...new Set(targets.map(t => t.sourceGroupId).filter(Boolean))] as string[]);
@@ -107,7 +116,10 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
             frequencyDays: isNaN(frequency) ? 30 : frequency,
             tasks,
             nextRun: editingPlan ? editingPlan.nextRun : new Date().toISOString(),
-            section
+            section,
+            collaboratingSections,
+            collaborators,
+            assignedUserId: assignedUserId || null
         };
         const targets: PlanTargetsInput = {
             equipmentIds: selectedEquipment,
@@ -116,6 +128,12 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
         };
         onSubmit(plan, launchNow, targets);
     };
+
+    const planAudienceSections = () => editingPlan?.collaboratingSections || [];
+    const planAudienceUsers = () =>
+        (editingPlan?.collaborators || [])
+            .map(id => users.find(u => u.id === id)?.name)
+            .filter(Boolean) as string[];
 
     return (
         <Modal onClose={onClose} size="lg">
@@ -237,6 +255,49 @@ export const CreatePreventiveModal: React.FC<CreatePreventiveModalProps> = ({
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Responsable interno + audiencia */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <CustomSelect
+                                label="Responsable interno (sigue el caso)"
+                                value={assignedUserId}
+                                onChange={setAssignedUserId}
+                                options={[
+                                    { value: '', label: 'Sin asignar' },
+                                    ...users
+                                        .filter(u => u.role !== UserRole.OBSERVER_L1 && u.role !== UserRole.OBSERVER_L2)
+                                        .map(u => ({ value: u.id, label: u.name }))
+                                ]}
+                                placeholder="Sin asignar"
+                                disabled={readOnly}
+                            />
+                            <p className="text-[11px] text-txt-3 mt-1">
+                                Heredado por las OTs que genere el plan.
+                            </p>
+                        </div>
+                        <div>
+                            {readOnly ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-txt-2 mb-2">Audiencia</label>
+                                    <div className="text-xs text-txt-2 py-2">
+                                        {[...(planAudienceSections()), ...(planAudienceUsers())].join(' · ') || 'Ninguna'}
+                                    </div>
+                                </div>
+                            ) : (
+                                <AudiencePicker
+                                    sections={sections}
+                                    users={users}
+                                    mainSection={section}
+                                    collaboratingSections={collaboratingSections}
+                                    onCollaboratingSectionsChange={setCollaboratingSections}
+                                    collaborators={collaborators}
+                                    onCollaboratorsChange={setCollaborators}
+                                    disabled={readOnly}
+                                />
+                            )}
                         </div>
                     </div>
 

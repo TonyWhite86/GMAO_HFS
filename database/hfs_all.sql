@@ -1288,34 +1288,60 @@ CREATE POLICY "Manage Collaborators" ON public.work_order_collaborators
 
 DROP POLICY IF EXISTS "Read Plans" ON public.preventive_plans;
 DROP POLICY IF EXISTS "Manage Plans" ON public.preventive_plans;
+-- Visibilidad de un plan: mismo criterio que una OT (seccion principal o
+-- colaboradora, ser el responsable o estar en los colaboradores).
+CREATE OR REPLACE FUNCTION public.plan_visible_to_me(
+  p_section TEXT,
+  p_collaborating_sections TEXT[],
+  p_assigned_user_id UUID,
+  p_collaborators UUID[]
+)
+RETURNS boolean AS $$
+  SELECT public.work_order_visible_to_me(
+    coalesce(nullif(p_section, ''), 'Global'),
+    p_collaborating_sections,
+    p_assigned_user_id,
+    p_collaborators
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Gestion: Admin o Responsable Seccion, sobre planes de su orbita (principal o
+-- colaboradora). El responsable asignado ya ve el plan por plan_visible_to_me.
+CREATE OR REPLACE FUNCTION public.plan_manageable_by_me(
+  p_section TEXT,
+  p_collaborating_sections TEXT[]
+)
+RETURNS boolean AS $$
+BEGIN
+  IF NOT public.can_read_ops_data() THEN
+    RETURN false;
+  END IF;
+  IF public.is_admin() THEN
+    RETURN true;
+  END IF;
+  IF NOT public.role_in_profile('Responsable Sección') THEN
+    RETURN false;
+  END IF;
+  IF coalesce(nullif(p_section, ''), 'Global') = 'Global'
+     OR coalesce(nullif(p_section, ''), 'Global') = ANY(public.my_sections())
+     OR (p_collaborating_sections IS NOT NULL AND public.my_sections() && p_collaborating_sections) THEN
+    RETURN true;
+  END IF;
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
 CREATE POLICY "Read Plans" ON public.preventive_plans
   FOR SELECT USING (
     public.can_read_ops_data()
     AND (
       public.is_admin() OR public.is_wildcard_staff()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
+      OR public.plan_visible_to_me(section, collaborating_sections, assigned_user_id, collaborators)
     )
   );
 CREATE POLICY "Manage Plans" ON public.preventive_plans
-  FOR ALL USING (
-    public.can_read_ops_data()
-    AND (public.is_admin() OR role_in_profile('Responsable Sección'))
-    AND (
-      public.is_admin()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
-    )
-  )
-  WITH CHECK (
-    public.can_read_ops_data()
-    AND (public.is_admin() OR role_in_profile('Responsable Sección'))
-    AND (
-      public.is_admin()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
-    )
-  );
+  FOR ALL USING (public.plan_manageable_by_me(section, collaborating_sections))
+  WITH CHECK (public.plan_manageable_by_me(section, collaborating_sections));
 
 -- 11. RLS: inventario y movimientos -------------------------------------------
 
@@ -2256,61 +2282,10 @@ $$;
 
 -- 7. Lanzamiento del siguiente OT de un plan preventivo ------------------------
 
-CREATE OR REPLACE FUNCTION public.launch_plan_next_wo(p_plan_id UUID)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_plan RECORD;
-  v_task JSONB;
-  v_wo_id TEXT;
-  v_hist JSONB;
-BEGIN
-  SELECT * INTO v_plan FROM public.preventive_plans WHERE id = p_plan_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN NULL;
-  END IF;
-  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
-    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
-  END IF;
+-- launch_plan_next_wo se define UNA sola vez en la seccion de planes
+-- multi-objetivo (mas abajo), delegando en launch_plan_target_wo. No duplicar:
+-- la copia antigua generaba la OT a mano SIN heredar la audiencia del plan.
 
-  v_hist := jsonb_build_array(jsonb_build_object('status', 'Programada', 'timestamp', now()));
-
-  INSERT INTO public.work_orders (
-    title, description, type, status, priority, section, created_by,
-    created_at, scheduled_date, status_history, related_plan_id, equipment_id
-  ) VALUES (
-    v_plan.name,
-    coalesce(v_plan.description, ''),
-    'Preventivo',
-    'Programada',
-    'Media',
-    coalesce(nullif(v_plan.section, ''), 'Global'),
-    auth.uid(),
-    now(),
-    v_plan.next_run,
-    v_hist,
-    v_plan.id,
-    v_plan.equipment_id
-  )
-  RETURNING id INTO v_wo_id;
-
-  FOR v_task IN SELECT * FROM jsonb_array_elements(coalesce(v_plan.tasks, '[]'::jsonb))
-  LOOP
-    INSERT INTO public.subtasks (work_order_id, description, completed, assigned_user_ids)
-    VALUES (v_wo_id, coalesce(v_task->>'description', v_task->>'name', ''), false, '{}');
-  END LOOP;
-
-  UPDATE public.preventive_plans
-  SET last_run = v_plan.next_run,
-      next_run = v_plan.next_run + make_interval(days => coalesce(v_plan.frequency_days, 30))
-  WHERE id = p_plan_id;
-
-  RETURN v_wo_id;
-END;
-$$;
 
 -- 8. RPC: asignación / desasignación de OT ------------------------------------
 
@@ -3661,44 +3636,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Lanza una OT por cada plan vencido. Si un plan se saltó varias ejecuciones,
 -- lanza SOLO UNA OT (la más reciente) y salta next_run al futuro, para no
 -- inundar de órdenes cuando la app ha estado caída.
-CREATE OR REPLACE FUNCTION public.launch_due_preventive_plans()
-RETURNS TABLE(plan_id UUID, wo_id TEXT)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_plan RECORD;
-  v_wo TEXT;
-  v_fired INT := 0;
-BEGIN
-  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
-    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
-  END IF;
+-- launch_due_preventive_plans se define UNA sola vez en la seccion de planes
+-- multi-objetivo (mas abajo). No duplicar aqui.
 
-  FOR v_plan IN
-    SELECT p.* FROM public.preventive_plans p
-    WHERE p.next_run <= now()
-    ORDER BY p.next_run
-  LOOP
-    v_wo := public.launch_plan_next_wo(v_plan.id);
-    v_fired := v_fired + 1;
-
-    -- Salta next_run al futuro: si se perdieron 3 semanas, no lanzamos 3 OTs.
-    UPDATE public.preventive_plans
-    SET next_run = now() + make_interval(days => coalesce(frequency_days, 30))
-    WHERE id = v_plan.id AND next_run <= now();
-
-    IF v_wo IS NOT NULL THEN
-      plan_id := v_plan.id;
-      wo_id := v_wo;
-      RETURN NEXT;
-    END IF;
-  END LOOP;
-
-  RAISE NOTICE 'Planes preventivos lanzados: %', v_fired;
-END;
-$$;
 
 -- Cron diario (pg_cron). Si no está instalado, se avisa y se puede llamar a mano.
 DO $$
@@ -4411,6 +4351,13 @@ BEGIN
     ON CONFLICT (plan_id, equipment_id) DO NOTHING;
 
     ALTER TABLE public.preventive_plans DROP COLUMN equipment_id;
+
+-- Audiencia del plan: secciones colaboradoras (ven/gestionan), colaboradores
+-- (usuarios que siguen el plan) y responsable interno (quien hace seguimiento).
+ALTER TABLE public.preventive_plans
+  ADD COLUMN IF NOT EXISTS collaborating_sections TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS collaborators UUID[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS assigned_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
     RAISE NOTICE 'preventive_plans.equipment_id migrado a preventive_plan_targets';
   ELSE
     RAISE NOTICE 'preventive_plans.equipment_id ya no existe: migración omitida';
@@ -4505,7 +4452,8 @@ BEGIN
 
   INSERT INTO public.work_orders (
     title, description, type, status, priority, section, created_by,
-    created_at, scheduled_date, status_history, related_plan_id, equipment_id
+    created_at, scheduled_date, status_history, related_plan_id, equipment_id,
+    collaborating_sections, collaborators, assigned_user_id
   ) VALUES (
     v_plan.name || ' — ' || coalesce(v_eq_name, 'Equipo'),
     coalesce(v_plan.description, ''),
@@ -4518,7 +4466,10 @@ BEGIN
     v_target.next_run,
     v_hist,
     v_plan.id,
-    v_target.equipment_id
+    v_target.equipment_id,
+    coalesce(v_plan.collaborating_sections, '{}'),
+    coalesce(v_plan.collaborators, '{}'),
+    v_plan.assigned_user_id
   )
   RETURNING id INTO v_wo_id;
 

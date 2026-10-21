@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PreventivePlan, Equipment, SortKey } from '../../../types';
 import { GenericTable } from '../../../components/GenericTable';
-import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare, Building2, Cog, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, PlayCircle, Edit2, Eye, Trash2, Wrench, ListPlus, ArrowUp, ArrowDown, ArrowUpDown, CheckSquare, Building2, Cog, AlertTriangle, User as UserIcon } from 'lucide-react';
 import { resolvePlanSummary } from '../../../utils/preventiveTargets';
 import { useAppStore } from '../../../store/useAppStore';
 
@@ -25,6 +25,7 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
     onDelete
 }) => {
     const equipmentGroups = useAppStore(s => s.equipmentGroups);
+    const users = useAppStore(s => s.users);
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
@@ -265,6 +266,21 @@ export const MaintenancePreventivePlans: React.FC<MaintenancePreventivePlansProp
                     )}
                     {sum.equipmentCount === 0 && <span className="italic text-txt-3">Sin objetivos</span>}
                 </div>
+                {((plan.collaboratingSections || []).length > 0 || plan.assignedUserId || (plan.collaborators || []).length > 0) && (
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs text-txt-2 mb-1">
+                        {(plan.collaboratingSections || []).map(sec => (
+                            <span key={sec} className="bdg bdg-purple">{sec}</span>
+                        ))}
+                        {plan.assignedUserId && (
+                            <span className="bdg bdg-gray">
+                                <UserIcon size={10} /> {users.find(u => u.id === plan.assignedUserId)?.name || 'Responsable'}
+                            </span>
+                        )}
+                        {(plan.collaborators || []).length > 0 && (
+                            <span className="bdg bdg-gray">+{(plan.collaborators || []).length} colab.</span>
+                        )}
+                    </div>
+                )}
                 {plan.description && (
                     <p className="text-xs text-txt-2 mb-3 line-clamp-2">{plan.description}</p>
                 )}
