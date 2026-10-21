@@ -5,6 +5,8 @@ import {
     getDaysToShow,
     navigateDate,
     formatHeaderLabel,
+    woSpansDay,
+    formatDateRange,
 } from './dateUtils';
 
 describe('toLocalDateStr', () => {
@@ -73,5 +75,54 @@ describe('formatHeaderLabel', () => {
     it('vista semana usa el primer día mostrado', () => {
         const days = getDaysToShow('week', new Date(2026, 6, 15), false);
         expect(formatHeaderLabel('week', new Date(2026, 6, 15), days)).toBe('Semana del 13 de julio');
+    });
+});
+
+describe('woSpansDay (trabajo multi-día)', () => {
+    const wo = {
+        scheduledDate: new Date(2026, 9, 12, 9, 0).toISOString(),
+        scheduledEndDate: new Date(2026, 9, 15, 17, 0).toISOString(),
+        createdAt: new Date(2026, 9, 1, 9, 0).toISOString()
+    };
+
+    it('cubre el día de inicio, los intermedios y el de fin', () => {
+        expect(woSpansDay(wo, new Date(2026, 9, 12))).toBe(true);
+        expect(woSpansDay(wo, new Date(2026, 9, 13))).toBe(true);
+        expect(woSpansDay(wo, new Date(2026, 9, 15))).toBe(true);
+    });
+
+    it('no cubre días fuera del rango', () => {
+        expect(woSpansDay(wo, new Date(2026, 9, 11))).toBe(false);
+        expect(woSpansDay(wo, new Date(2026, 9, 16))).toBe(false);
+    });
+
+    it('sin fin, solo cubre el día de inicio', () => {
+        const single = { scheduledDate: wo.scheduledDate, scheduledEndDate: null, createdAt: wo.createdAt };
+        expect(woSpansDay(single, new Date(2026, 9, 12))).toBe(true);
+        expect(woSpansDay(single, new Date(2026, 9, 13))).toBe(false);
+    });
+
+    it('usa createdAt si no hay fecha programada', () => {
+        const noSched = { scheduledDate: null, scheduledEndDate: null, createdAt: wo.createdAt };
+        expect(woSpansDay(noSched, new Date(2026, 9, 1))).toBe(true);
+        expect(woSpansDay(noSched, new Date(2026, 9, 2))).toBe(false);
+    });
+});
+
+describe('formatDateRange', () => {
+    it('mismo día: solo una fecha', () => {
+        const d = new Date(2026, 9, 12, 9, 0).toISOString();
+        expect(formatDateRange(d, new Date(2026, 9, 12, 17, 0).toISOString())).toBe('12 oct');
+    });
+
+    it('rango: inicio–fin', () => {
+        const s = new Date(2026, 9, 12, 9, 0).toISOString();
+        const e = new Date(2026, 9, 15, 17, 0).toISOString();
+        expect(formatDateRange(s, e)).toBe('12–15 oct');
+    });
+
+    it('sin fin: solo inicio', () => {
+        const s = new Date(2026, 9, 12, 9, 0).toISOString();
+        expect(formatDateRange(s, null)).toBe('12 oct');
     });
 });

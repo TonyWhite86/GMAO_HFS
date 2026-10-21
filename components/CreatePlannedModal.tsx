@@ -30,6 +30,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
     const [description, setDescription] = useState('');
     const [equipmentId, setEquipmentId] = useState(equipment[0]?.id || '');
     const [scheduledDate, setScheduledDate] = useState(new Date(Date.now() + 86400000).toISOString().slice(0, 16)); // Tomorrow default
+    // Fin opcional (multi-día). Vacío = un solo día.
+    const [scheduledEndDate, setScheduledEndDate] = useState('');
     const [section, setSection] = useState(currentUser.sections[0] || (sections.length > 0 ? sections[0].name : 'Producción'));
     // Responsable interno: siempre disponible, aunque la ejecución sea externa.
     const [assignedUserId, setAssignedUserId] = useState('');
@@ -71,6 +73,10 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
         e.preventDefault();
         if (!title.trim() || !equipmentId) return;
         if (!isExternal && subtasks.length === 0) return;
+        if (scheduledEndDate && new Date(scheduledEndDate) < new Date(scheduledDate)) {
+            toast.error('El fin de la actuación no puede ser anterior al inicio');
+            return;
+        }
         if (isExternal && !contractorId) {
             toast.error('Una actuación externa necesita una contrata');
             return;
@@ -94,6 +100,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             externalPrice: isExternal && externalPrice ? Number(externalPrice) : undefined,
             createdAt: new Date().toISOString(),
             scheduledDate: new Date(scheduledDate).toISOString(),
+            scheduledEndDate: scheduledEndDate ? new Date(scheduledEndDate).toISOString() : null,
             attachments: [],
             usedParts: [],
             comments: [],
@@ -167,6 +174,19 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                 onChange={e => setScheduledDate(e.target.value)}
                                 required
                             />
+                        </div>
+
+                        {/* Scheduled End Date (multi-día) */}
+                        <div>
+                            <FormInput
+                                label="Hasta (opcional, si dura varios días)"
+                                type="datetime-local"
+                                value={scheduledEndDate}
+                                onChange={e => setScheduledEndDate(e.target.value)}
+                            />
+                            {scheduledEndDate && new Date(scheduledEndDate) < new Date(scheduledDate) && (
+                                <p className="text-[11px] text-ko mt-1">El fin no puede ser anterior al inicio.</p>
+                            )}
                         </div>
 
                         {/* Section */}

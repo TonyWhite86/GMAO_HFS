@@ -7,6 +7,7 @@ import { StoppageFormModal } from '../../Stoppages/components/StoppageFormModal'
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { CollaboratorsCell } from './CollaboratorsCell';
 import { groupByTimeframe, getDueLabel, getDueTone } from '../../../utils/maintenanceStats';
+import { formatDateRange } from '../../../utils/dateUtils';
 import { normalizeForSearch } from '../../../utils/searchUtils';
 
 interface PlannedActionsViewProps {
@@ -141,7 +142,9 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                         </div>
                     ) : (
                         <div className={`text-sm font-bold ${tone === 'ko' ? 'text-ko' : tone === 'warn' ? 'text-warn' : 'text-txt'}`}>
-                            {date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} · {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            {wo.scheduledEndDate
+                                ? formatDateRange(wo.scheduledDate || wo.createdAt, wo.scheduledEndDate)
+                                : `${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} · ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
                         </div>
                     )}
                     <div className="flex items-center justify-end gap-1.5 mt-1">

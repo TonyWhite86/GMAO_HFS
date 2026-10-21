@@ -5,6 +5,7 @@ import { WorkOrder, WOStatus, WOPriority, Equipment, User } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PRIORITY_CONFIG } from '../../constants';
 import { hasActiveSession } from '../../utils/timeTracking';
+import { formatDateRange } from '../../utils/dateUtils';
 
 interface WorkOrderCardProps {
     wo: WorkOrder;
@@ -96,7 +97,9 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                             <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                                 <Clock size={12} className="flex-shrink-0" />
                                 <span className={isOverdue ? "text-ko font-medium whitespace-nowrap" : "whitespace-nowrap"}>
-                                    {new Date(wo.scheduledDate || wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    {wo.scheduledEndDate
+                                        ? formatDateRange(wo.scheduledDate || wo.createdAt, wo.scheduledEndDate)
+                                        : new Date(wo.scheduledDate || wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 </span>
                             </div>
                         </div>

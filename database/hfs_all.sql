@@ -2105,6 +2105,21 @@ ALTER TABLE public.work_orders
   ADD CONSTRAINT work_orders_time_source_chk
     CHECK (time_source IS NULL OR time_source IN ('sesion', 'manual'));
 
+-- 4b. Trabajo multi-día -------------------------------------------------------
+-- scheduled_date = inicio; scheduled_end_date = fin opcional (NULL = un día).
+-- El fin nunca puede ser anterior al inicio.
+
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS scheduled_end_date TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.work_orders
+  DROP CONSTRAINT IF EXISTS work_orders_scheduled_range_chk;
+ALTER TABLE public.work_orders
+  ADD CONSTRAINT work_orders_scheduled_range_chk
+    CHECK (scheduled_end_date IS NULL
+           OR scheduled_date IS NULL
+           OR scheduled_end_date >= scheduled_date);
+
 -- 5. RPC: transiciones de OT (start / pause / resume / complete) ---------------
 
 CREATE OR REPLACE FUNCTION public.transition_work_order(

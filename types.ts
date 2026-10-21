@@ -272,6 +272,8 @@ export interface WorkOrder {
   createdBy: string;
   createdAt: string;
   scheduledDate?: string;
+  /** Fin opcional del trabajo (multi-día). NULL = un solo día. */
+  scheduledEndDate?: string | null;
   closedAt?: string;
   timeSpentMinutes?: number;
   /** Origen del tiempo registrado: 'sesion' (medido del historial) | 'manual' (escrito a mano). */

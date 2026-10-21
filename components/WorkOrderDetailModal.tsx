@@ -297,6 +297,11 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
             toast.error('Una OT externa necesita una contrata');
             return;
         }
+        if (editedWO.scheduledEndDate && editedWO.scheduledDate
+            && new Date(editedWO.scheduledEndDate) < new Date(editedWO.scheduledDate)) {
+            toast.error('El fin del trabajo no puede ser anterior al inicio');
+            return;
+        }
 
         let finalWO = { ...editedWO };
         let sysComments: Comment[] = [];
@@ -919,6 +924,18 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                         onChange={(e) => setEditedWO({
                                             ...editedWO,
                                             scheduledDate: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                                        })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-txt-2 mb-2 uppercase tracking-wider">Hasta (multi-día, opcional)</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="w-full p-2.5 bg-surface border border-line rounded-lg text-sm text-txt focus:ring-2 focus:ring-accent outline-none"
+                                        value={editedWO.scheduledEndDate ? toDatetimeLocalValue(editedWO.scheduledEndDate) : ''}
+                                        onChange={(e) => setEditedWO({
+                                            ...editedWO,
+                                            scheduledEndDate: e.target.value ? new Date(e.target.value).toISOString() : null
                                         })}
                                     />
                                 </div>

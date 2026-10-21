@@ -148,6 +148,7 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     createdBy: wo.created_by,
     createdAt: wo.created_at,
     scheduledDate: wo.scheduled_date,
+    scheduledEndDate: wo.scheduled_end_date ?? null,
     closedAt: wo.closed_at,
     timeSpentMinutes: wo.time_spent_minutes,
     timeSource: wo.time_source ?? null,
