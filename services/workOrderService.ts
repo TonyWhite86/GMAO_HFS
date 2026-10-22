@@ -52,6 +52,7 @@ export const workOrderService = {
             // created_by lo pone la BD (DEFAULT auth.uid()); el RLS lo exige
             created_at: wo.createdAt,
             scheduled_date: wo.scheduledDate || null,
+            scheduled_end_date: wo.scheduledEndDate || null,
             closed_at: wo.closedAt || null,
             time_spent_minutes: wo.timeSpentMinutes || 0,
             pending_reason: wo.pendingReason || null,
@@ -124,6 +125,7 @@ export const workOrderService = {
             collaborators: wo.collaborators || [],
             section: wo.section,
             scheduled_date: wo.scheduledDate || null,
+            scheduled_end_date: wo.scheduledEndDate || null,
             pending_reason: wo.pendingReason || null,
             audio_note_url: wo.audioNoteUrl || null,
             collaborating_sections: wo.collaboratingSections || [],

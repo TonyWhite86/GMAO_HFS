@@ -25,13 +25,36 @@ export const stoppageService = {
                 start_at: stoppage.startAt,
                 end_at: stoppage.endAt,
                 status: stoppage.status,
-                work_order_id: stoppage.workOrderId || null
+                work_order_id: stoppage.workOrderId || null,
+                batch_id: stoppage.batchId || null
                 // requested_by / created_by los pone la BD (DEFAULT auth.uid())
             }])
             .select(SELECT)
             .single();
         if (error) throw error;
         return mapEquipmentStoppage(data);
+    },
+
+    /** Paradas de lote: N filas en UNA sentencia (atómico) compartiendo batch_id. */
+    createBatch: async (stoppages: Partial<EquipmentStoppage>[]) => {
+        if (stoppages.length === 0) return [];
+        const { data, error } = await supabase
+            .from('equipment_stoppages')
+            .insert(stoppages.map(st => ({
+                equipment_id: st.equipmentId,
+                title: st.title,
+                description: st.description || null,
+                reason_type: st.reasonType,
+                start_at: st.startAt,
+                end_at: st.endAt,
+                status: st.status,
+                work_order_id: st.workOrderId || null,
+                batch_id: st.batchId || null
+                // requested_by / created_by los pone la BD (DEFAULT auth.uid())
+            })))
+            .select(SELECT);
+        if (error) throw error;
+        return (data || []).map(mapEquipmentStoppage);
     },
 
     update: async (id: string, updates: Partial<EquipmentStoppage>) => {

@@ -109,6 +109,64 @@ describe('StoppageFormModal', () => {
         }));
     });
 
+    it('con varios equipos crea un lote que comparte batch_id', async () => {
+        const eq2: Equipment = {
+            ...equipment[0], id: 'eq2', name: 'Bomba 2', qrCode: 'QR2'
+        };
+        const props = baseProps({
+            equipment: [...equipment, eq2],
+            onCreateBatch: vi.fn().mockResolvedValue(undefined)
+        });
+        render(<StoppageFormModal {...props} />);
+
+        fireEvent.change(screen.getByPlaceholderText('Ej. Cambio de variador en torno 3'), {
+            target: { value: 'Corte de suministro' }
+        });
+        const inputs = document.querySelectorAll('input[type="datetime-local"]');
+        fireEvent.change(inputs[0], { target: { value: '2026-07-14T10:00' } });
+        fireEvent.change(inputs[1], { target: { value: '2026-07-14T14:00' } });
+        fireEvent.click(screen.getByText('Varios equipos'));
+        fireEvent.click(screen.getByText('Torno CNC'));
+        fireEvent.click(screen.getByText('Bomba 2'));
+
+        expect(screen.getByText(/Afecta a 2 equipos/)).toBeTruthy();
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Programar Parada'));
+        });
+
+        expect(props.onCreate).not.toHaveBeenCalled();
+        expect(props.onCreateBatch).toHaveBeenCalledTimes(1);
+        const rows = (props.onCreateBatch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(rows).toHaveLength(2);
+        expect(rows[0].batchId).toBeTruthy();
+        expect(rows[0].batchId).toBe(rows[1].batchId);
+        expect(rows.map((r: { equipmentId: string }) => r.equipmentId).sort()).toEqual(['eq1', 'eq2']);
+    });
+
+    it('el alcance sin equipos operativos avisa y no crea', async () => {
+        const props = baseProps({
+            onCreateBatch: vi.fn().mockResolvedValue(undefined)
+        });
+        render(<StoppageFormModal {...props} />);
+
+        fireEvent.change(screen.getByPlaceholderText('Ej. Cambio de variador en torno 3'), {
+            target: { value: 'Corte de suministro' }
+        });
+        const inputs = document.querySelectorAll('input[type="datetime-local"]');
+        fireEvent.change(inputs[0], { target: { value: '2026-07-14T10:00' } });
+        fireEvent.change(inputs[1], { target: { value: '2026-07-14T14:00' } });
+        // "Varios equipos" sin marcar ninguno: alcance vacío
+        fireEvent.click(screen.getByText('Varios equipos'));
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Programar Parada'));
+        });
+
+        expect(toast.error).toHaveBeenCalledWith('El alcance no afecta a ningún equipo operativo');
+        expect(props.onCreateBatch).not.toHaveBeenCalled();
+    });
+
     it('con campos obligatorios vacíos no llama a onCreate', async () => {
         const props = baseProps({ initialEquipmentId: 'eq1' });
         render(<StoppageFormModal {...props} />);

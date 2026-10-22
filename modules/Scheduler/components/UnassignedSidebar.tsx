@@ -1,6 +1,8 @@
 import React from 'react';
 import { Calendar as CalendarIcon, Search } from 'lucide-react';
-import { WorkOrder, User, WOStatus } from '../../../types';
+import { WorkOrder, User, WOStatus, Section } from '../../../types';
+import { useAppStore } from '../../../store/useAppStore';
+import { canBeAssignedToWO } from '../../../utils/incidentVisibility';
 import { WO_STATUS_CONFIG } from '../../../constants';
 
 interface UnassignedSidebarProps {
@@ -22,6 +24,8 @@ export const UnassignedSidebar: React.FC<UnassignedSidebarProps> = ({
     onSelectWO,
     onAssign
 }) => {
+    // Catálogo de secciones (para detectar comodines al asignar)
+    const catalogSections = useAppStore(s => s.sections) as Section[];
     return (
         <div className="w-full md:w-64 flex-shrink-0 bg-surface border-r-0 md:border-r border-b md:border-b-0 border-line flex flex-col h-1/3 md:h-full rounded-lg shadow-sm transition-colors">
             <div className="p-4 border-b border-line">
@@ -78,10 +82,7 @@ export const UnassignedSidebar: React.FC<UnassignedSidebarProps> = ({
                                 >
                                     <option value="" disabled>Asignar rápido...</option>
                                     {technicians
-                                        .filter(t => {
-                                            const allowedSections = [wo.section, ...(wo.collaboratingSections || [])];
-                                            return t.sections.some(s => allowedSections.includes(s));
-                                        })
+                                        .filter(t => canBeAssignedToWO(t, wo.section, wo.collaboratingSections || [], catalogSections))
                                         .map(t => (
                                             <option key={t.id} value={t.id}>{t.name}</option>
                                         ))}

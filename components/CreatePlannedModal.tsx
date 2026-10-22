@@ -1,13 +1,17 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Calendar, ClipboardList, User as UserIcon } from 'lucide-react';
+import { Plus, Trash2, Calendar, ClipboardList, User as UserIcon, Building2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { CustomSelect } from './ui/CustomSelect';
 import { WorkOrder, WOType, WOStatus, WOPriority, User, Equipment, SubTask, UserRole, Section } from '../types';
+import { useAppStore } from '../store/useAppStore';
+import { canBeAssignedToWO } from '../utils/incidentVisibility';
 import { EquipmentSelector } from './EquipmentSelector';
 import { Modal } from './ui/Modal';
 import { FormInput } from './ui/FormInput';
 import { FormTextarea } from './ui/FormTextarea';
 import { VoiceInputButton } from './ui/VoiceInputButton';
+import { AudiencePicker } from './common/AudiencePicker';
 
 interface CreatePlannedModalProps {
     onClose: () => void;
@@ -26,8 +30,20 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
     const [description, setDescription] = useState('');
     const [equipmentId, setEquipmentId] = useState(equipment[0]?.id || '');
     const [scheduledDate, setScheduledDate] = useState(new Date(Date.now() + 86400000).toISOString().slice(0, 16)); // Tomorrow default
+    // Fin opcional (multi-día). Vacío = un solo día.
+    const [scheduledEndDate, setScheduledEndDate] = useState('');
     const [section, setSection] = useState(currentUser.sections[0] || (sections.length > 0 ? sections[0].name : 'Producción'));
+    // Responsable interno: siempre disponible, aunque la ejecución sea externa.
     const [assignedUserId, setAssignedUserId] = useState('');
+    // Ejecución externa: la realiza una contrata, pero el caso sigue teniendo
+    // responsable interno y sección propietaria.
+    const [isExternal, setIsExternal] = useState(false);
+    const [contractorId, setContractorId] = useState('');
+    const [externalPrice, setExternalPrice] = useState('');
+    const contractors = useAppStore(s => s.contractors);
+    // Audiencia: secciones que también ven/gestionan + usuarios que siguen el caso
+    const [collaboratingSections, setCollaboratingSections] = useState<string[]>([]);
+    const [collaborators, setCollaborators] = useState<string[]>([]);
 
     // Subtaks State
     const [subtasks, setSubtasks] = useState<SubTask[]>([]);
@@ -55,7 +71,16 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim() || !equipmentId || subtasks.length === 0) return;
+        if (!title.trim() || !equipmentId) return;
+        if (!isExternal && subtasks.length === 0) return;
+        if (scheduledEndDate && new Date(scheduledEndDate) < new Date(scheduledDate)) {
+            toast.error('El fin de la actuación no puede ser anterior al inicio');
+            return;
+        }
+        if (isExternal && !contractorId) {
+            toast.error('Una actuación externa necesita una contrata');
+            return;
+        }
 
         const newWO: WorkOrder = {
             id: '',
@@ -68,8 +93,14 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
             section,
             createdBy: currentUser.id,
             assignedUserId: assignedUserId || undefined,
+            collaboratingSections: collaboratingSections.length > 0 ? collaboratingSections : [],
+            collaborators: collaborators.length > 0 ? collaborators : [],
+            isExternal,
+            contractorId: isExternal ? contractorId : undefined,
+            externalPrice: isExternal && externalPrice ? Number(externalPrice) : undefined,
             createdAt: new Date().toISOString(),
             scheduledDate: new Date(scheduledDate).toISOString(),
+            scheduledEndDate: scheduledEndDate ? new Date(scheduledEndDate).toISOString() : null,
             attachments: [],
             usedParts: [],
             comments: [],
@@ -79,19 +110,8 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
         onSubmit(newWO);
     };
 
-    // Filtered users for assignment (Same logic as other modals)
-    const filteredUsers = users.filter(u => {
-        if (u.role === UserRole.OBSERVER_L1 || u.role === UserRole.OBSERVER_L2) return false;
-
-        // New Restriction: Only show users if they belong to the selected section
-        if (!u.sections.includes(section)) return false;
-
-        // Admins see everyone (within that section)
-        if (currentUser.role === UserRole.ADMIN) return true;
-
-        // Techs/Managers only see own section
-        return true;
-    });
+    // Asignables: mismo criterio que assign_work_order en BD (helper compartido).
+    const filteredUsers = users.filter(u => canBeAssignedToWO(u, section, collaboratingSections, sections));
 
     return (
         <Modal onClose={onClose}>
@@ -156,6 +176,19 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                             />
                         </div>
 
+                        {/* Scheduled End Date (multi-día) */}
+                        <div>
+                            <FormInput
+                                label="Hasta (opcional, si dura varios días)"
+                                type="datetime-local"
+                                value={scheduledEndDate}
+                                onChange={e => setScheduledEndDate(e.target.value)}
+                            />
+                            {scheduledEndDate && new Date(scheduledEndDate) < new Date(scheduledDate) && (
+                                <p className="text-[11px] text-ko mt-1">El fin no puede ser anterior al inicio.</p>
+                            )}
+                        </div>
+
                         {/* Section */}
                         <div>
                             <CustomSelect
@@ -170,7 +203,7 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                         {/* Assigned To */}
                         <div>
                             <CustomSelect
-                                label="Asignado a"
+                                label="Responsable interno (sigue el caso)"
                                 value={assignedUserId}
                                 onChange={(val) => setAssignedUserId(val)}
                                 options={[
@@ -178,7 +211,64 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                                     ...filteredUsers.map(u => ({ value: u.id, label: u.name }))
                                 ]}
                             />
+                            {filteredUsers.length === 0 && (
+                                <p className="text-[11px] text-txt-3 mt-1">
+                                    No hay usuarios de esta sección. Puedes dejarlo sin asignar y asignarlo luego.
+                                </p>
+                            )}
                         </div>
+
+                        {/* Trabajo externo */}
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-2 text-sm font-medium text-txt-2 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={isExternal}
+                                    onChange={(e) => setIsExternal(e.target.checked)}
+                                    className="w-4 h-4"
+                                />
+                                <Building2 size={14} /> Lo ejecuta una contrata (trabajo externo)
+                            </label>
+                            <p className="text-[11px] text-txt-3 mt-1">
+                                El responsable interno y la sección siguen siendo los que hacen seguimiento del caso.
+                            </p>
+                            {isExternal && (
+                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-line bg-surface-2">
+                                    <CustomSelect
+                                        label="Contrata"
+                                        value={contractorId}
+                                        onChange={setContractorId}
+                                        options={contractors
+                                            .filter(c => c.active)
+                                            .map(c => ({ value: c.id, label: c.name }))}
+                                        placeholder="Selecciona la contrata…"
+                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-txt-2 mb-2">Precio (€)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={externalPrice}
+                                            onChange={(e) => setExternalPrice(e.target.value)}
+                                            placeholder="0.00"
+                                            className="fld-input w-full p-3 rounded-[6px] outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Audiencia: secciones colaboradoras + colaboradores */}
+                        <AudiencePicker
+                            sections={sections}
+                            users={users}
+                            mainSection={section}
+                            collaboratingSections={collaboratingSections}
+                            onCollaboratingSectionsChange={setCollaboratingSections}
+                            collaborators={collaborators}
+                            onCollaboratorsChange={setCollaborators}
+                        />
                     </div>
 
                     {/* Bulk Assignment UI (Conditional) */}
@@ -303,7 +393,9 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                             </div>
                         ) : (
                             <div className="text-center py-6 text-txt-3 text-sm italic border-2 border-dashed border-line rounded-lg">
-                                No hay tareas añadidas. Añade al menos una tarea para crear la actuación.
+                                {isExternal
+                                    ? 'Sin tareas. En actuaciones externas son opcionales (el trabajo lo hace la contrata).'
+                                    : 'No hay tareas añadidas. Añade al menos una tarea para crear la actuación.'}
                             </div>
                         )}
                     </div>
@@ -319,7 +411,11 @@ export const CreatePlannedModal: React.FC<CreatePlannedModalProps> = ({
                 </button>
                 <button
                     onClick={handleSubmit}
-                    disabled={subtasks.length === 0 || !title.trim() || !equipmentId}
+                    disabled={
+                        !title.trim() || !equipmentId
+                        || (!isExternal && subtasks.length === 0)
+                        || (isExternal && !contractorId)
+                    }
                     className="btn btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Calendar size={18} /> Crear Actuación

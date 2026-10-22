@@ -102,17 +102,21 @@ export const Maintenance: React.FC<MaintenanceProps> = ({
         (wo, user) => wo.assignedUserId === user.id || (wo.collaborators || []).includes(user.id)
     );
 
-    const securityFilteredPlans = useMemo(() => {
-        if (!currentUser) return [];
-        if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.OBSERVER_L1 || currentUser.role === UserRole.OBSERVER_L2) return preventivePlans;
-        return preventivePlans.filter(plan => {
-            const targetIds = (plan.targets || []).map(t => t.equipmentId);
-            return targetIds.some(eqId => {
-                const eq = equipment.find(e => e.id === eqId);
-                return (eq?.sections || []).some(s => currentUser.sections.includes(s));
+    // Audiencia del plan: sección principal/colaboradora, responsable o
+    // colaborador (espejo de plan_visible_to_me en BD). Además, Admin/comodín
+    // ven todo y los observadores solo lo de su sección.
+    const securityFilteredPlans = useRestrictedItems(
+        preventivePlans,
+        currentUser,
+        (plan) => {
+            const targetSections = (plan.targets || []).flatMap(t => {
+                const eq = equipment.find(e => e.id === t.equipmentId);
+                return eq?.sections || [];
             });
-        });
-    }, [preventivePlans, currentUser, equipment]);
+            return [plan.section || '', ...(plan.collaboratingSections || []), ...targetSections];
+        },
+        (plan, user) => plan.assignedUserId === user.id || (plan.collaborators || []).includes(user.id)
+    );
 
     const openWoCount = securityFilteredWorkOrders.filter(wo => wo.status !== WOStatus.COMPLETED).length;
     const plannedCount = securityFilteredWorkOrders.filter(wo => wo.type === WOType.PLANNED).length;

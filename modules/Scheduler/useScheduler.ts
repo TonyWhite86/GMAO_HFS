@@ -3,6 +3,7 @@ import type { DragEvent } from 'react';
 import { WorkOrder, User, WOStatus, UserRole } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { useRestrictedItems } from '../../hooks/useFilteredData';
+import { canBeAssignedToWO } from '../../utils/incidentVisibility';
 import { useWorkOrderFilters } from '../../hooks/useWorkOrderFilters';
 import { usePermissions } from '../../hooks/usePermissions';
 import { workOrderService } from '../../services/workOrderService';
@@ -126,6 +127,14 @@ export const useScheduler = () => {
         setCurrentDate(new Date());
     };
 
+    // Mover el inicio desplaza el fin el mismo delta (la RPC hace lo mismo):
+    // un trabajo multi-día conserva su duración al arrastrarlo.
+    const shiftEndDate = (wo: WorkOrder, newStartISO: string): string | null | undefined => {
+        if (!wo.scheduledDate || !wo.scheduledEndDate) return wo.scheduledEndDate;
+        const delta = new Date(newStartISO).getTime() - new Date(wo.scheduledDate).getTime();
+        return new Date(new Date(wo.scheduledEndDate).getTime() + delta).toISOString();
+    };
+
     const handleAssign = async (wo: WorkOrder, userId: string, targetDate: Date) => {
         const scheduled = targetDate.toISOString();
         // La RPC es la autoridad: valida que el técnico pertenezca a la sección
@@ -143,7 +152,8 @@ export const useScheduler = () => {
         patchWorkOrderLocal(wo.id, {
             assignedUserId: userId,
             status: WOStatus.SCHEDULED,
-            scheduledDate: scheduled
+            scheduledDate: scheduled,
+            scheduledEndDate: shiftEndDate(wo, scheduled)
         });
     };
 
@@ -176,7 +186,7 @@ export const useScheduler = () => {
             assignedUserId,
             subtasks,
             collaborators,
-            ...(hasRemaining ? {} : { status: WOStatus.PENDING, scheduledDate: undefined })
+            ...(hasRemaining ? {} : { status: WOStatus.PENDING, scheduledDate: undefined, scheduledEndDate: null })
         });
     };
 
@@ -194,11 +204,14 @@ export const useScheduler = () => {
     const handleDrop = (e: DragEvent, userId: string, date: Date) => {
         e.preventDefault();
         if (draggedWO) {
-            // New Restriction Check
+            // Mismo criterio que assign_work_order en BD (helper compartido)
             const targetUser = users.find(u => u.id === userId);
-            const isTargetAdmin = targetUser?.role === UserRole.ADMIN;
-            const allowedSections = [draggedWO.section, ...(draggedWO.collaboratingSections || [])];
-            const isAllowed = isTargetAdmin || targetUser?.sections.some(s => allowedSections.includes(s));
+            const isAllowed = canBeAssignedToWO(
+                targetUser,
+                draggedWO.section,
+                draggedWO.collaboratingSections || [],
+                sections
+            );
 
             if (!isAllowed) {
                 alert(`No se puede asignar a ${targetUser?.name}. El técnico debe pertenecer a la sección '${draggedWO.section}' o a sus secciones colaboradoras.`);
@@ -247,6 +260,7 @@ export const useScheduler = () => {
             assignedUserId: assignMain ? userId : wo.assignedUserId,
             status: WOStatus.SCHEDULED,
             scheduledDate: scheduled,
+            scheduledEndDate: shiftEndDate(wo, scheduled),
             subtasks
         });
 

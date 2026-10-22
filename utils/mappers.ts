@@ -148,6 +148,7 @@ export const mapWorkOrder = (wo: any, allAttachments: any[] = [], existing?: Wor
     createdBy: wo.created_by,
     createdAt: wo.created_at,
     scheduledDate: wo.scheduled_date,
+    scheduledEndDate: wo.scheduled_end_date ?? null,
     closedAt: wo.closed_at,
     timeSpentMinutes: wo.time_spent_minutes,
     timeSource: wo.time_source ?? null,
@@ -194,6 +195,9 @@ export const mapPreventivePlan = (p: any, existing?: PreventivePlan): Preventive
     nextRun: p.next_run,
     tasks: p.tasks || [],
     section: p.section,
+    collaboratingSections: p.collaborating_sections || [],
+    collaborators: p.collaborators || [],
+    assignedUserId: p.assigned_user_id ?? null,
     targets: Array.isArray(p.targets)
         ? p.targets.map(mapPreventivePlanTarget)
         : existing?.targets  // el payload realtime no trae el join
@@ -370,7 +374,8 @@ export const mapEquipmentStoppage = (s: any): EquipmentStoppage => ({
     requestedByName: s.requester?.name,
     workOrderId: s.work_order_id,
     createdBy: s.created_by,
-    createdAt: s.created_at
+    createdAt: s.created_at,
+    batchId: s.batch_id ?? null
 });
 
 export const mapSubtask = (st: any): SubTask => ({

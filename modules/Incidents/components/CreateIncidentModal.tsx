@@ -64,6 +64,12 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
     // Parada de equipo opcional: se puede registrar a la vez que la incidencia.
     // La duración se desconoce al crearla (end_at queda NULL).
+    // Fecha/hora de la incidencia: por defecto, el momento del registro.
+    const [incidentAt, setIncidentAt] = useState<string>(() => {
+        const d = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    });
     const [withStoppage, setWithStoppage] = useState(false);
     const [stoppageStartAt, setStoppageStartAt] = useState<string>(() => {
         const d = new Date();
@@ -130,7 +136,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                 withStoppage: withStoppage && !!formData.equipmentId,
                 stoppageTitle: formData.title,
                 stoppageStartAt: stoppageStartAt ? new Date(stoppageStartAt).toISOString() : null,
-                stoppageDescription: stoppageDescription || null
+                stoppageDescription: stoppageDescription || null,
+                createdAt: incidentAt ? new Date(incidentAt).toISOString() : null
             });
 
             onClose();
@@ -143,6 +150,9 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                 section: '',
                 equipmentId: ''
             });
+            const n = new Date();
+            const pad = (v: number) => String(v).padStart(2, '0');
+            setIncidentAt(`${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}T${pad(n.getHours())}:${pad(n.getMinutes())}`);
             setWithStoppage(false);
             setStoppageDescription('');
             setAttachments([]);
@@ -164,8 +174,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
 
             <Modal.Body>
                 <form id="create-incident-form" onSubmit={handleSubmit} className="space-y-6">
-                    {/* Category, Section & Priority Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Category, Section, Priority & Date Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <CustomSelect
                                 label="Categoría *"
@@ -192,6 +202,18 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                                 onChange={(val) => setFormData({ ...formData, priority: val as WOPriority })}
                                 options={Object.values(WOPriority).map(p => ({ value: p, label: p }))}
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-txt-2 mb-2">Fecha y hora de la incidencia</label>
+                            <input
+                                type="datetime-local"
+                                value={incidentAt}
+                                onChange={(e) => setIncidentAt(e.target.value)}
+                                className="fld-input w-full p-2.5 rounded-[6px] text-sm outline-none"
+                            />
+                            <p className="text-[11px] text-txt-3 mt-1">
+                                Por defecto, el momento actual. Puedes registrarla con otra fecha/hora.
+                            </p>
                         </div>
                     </div>
 

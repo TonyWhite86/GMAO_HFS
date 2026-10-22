@@ -8,6 +8,7 @@ export interface StoppageSlice {
     stoppages: EquipmentStoppage[];
     setStoppages: (stoppages: EquipmentStoppage[]) => void;
     addStoppage: (stoppage: Partial<EquipmentStoppage>) => Promise<EquipmentStoppage>;
+    addStoppageBatch: (stoppages: Partial<EquipmentStoppage>[]) => Promise<EquipmentStoppage[]>;
     updateStoppage: (id: string, updates: Partial<EquipmentStoppage>) => Promise<void>;
     deleteStoppage: (id: string) => Promise<void>;
 }
@@ -27,6 +28,23 @@ export const createStoppageSlice: StateCreator<AppState, [], [], StoppageSlice> 
             return created;
         } catch (error) {
             toast.error('Error al crear la parada');
+            throw error;
+        }
+    },
+
+    addStoppageBatch: async (stoppagesData) => {
+        try {
+            const created = await stoppageService.createBatch(stoppagesData);
+            toast.success(created.length === 1
+                ? 'Parada programada creada'
+                : `${created.length} paradas programadas creadas`);
+            set((state) => {
+                const known = new Set(state.stoppages.map(s => s.id));
+                return { stoppages: [...state.stoppages, ...created.filter(c => !known.has(c.id))] };
+            });
+            return created;
+        } catch (error) {
+            toast.error('Error al crear las paradas');
             throw error;
         }
     },

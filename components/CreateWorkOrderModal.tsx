@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Mic, Loader2, Paperclip, FileText, UserPlus, Plus, Trash2, UploadCloud, ClipboardList, User as UserIcon, Users, X } from 'lucide-react';
 import { CustomSelect } from './ui/CustomSelect';
 import { WorkOrder, WOPriority, WOType, WOStatus, User, UserRole, Attachment, SubTask, Section, Equipment, ChecklistItem } from '../types';
+import { canBeAssignedToWO } from '../utils/incidentVisibility';
 import { EquipmentSelector } from './EquipmentSelector';
 import { WOChecklistEditor } from './workOrder/WOChecklistEditor';
 import { toast } from 'sonner';
@@ -159,8 +160,8 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
             type,
             section,
             equipmentId,
-            assignedUserId: isExternal ? undefined : (assignedUserId || undefined),
-            collaborators: isExternal ? undefined : (collaborators.length > 0 ? collaborators : undefined),
+            assignedUserId: assignedUserId || undefined,
+            collaborators: collaborators.length > 0 ? collaborators : undefined,
             isExternal,
             contractorId: isExternal ? contractorId : undefined,
             externalPrice: isExternal && externalPrice ? Number(externalPrice) : undefined,
@@ -319,22 +320,15 @@ export const CreateWorkOrderModal: React.FC<CreateModalProps> = ({ onClose, onSu
                             </div>
 
                             {/* Assigned To */}
-                            <div style={isExternal ? { display: 'none' } : undefined}>
+                            <div>
                                 <CustomSelect
-                                    label="Responsable Principal"
+                                    label="Responsable interno (sigue el caso)"
                                     value={assignedUserId}
                                     onChange={(val) => setAssignedUserId(val)}
                                     options={[
                                         { value: "", label: "-- Sin Asignar --" },
                                         ...users
-                                            .filter(u => {
-                                                if (u.role === UserRole.OBSERVER_L1 || u.role === UserRole.OBSERVER_L2) return false;
-                                                // Hide admins from non-admins
-                                                if (u.role === UserRole.ADMIN && !isAdmin) return false;
-
-                                                const allowedSections = [section, ...collaboratingSections];
-                                                return u.sections.some(s => allowedSections.includes(s));
-                                            })
+                                            .filter(u => canBeAssignedToWO(u, section, collaboratingSections, sections))
                                             .map(u => ({ value: u.id, label: u.name }))
                                     ]}
                                     disabled={isTechnician}

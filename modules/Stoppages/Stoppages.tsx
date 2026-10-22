@@ -40,8 +40,8 @@ interface StoppagesModuleProps {
 
 export const StoppagesModule: React.FC<StoppagesModuleProps> = ({ initialCreate, onCreateHandled }) => {
     const {
-        stoppages, equipment, currentUser,
-        addStoppage, updateStoppage, deleteStoppage
+        stoppages, equipment, currentUser, equipmentGroups,
+        addStoppage, addStoppageBatch, updateStoppage, deleteStoppage
     } = useAppStore();
     const { canCreateStoppages } = usePermissions(currentUser);
     const restrictedEquipment = useRestrictedEquipment(equipment, currentUser);
@@ -406,8 +406,13 @@ export const StoppagesModule: React.FC<StoppagesModuleProps> = ({ initialCreate,
                 initialEquipmentId={initialEquipmentId}
                 initialStartAt={initialStartAt}
                 onCreate={addStoppage}
+                onCreateBatch={addStoppageBatch}
                 onUpdate={updateStoppage}
                 onDelete={deleteStoppage}
+                groups={equipmentGroups}
+                batchSiblings={editingStoppage?.batchId
+                    ? stoppages.filter(x => x.batchId === editingStoppage.batchId)
+                    : []}
             />
             )}
         </div>

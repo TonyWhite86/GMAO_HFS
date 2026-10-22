@@ -272,6 +272,8 @@ export interface WorkOrder {
   createdBy: string;
   createdAt: string;
   scheduledDate?: string;
+  /** Fin opcional del trabajo (multi-día). NULL = un solo día. */
+  scheduledEndDate?: string | null;
   closedAt?: string;
   timeSpentMinutes?: number;
   /** Origen del tiempo registrado: 'sesion' (medido del historial) | 'manual' (escrito a mano). */
@@ -322,6 +324,12 @@ export interface PreventivePlan {
   nextRun: string;
   assignedGroupId?: string;
   section?: string;
+  /** Secciones que también ven/gestionan el plan (además de la principal). */
+  collaboratingSections?: string[];
+  /** Usuarios que siguen el plan. */
+  collaborators?: string[];
+  /** Responsable interno (sigue el caso). */
+  assignedUserId?: string | null;
   /** Objetivos con ciclo individual (equipos sueltos y/o de grupos). */
   targets?: PreventivePlanTarget[];
 }
@@ -454,6 +462,8 @@ export interface EquipmentStoppage {
   workOrderId?: string | null;
   createdBy?: string | null;
   createdAt: string;
+  /** Lote multi-equipo (corte de suministro): N paradas hermanas. NULL = suelta. */
+  batchId?: string | null;
 }
 
 export interface Skill {

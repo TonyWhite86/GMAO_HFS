@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, User as UserIcon } from 'lucide-react';
 import { WorkOrder, User, WOStatus } from '../../../types';
-import { toLocalDateStr } from '../../../utils/dateUtils';
+import { toLocalDateStr, woSpansDay } from '../../../utils/dateUtils';
 import { formatDuration } from '../../../utils/timeTracking';
 import { SchedulerCard } from './SchedulerCard';
 
@@ -75,11 +75,9 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({
                             {/* Days Columns */}
                             {daysToShow.map((day) => {
                                 const dayDateStr = toLocalDateStr(day);
-                                const tasksForDay = techAllWOs.filter(wo => {
-                                    if (!wo.scheduledDate && !wo.createdAt) return false;
-                                    const taskDate = wo.scheduledDate ? wo.scheduledDate : wo.createdAt;
-                                    return toLocalDateStr(new Date(taskDate)) === dayDateStr;
-                                });
+                                // Multi-día: la OT aparece en cada día de su rango
+                                // (scheduledDate .. scheduledEndDate).
+                                const tasksForDay = techAllWOs.filter(wo => woSpansDay(wo, day));
 
                                 // Highlight for Today
                                 const isToday = toLocalDateStr(new Date()) === dayDateStr;
@@ -117,17 +115,37 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({
 
                                         {/* Render Tasks */}
                                         <div className={`pointer-events-none ${viewMode === 'day' ? 'flex flex-row flex-wrap gap-2 content-start' : 'space-y-2'}`}>
-                                            {tasksForDay.map(wo => (
-                                                <SchedulerCard
-                                                    key={wo.id}
-                                                    wo={wo}
-                                                    techId={tech.id}
-                                                    viewMode={viewMode}
-                                                    onDragStart={onDragStart}
-                                                    onSelect={onSelectWO}
-                                                    onUnassign={onUnassign}
-                                                />
-                                            ))}
+                                            {tasksForDay.map(wo => {
+                                                const startStr = wo.scheduledDate || wo.createdAt;
+                                                const isStartDay = startStr
+                                                    ? toLocalDateStr(new Date(startStr)) === dayDateStr
+                                                    : true;
+                                                if (isStartDay) {
+                                                    return (
+                                                        <SchedulerCard
+                                                            key={wo.id}
+                                                            wo={wo}
+                                                            techId={tech.id}
+                                                            viewMode={viewMode}
+                                                            onDragStart={onDragStart}
+                                                            onSelect={onSelectWO}
+                                                            onUnassign={onUnassign}
+                                                        />
+                                                    );
+                                                }
+                                                // Día de continuación del rango: barra fina
+                                                // del mismo color que la tarjeta.
+                                                return (
+                                                    <div
+                                                        key={wo.id}
+                                                        onClick={() => onSelectWO(wo)}
+                                                        title={`${wo.title} (multi-día)`}
+                                                        className="pointer-events-auto cursor-pointer px-2 py-1 rounded-md border border-dashed border-accent-border bg-accent-dim text-accent text-[10px] font-semibold truncate hover:bg-accent hover:text-white transition-colors"
+                                                    >
+                                                        ↳ {wo.title}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
 
                                         {/* Add button */}

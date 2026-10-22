@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Clock, AlertTriangle, Wrench, ArrowRight, CheckCircle, PlayCircle, PauseCircle } from 'lucide-react';
+import { Clock, AlertTriangle, Wrench, ArrowRight, CheckCircle, PlayCircle, PauseCircle, Building2 } from 'lucide-react';
 import { WorkOrder, WOStatus, WOPriority, Equipment, User } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PRIORITY_CONFIG } from '../../constants';
 import { hasActiveSession } from '../../utils/timeTracking';
+import { formatDateRange } from '../../utils/dateUtils';
 
 interface WorkOrderCardProps {
     wo: WorkOrder;
@@ -57,8 +58,13 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                 onClick={onClick}
             >
                 <div className="flex justify-between items-start mb-2">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center flex-wrap">
                         <StatusBadge status={wo.status} type="workOrder" />
+                        {wo.isExternal && (
+                            <span className="bdg bdg-purple gap-1">
+                                <Building2 size={10} /> Externa{wo.contractorName ? ` · ${wo.contractorName}` : ''}
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-txt-2 bg-surface-2 px-2 py-0.5 rounded">
@@ -91,7 +97,9 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                             <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                                 <Clock size={12} className="flex-shrink-0" />
                                 <span className={isOverdue ? "text-ko font-medium whitespace-nowrap" : "whitespace-nowrap"}>
-                                    {new Date(wo.scheduledDate || wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    {wo.scheduledEndDate
+                                        ? formatDateRange(wo.scheduledDate || wo.createdAt, wo.scheduledEndDate)
+                                        : new Date(wo.scheduledDate || wo.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 </span>
                             </div>
                         </div>
@@ -148,7 +156,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                     {/* Action Buttons */}
                     {wo.status !== WOStatus.COMPLETED && (onStatusAction || onComplete) && (
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            {onStatusAction && (
+                            {onStatusAction && !wo.isExternal && (
                                 <button
                                     onClick={() => {
                                         const nextStatus = isRunning ? WOStatus.PENDING : WOStatus.IN_PROGRESS;

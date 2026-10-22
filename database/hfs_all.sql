@@ -1288,34 +1288,60 @@ CREATE POLICY "Manage Collaborators" ON public.work_order_collaborators
 
 DROP POLICY IF EXISTS "Read Plans" ON public.preventive_plans;
 DROP POLICY IF EXISTS "Manage Plans" ON public.preventive_plans;
+-- Visibilidad de un plan: mismo criterio que una OT (seccion principal o
+-- colaboradora, ser el responsable o estar en los colaboradores).
+CREATE OR REPLACE FUNCTION public.plan_visible_to_me(
+  p_section TEXT,
+  p_collaborating_sections TEXT[],
+  p_assigned_user_id UUID,
+  p_collaborators UUID[]
+)
+RETURNS boolean AS $$
+  SELECT public.work_order_visible_to_me(
+    coalesce(nullif(p_section, ''), 'Global'),
+    p_collaborating_sections,
+    p_assigned_user_id,
+    p_collaborators
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Gestion: Admin o Responsable Seccion, sobre planes de su orbita (principal o
+-- colaboradora). El responsable asignado ya ve el plan por plan_visible_to_me.
+CREATE OR REPLACE FUNCTION public.plan_manageable_by_me(
+  p_section TEXT,
+  p_collaborating_sections TEXT[]
+)
+RETURNS boolean AS $$
+BEGIN
+  IF NOT public.can_read_ops_data() THEN
+    RETURN false;
+  END IF;
+  IF public.is_admin() THEN
+    RETURN true;
+  END IF;
+  IF NOT public.role_in_profile('Responsable Sección') THEN
+    RETURN false;
+  END IF;
+  IF coalesce(nullif(p_section, ''), 'Global') = 'Global'
+     OR coalesce(nullif(p_section, ''), 'Global') = ANY(public.my_sections())
+     OR (p_collaborating_sections IS NOT NULL AND public.my_sections() && p_collaborating_sections) THEN
+    RETURN true;
+  END IF;
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
 CREATE POLICY "Read Plans" ON public.preventive_plans
   FOR SELECT USING (
     public.can_read_ops_data()
     AND (
       public.is_admin() OR public.is_wildcard_staff()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
+      OR public.plan_visible_to_me(section, collaborating_sections, assigned_user_id, collaborators)
     )
   );
 CREATE POLICY "Manage Plans" ON public.preventive_plans
-  FOR ALL USING (
-    public.can_read_ops_data()
-    AND (public.is_admin() OR role_in_profile('Responsable Sección'))
-    AND (
-      public.is_admin()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
-    )
-  )
-  WITH CHECK (
-    public.can_read_ops_data()
-    AND (public.is_admin() OR role_in_profile('Responsable Sección'))
-    AND (
-      public.is_admin()
-      OR section IS NULL OR section = '' OR section = 'Global'
-      OR section = ANY(public.my_sections())
-    )
-  );
+  FOR ALL USING (public.plan_manageable_by_me(section, collaborating_sections))
+  WITH CHECK (public.plan_manageable_by_me(section, collaborating_sections));
 
 -- 11. RLS: inventario y movimientos -------------------------------------------
 
@@ -2079,6 +2105,21 @@ ALTER TABLE public.work_orders
   ADD CONSTRAINT work_orders_time_source_chk
     CHECK (time_source IS NULL OR time_source IN ('sesion', 'manual'));
 
+-- 4b. Trabajo multi-día -------------------------------------------------------
+-- scheduled_date = inicio; scheduled_end_date = fin opcional (NULL = un día).
+-- El fin nunca puede ser anterior al inicio.
+
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS scheduled_end_date TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.work_orders
+  DROP CONSTRAINT IF EXISTS work_orders_scheduled_range_chk;
+ALTER TABLE public.work_orders
+  ADD CONSTRAINT work_orders_scheduled_range_chk
+    CHECK (scheduled_end_date IS NULL
+           OR scheduled_date IS NULL
+           OR scheduled_end_date >= scheduled_date);
+
 -- 5. RPC: transiciones de OT (start / pause / resume / complete) ---------------
 
 CREATE OR REPLACE FUNCTION public.transition_work_order(
@@ -2256,184 +2297,17 @@ $$;
 
 -- 7. Lanzamiento del siguiente OT de un plan preventivo ------------------------
 
-CREATE OR REPLACE FUNCTION public.launch_plan_next_wo(p_plan_id UUID)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_plan RECORD;
-  v_task JSONB;
-  v_wo_id TEXT;
-  v_hist JSONB;
-BEGIN
-  SELECT * INTO v_plan FROM public.preventive_plans WHERE id = p_plan_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN NULL;
-  END IF;
-  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
-    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
-  END IF;
+-- launch_plan_next_wo se define UNA sola vez en la seccion de planes
+-- multi-objetivo (mas abajo), delegando en launch_plan_target_wo. No duplicar:
+-- la copia antigua generaba la OT a mano SIN heredar la audiencia del plan.
 
-  v_hist := jsonb_build_array(jsonb_build_object('status', 'Programada', 'timestamp', now()));
-
-  INSERT INTO public.work_orders (
-    title, description, type, status, priority, section, created_by,
-    created_at, scheduled_date, status_history, related_plan_id, equipment_id
-  ) VALUES (
-    v_plan.name,
-    coalesce(v_plan.description, ''),
-    'Preventivo',
-    'Programada',
-    'Media',
-    coalesce(nullif(v_plan.section, ''), 'Global'),
-    auth.uid(),
-    now(),
-    v_plan.next_run,
-    v_hist,
-    v_plan.id,
-    v_plan.equipment_id
-  )
-  RETURNING id INTO v_wo_id;
-
-  FOR v_task IN SELECT * FROM jsonb_array_elements(coalesce(v_plan.tasks, '[]'::jsonb))
-  LOOP
-    INSERT INTO public.subtasks (work_order_id, description, completed, assigned_user_ids)
-    VALUES (v_wo_id, coalesce(v_task->>'description', v_task->>'name', ''), false, '{}');
-  END LOOP;
-
-  UPDATE public.preventive_plans
-  SET last_run = v_plan.next_run,
-      next_run = v_plan.next_run + make_interval(days => coalesce(v_plan.frequency_days, 30))
-  WHERE id = p_plan_id;
-
-  RETURN v_wo_id;
-END;
-$$;
 
 -- 8. RPC: asignación / desasignación de OT ------------------------------------
 
-CREATE OR REPLACE FUNCTION public.assign_work_order(
-  p_wo_id TEXT,
-  p_user_id UUID,
-  p_scheduled_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_subtask_ids UUID[] DEFAULT NULL,
-  p_assign_main BOOLEAN DEFAULT true
-)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_wo RECORD;
-  v_target RECORD;
-  v_allowed TEXT[];
-  v_is_target_admin BOOLEAN;
-BEGIN
-  SELECT * INTO v_wo FROM public.work_orders WHERE id = p_wo_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Orden de trabajo no encontrada';
-  END IF;
-  IF NOT public.work_order_visible_to_me(v_wo.section, v_wo.collaborating_sections, v_wo.assigned_user_id, v_wo.collaborators) THEN
-    RAISE EXCEPTION 'No tienes permiso sobre esta orden de trabajo';
-  END IF;
+-- assign_work_order / unassign_work_order se definen UNA sola vez en la seccion
+-- "Asignacion de OTs (log_wo_event)" (mas abajo). No duplicar aqui: una copia
+-- antigua llego a pisar la buena via parche temporal.
 
-  SELECT * INTO v_target FROM public.profiles WHERE id = p_user_id AND active;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'El usuario destino no existe o está desactivado';
-  END IF;
-  IF v_target.role LIKE 'Observador%' THEN
-    RAISE EXCEPTION 'Un observador no puede recibir asignaciones';
-  END IF;
-
-  v_allowed := array_remove(ARRAY[v_wo.section] || coalesce(v_wo.collaborating_sections, '{}'), 'Global');
-  v_is_target_admin := (v_target.role = 'Admin');
-  IF NOT v_is_target_admin
-     AND NOT (coalesce(v_target.sections, '{}') && array_remove(v_allowed, NULL))
-     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global') THEN
-    RAISE EXCEPTION 'El técnico debe pertenecer a la sección ''%'' o a sus secciones colaboradoras', v_wo.section;
-  END IF;
-
-  UPDATE public.work_orders
-  SET assigned_user_id = CASE WHEN p_assign_main THEN p_user_id ELSE assigned_user_id END,
-      status = CASE WHEN status IN ('Pendiente', 'Programada') THEN 'Programada' ELSE status END,
-      scheduled_date = coalesce(p_scheduled_date, scheduled_date)
-  WHERE id = p_wo_id;
-
-  IF p_subtask_ids IS NOT NULL AND array_length(p_subtask_ids, 1) > 0 THEN
-    UPDATE public.subtasks
-    SET assigned_user_ids = array_append(
-      array_remove(coalesce(assigned_user_ids, '{}'), p_user_id),
-      p_user_id
-    )
-    WHERE work_order_id = p_wo_id AND id = ANY(p_subtask_ids);
-  END IF;
-
-  INSERT INTO public.comments (work_order_id, user_id, user_name, text, is_system)
-  VALUES (p_wo_id, auth.uid(), 'Sistema',
-          'Asignada a ' || v_target.name ||
-          CASE WHEN p_scheduled_date IS NOT NULL
-               THEN ' para el ' || to_char(p_scheduled_date, 'DD/MM/YYYY') ELSE '' END,
-          true);
-
-  RETURN p_wo_id;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.unassign_work_order(
-  p_wo_id TEXT,
-  p_user_id UUID DEFAULT NULL
-)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_wo RECORD;
-  v_remain BOOLEAN;
-BEGIN
-  SELECT * INTO v_wo FROM public.work_orders WHERE id = p_wo_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Orden de trabajo no encontrada';
-  END IF;
-  IF NOT public.work_order_visible_to_me(v_wo.section, v_wo.collaborating_sections, v_wo.assigned_user_id, v_wo.collaborators) THEN
-    RAISE EXCEPTION 'No tienes permiso sobre esta orden de trabajo';
-  END IF;
-
-  IF p_user_id IS NULL THEN
-    UPDATE public.work_orders
-    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL
-    WHERE id = p_wo_id;
-    UPDATE public.subtasks SET assigned_user_ids = '{}' WHERE work_order_id = p_wo_id;
-    UPDATE public.work_orders SET collaborators = '{}' WHERE id = p_wo_id;
-  ELSE
-    UPDATE public.work_orders
-    SET assigned_user_id = CASE WHEN assigned_user_id = p_user_id THEN NULL ELSE assigned_user_id END,
-        collaborators = array_remove(coalesce(collaborators, '{}'), p_user_id)
-    WHERE id = p_wo_id;
-    UPDATE public.subtasks
-    SET assigned_user_ids = array_remove(coalesce(assigned_user_ids, '{}'), p_user_id)
-    WHERE work_order_id = p_wo_id;
-
-    SELECT (assigned_user_id IS NOT NULL)
-        OR EXISTS (SELECT 1 FROM public.subtasks WHERE work_order_id = p_wo_id AND cardinality(coalesce(assigned_user_ids, '{}')) > 0)
-        OR cardinality(coalesce(collaborators, '{}')) > 0
-    INTO v_remain
-    FROM public.work_orders WHERE id = p_wo_id;
-
-    IF NOT v_remain THEN
-      UPDATE public.work_orders
-      SET status = 'Pendiente', scheduled_date = NULL
-      WHERE id = p_wo_id;
-    END IF;
-  END IF;
-
-  RETURN p_wo_id;
-END;
-$$;
 
 -- 9. RPC: recepción de material de un pedido (atómica) ------------------------
 -- p_items: [{"item_id": "uuid", "quantity": 3}]
@@ -3281,16 +3155,29 @@ BEGIN
   END IF;
 
   v_allowed := array_remove(ARRAY[v_wo.section] || coalesce(v_wo.collaborating_sections, '{}'), 'Global');
+  -- Asignable: Admin, tecnico comodin (Mantenimiento/Ingenieria: gestionan todo),
+  -- o tecnico de la seccion principal/colaboradora ('Global' cualquiera).
   IF v_target.role <> 'Admin'
      AND NOT (coalesce(v_target.sections, '{}') && array_remove(v_allowed, NULL))
-     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global') THEN
+     AND NOT ('Global' = ANY(coalesce(v_wo.collaborating_sections, '{}')) OR v_wo.section = 'Global')
+     AND NOT EXISTS (
+       SELECT 1 FROM public.sections sec
+       WHERE sec.is_wildcard AND sec.name = ANY(coalesce(v_target.sections, '{}'))
+     ) THEN
     RAISE EXCEPTION 'El técnico debe pertenecer a la sección ''%'' o a sus secciones colaboradoras', v_wo.section;
   END IF;
 
   UPDATE public.work_orders
   SET assigned_user_id = CASE WHEN p_assign_main THEN p_user_id ELSE assigned_user_id END,
       status = CASE WHEN status IN ('Pendiente', 'Programada') THEN 'Programada' ELSE status END,
-      scheduled_date = coalesce(p_scheduled_date, scheduled_date)
+      -- Mover el inicio desplaza el fin el mismo delta: un trabajo multi-dia
+      -- conserva su duracion al arrastrarlo en el Programador.
+      scheduled_date = coalesce(p_scheduled_date, scheduled_date),
+      scheduled_end_date = CASE
+        WHEN p_scheduled_date IS NOT NULL AND scheduled_date IS NOT NULL AND scheduled_end_date IS NOT NULL
+        THEN scheduled_end_date + (p_scheduled_date - scheduled_date)
+        ELSE scheduled_end_date
+      END
   WHERE id = p_wo_id;
 
   IF p_subtask_ids IS NOT NULL AND array_length(p_subtask_ids, 1) > 0 THEN
@@ -3337,7 +3224,8 @@ BEGIN
 
   IF p_user_id IS NULL THEN
     UPDATE public.work_orders
-    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL, collaborators = '{}'
+    SET assigned_user_id = NULL, status = 'Pendiente', scheduled_date = NULL,
+        scheduled_end_date = NULL, collaborators = '{}'
     WHERE id = p_wo_id;
     UPDATE public.subtasks SET assigned_user_ids = '{}' WHERE work_order_id = p_wo_id;
   ELSE
@@ -3356,7 +3244,9 @@ BEGIN
     FROM public.work_orders WHERE id = p_wo_id;
 
     IF NOT v_remain THEN
-      UPDATE public.work_orders SET status = 'Pendiente', scheduled_date = NULL WHERE id = p_wo_id;
+      UPDATE public.work_orders
+      SET status = 'Pendiente', scheduled_date = NULL, scheduled_end_date = NULL
+      WHERE id = p_wo_id;
     END IF;
   END IF;
 
@@ -3466,6 +3356,15 @@ CREATE INDEX IF NOT EXISTS idx_stoppages_incident
   ON public.equipment_stoppages (incident_id)
   WHERE incident_id IS NOT NULL;
 
+-- Paradas de lote (corte de suministro multi-equipo): N filas, una por equipo
+-- afectado, comparten batch_id. NULL = parada suelta (una sola maquina).
+ALTER TABLE public.equipment_stoppages
+  ADD COLUMN IF NOT EXISTS batch_id UUID;
+
+CREATE INDEX IF NOT EXISTS idx_stoppages_batch
+  ON public.equipment_stoppages (batch_id)
+  WHERE batch_id IS NOT NULL;
+
 -- 2. El equipo es obligatorio en toda incidencia --------------------------------
 -- ON DELETE RESTRICT: no se puede borrar un equipo que tenga incidencias.
 -- (Antes era SET NULL, incompatible con NOT NULL.)
@@ -3510,7 +3409,9 @@ CREATE OR REPLACE FUNCTION public.create_incident_with_stoppage(
   p_with_stoppage BOOLEAN DEFAULT false,
   p_stoppage_title TEXT DEFAULT NULL,
   p_stoppage_start_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_stoppage_description TEXT DEFAULT NULL
+  p_stoppage_description TEXT DEFAULT NULL,
+  -- Fecha/hora de la incidencia elegida por el usuario (NULL = ahora)
+  p_created_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -3535,7 +3436,7 @@ BEGIN
 
   INSERT INTO public.incidents (
     title, description, priority, status, category_id, section,
-    equipment_id, created_by, attachments
+    equipment_id, created_by, attachments, created_at
   ) VALUES (
     trim(p_title),
     p_description,
@@ -3545,7 +3446,8 @@ BEGIN
     nullif(trim(coalesce(p_section, '')), ''),
     p_equipment_id,
     auth.uid(),
-    coalesce(p_attachments, '[]'::jsonb)
+    coalesce(p_attachments, '[]'::jsonb),
+    coalesce(p_created_at, now())
   )
   RETURNING id INTO v_incident_id;
 
@@ -3583,57 +3485,24 @@ END;
 $$;
 
 -- 4. RPC: cerrar una parada abierta -------------------------------------------
-
-CREATE OR REPLACE FUNCTION public.complete_stoppage(
-  p_id UUID,
-  p_end_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-  p_status TEXT DEFAULT 'Completada'
-)
-RETURNS UUID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_stop RECORD;
-  v_end TIMESTAMP WITH TIME ZONE;
-BEGIN
-  IF NOT (public.can_read_ops_data() AND public.can_manage_stoppages()) THEN
-    RAISE EXCEPTION 'No puedes gestionar paradas';
-  END IF;
-
-  SELECT * INTO v_stop FROM public.equipment_stoppages WHERE id = p_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Parada no encontrada';
-  END IF;
-  IF v_stop.status IN ('Completada', 'Cancelada') THEN
-    RETURN p_id;  -- idempotente
-  END IF;
-
-  v_end := coalesce(p_end_at, now());
-  IF v_end <= v_stop.start_at THEN
-    RAISE EXCEPTION 'El fin debe ser posterior al inicio de la parada';
-  END IF;
-
-  UPDATE public.equipment_stoppages
-  SET end_at = v_end,
-      status = coalesce(nullif(p_status, ''), 'Completada')
-  WHERE id = p_id;
-
-  RETURN p_id;
-END;
-$$;
+-- complete_stoppage se define UNA sola vez en la seccion
+-- "complete_stoppage: Admin o creador" (mas abajo). No duplicar aqui: una
+-- copia antigua de esta funcion llego a pisar la buena via parche temporal.
 
 -- 5. Auto-cierre al resolver/cancelar la incidencia ----------------------------
 
 CREATE OR REPLACE FUNCTION public.close_stoppages_for_incident()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Al resolver (queda en Pendiente de Confirmacion de Cierre) o al cerrar la
+  -- incidencia, su parada abierta se cierra como Completada. El fin se sella
+  -- con la fecha real del trabajo (resolved_at). Si el creador rechaza el
+  -- cierre (-> Abierta), la parada ya cerrada no se reabre.
   IF NEW.status IS DISTINCT FROM OLD.status
-     AND NEW.status IN ('Resuelta', 'Cancelada') THEN
+     AND NEW.status IN ('Pendiente de Confirmación de Cierre', 'Cerrada') THEN
     UPDATE public.equipment_stoppages
-    SET end_at = now(),
-        status = CASE WHEN NEW.status = 'Resuelta' THEN 'Completada' ELSE 'Cancelada' END
+    SET end_at = greatest(start_at + interval '1 second', coalesce(NEW.resolved_at, now())),
+        status = 'Completada'
     WHERE incident_id = NEW.id
       AND status NOT IN ('Completada', 'Cancelada');
   END IF;
@@ -3801,44 +3670,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Lanza una OT por cada plan vencido. Si un plan se saltó varias ejecuciones,
 -- lanza SOLO UNA OT (la más reciente) y salta next_run al futuro, para no
 -- inundar de órdenes cuando la app ha estado caída.
-CREATE OR REPLACE FUNCTION public.launch_due_preventive_plans()
-RETURNS TABLE(plan_id UUID, wo_id TEXT)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_plan RECORD;
-  v_wo TEXT;
-  v_fired INT := 0;
-BEGIN
-  IF NOT (public.is_admin() OR public.role_in_profile('Responsable Sección') OR public.is_wildcard_staff()) THEN
-    RAISE EXCEPTION 'No puedes lanzar planes preventivos';
-  END IF;
+-- launch_due_preventive_plans se define UNA sola vez en la seccion de planes
+-- multi-objetivo (mas abajo). No duplicar aqui.
 
-  FOR v_plan IN
-    SELECT p.* FROM public.preventive_plans p
-    WHERE p.next_run <= now()
-    ORDER BY p.next_run
-  LOOP
-    v_wo := public.launch_plan_next_wo(v_plan.id);
-    v_fired := v_fired + 1;
-
-    -- Salta next_run al futuro: si se perdieron 3 semanas, no lanzamos 3 OTs.
-    UPDATE public.preventive_plans
-    SET next_run = now() + make_interval(days => coalesce(frequency_days, 30))
-    WHERE id = v_plan.id AND next_run <= now();
-
-    IF v_wo IS NOT NULL THEN
-      plan_id := v_plan.id;
-      wo_id := v_wo;
-      RETURN NEXT;
-    END IF;
-  END LOOP;
-
-  RAISE NOTICE 'Planes preventivos lanzados: %', v_fired;
-END;
-$$;
 
 -- Cron diario (pg_cron). Si no está instalado, se avisa y se puede llamar a mano.
 DO $$
@@ -4551,6 +4385,13 @@ BEGIN
     ON CONFLICT (plan_id, equipment_id) DO NOTHING;
 
     ALTER TABLE public.preventive_plans DROP COLUMN equipment_id;
+
+-- Audiencia del plan: secciones colaboradoras (ven/gestionan), colaboradores
+-- (usuarios que siguen el plan) y responsable interno (quien hace seguimiento).
+ALTER TABLE public.preventive_plans
+  ADD COLUMN IF NOT EXISTS collaborating_sections TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS collaborators UUID[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS assigned_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
     RAISE NOTICE 'preventive_plans.equipment_id migrado a preventive_plan_targets';
   ELSE
     RAISE NOTICE 'preventive_plans.equipment_id ya no existe: migración omitida';
@@ -4645,7 +4486,8 @@ BEGIN
 
   INSERT INTO public.work_orders (
     title, description, type, status, priority, section, created_by,
-    created_at, scheduled_date, status_history, related_plan_id, equipment_id
+    created_at, scheduled_date, status_history, related_plan_id, equipment_id,
+    collaborating_sections, collaborators, assigned_user_id
   ) VALUES (
     v_plan.name || ' — ' || coalesce(v_eq_name, 'Equipo'),
     coalesce(v_plan.description, ''),
@@ -4658,7 +4500,10 @@ BEGIN
     v_target.next_run,
     v_hist,
     v_plan.id,
-    v_target.equipment_id
+    v_target.equipment_id,
+    coalesce(v_plan.collaborating_sections, '{}'),
+    coalesce(v_plan.collaborators, '{}'),
+    v_plan.assigned_user_id
   )
   RETURNING id INTO v_wo_id;
 

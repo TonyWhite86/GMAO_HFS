@@ -95,3 +95,29 @@ export const canConvertIncident = (
     if (user.role === UserRole.ADMIN) return true;
     return isWildcardUser(user, sections);
 };
+
+/**
+ * ¿Puede recibir asignación de esta OT?
+ * Espejo de `assign_work_order` en `database/hfs_all.sql`:
+ *   · Observador                     → nunca
+ *   · Admin                          → siempre
+ *   · Comodín (Mantenimiento/Ingeniería) → siempre (gestionan todo)
+ *   · Resto                          → su sección debe estar en la sección
+ *                                      principal o en las colaboradoras
+ *                                      ('Global' en cualquiera de las dos = sí)
+ */
+export const canBeAssignedToWO = (
+    user: Pick<User, 'role' | 'sections'> | null | undefined,
+    woSection: string | null | undefined,
+    collaboratingSections: string[] | null | undefined = [],
+    sections: Pick<Section, 'name' | 'isWildcard'>[] = []
+): boolean => {
+    if (!user) return false;
+    if (isObserver(user)) return false;
+    if (user.role === UserRole.ADMIN) return true;
+    if (isWildcardUser(user, sections)) return true;
+
+    const allowed = [woSection ?? '', ...(collaboratingSections || [])];
+    if (allowed.includes('Global')) return true;
+    return user.sections.some(sec => allowed.includes(sec));
+};

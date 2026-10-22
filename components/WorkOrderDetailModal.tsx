@@ -14,6 +14,7 @@ import { QuickStatusModal } from './workOrder/QuickStatusModal';
 import { VoiceInputButton } from './ui/VoiceInputButton';
 import { LiveTimer } from './LiveTimer';
 import { computeActiveMinutes, hasActiveSession } from '../utils/timeTracking';
+import { formatDateRange } from '../utils/dateUtils';
 
 const SLOW_SPIN_CSS = `
 @keyframes spin-slow {
@@ -102,6 +103,9 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
 
     // Track newly uploaded files in this session for cleanup on cancel
     const newlyUploadedFilesRef = useRef<string[]>([]);
+
+    // Catálogo de contratas (para marcar la OT como externa en edición)
+    const contractors = useAppStore(st => st.contractors);
 
     // Calculate Available Sections
     const availableSections = useMemo(() => {
@@ -206,6 +210,7 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         // FIX: Preserve Scheduled Date for IN_PROGRESS and COMPLETED
         if (newStatus === WOStatus.PENDING) {
             updated.scheduledDate = undefined;
+            updated.scheduledEndDate = null;
         } else if (newStatus === WOStatus.SCHEDULED && !updated.scheduledDate) {
             updated.scheduledDate = new Date(Date.now() + 86400000).toISOString();
         }
@@ -288,6 +293,15 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
         if (!editedWO.title.trim() || !editedWO.equipmentId || !editedWO.section) {
             setShowValidationErrors(true);
             toast.error('Por favor, rellene todos los campos obligatorios (*)');
+            return;
+        }
+        if (editedWO.isExternal && !editedWO.contractorId) {
+            toast.error('Una OT externa necesita una contrata');
+            return;
+        }
+        if (editedWO.scheduledEndDate && editedWO.scheduledDate
+            && new Date(editedWO.scheduledEndDate) < new Date(editedWO.scheduledDate)) {
+            toast.error('El fin del trabajo no puede ser anterior al inicio');
             return;
         }
 
@@ -720,6 +734,12 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 <h3 className="text-xl sm:text-2xl font-bold text-txt mb-2">{editedWO.title}</h3>
                                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[11px] sm:text-sm text-txt-2">
                                     <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={14} className="opacity-70" /> Creada: {new Date(editedWO.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                    {editedWO.scheduledDate && (
+                                        <span className="flex items-center gap-1.5 whitespace-nowrap font-medium">
+                                            <Calendar size={14} className="opacity-70" />
+                                            {editedWO.scheduledEndDate ? 'Programada: ' + formatDateRange(editedWO.scheduledDate, editedWO.scheduledEndDate) : 'Programada: ' + new Date(editedWO.scheduledDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                        </span>
+                                    )}
                                     {editedWO.closedAt && <span className="flex items-center gap-1.5 text-ok font-bold whitespace-nowrap"><Check size={14} /> Finalizada: {new Date(editedWO.closedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>}
                                     <span className={`flex items-center gap-1.5 whitespace-nowrap px-2 py-0.5 rounded-lg transition-all duration-500 ${isRunning ? 'bg-accent-dim text-accent font-bold shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse' : editedWO.status === WOStatus.COMPLETED ? 'text-ok font-bold' : ''}`}>
                                         <Clock size={14} className={`opacity-70 ${isRunning ? 'animate-spin-slow' : ''}`} />
@@ -811,13 +831,13 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 <>
                                     {editedWO.isExternal && (
                                         <div className="mb-2 p-2 rounded-lg bg-spec-dim border border-spec-border text-xs text-spec">
-                                            OT externa{editedWO.contractorName ? ` — ${editedWO.contractorName}` : ''}: sin responsable interno.
+                                            Lo ejecuta{editedWO.contractorName ? ` ${editedWO.contractorName}` : ' una contrata'} (externa). El responsable interno sigue el caso.
                                         </div>
                                     )}
-                                    <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</label>
+                                    <label htmlFor="wo-assigned-user" className="block text-sm font-medium text-txt-2 mb-2">Responsable interno (sigue el caso)</label>
                                 </>
                             ) : (
-                                <span className="block text-sm font-medium text-txt-2 mb-2">Responsable Principal</span>
+                                <span className="block text-sm font-medium text-txt-2 mb-2">Responsable interno</span>
                             )}
                             {isEditing ? (
                                 <CustomSelect
@@ -841,6 +861,51 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* Trabajo externo (editable) */}
+                        {isEditing && (
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-txt-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!editedWO.isExternal}
+                                        onChange={(e) => setEditedWO({
+                                            ...editedWO,
+                                            isExternal: e.target.checked,
+                                            contractorId: e.target.checked ? (editedWO.contractorId ?? '') : null,
+                                            externalPrice: e.target.checked ? (editedWO.externalPrice ?? null) : null
+                                        })}
+                                        className="w-4 h-4"
+                                    />
+                                    Lo ejecuta una contrata (trabajo externo)
+                                </label>
+                                {editedWO.isExternal && (
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-line bg-surface-2">
+                                        <CustomSelect
+                                            label="Contrata"
+                                            value={editedWO.contractorId || ''}
+                                            onChange={(val) => setEditedWO({ ...editedWO, contractorId: val })}
+                                            options={contractors
+                                                .filter(c => c.active)
+                                                .map(c => ({ value: c.id, label: c.name }))}
+                                            placeholder="Selecciona la contrata…"
+                                        />
+                                        <div>
+                                            <label className="block text-sm font-medium text-txt-2 mb-2">Precio (€)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={editedWO.externalPrice ?? ''}
+                                                onChange={(e) => setEditedWO({ ...editedWO, externalPrice: e.target.value ? Number(e.target.value) : null })}
+                                                placeholder="0.00"
+                                                className="fld-input w-full p-2.5 rounded-[6px] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Admin Dates */}
                         {isEditing && currentUser.role === UserRole.ADMIN && (
@@ -866,7 +931,20 @@ export const WorkOrderDetailModal: React.FC<DetailModalProps> = ({
                                         value={editedWO.scheduledDate ? toDatetimeLocalValue(editedWO.scheduledDate) : ''}
                                         onChange={(e) => setEditedWO({
                                             ...editedWO,
-                                            scheduledDate: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                                            scheduledDate: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                                            scheduledEndDate: e.target.value ? editedWO.scheduledEndDate : null
+                                        })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-txt-2 mb-2 uppercase tracking-wider">Hasta (multi-día, opcional)</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="w-full p-2.5 bg-surface border border-line rounded-lg text-sm text-txt focus:ring-2 focus:ring-accent outline-none"
+                                        value={editedWO.scheduledEndDate ? toDatetimeLocalValue(editedWO.scheduledEndDate) : ''}
+                                        onChange={(e) => setEditedWO({
+                                            ...editedWO,
+                                            scheduledEndDate: e.target.value ? new Date(e.target.value).toISOString() : null
                                         })}
                                     />
                                 </div>

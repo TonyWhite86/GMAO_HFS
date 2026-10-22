@@ -614,7 +614,7 @@ export const ReportsModule: React.FC = () => {
     const visibleCategories = useVisibleCategories(currentUser);
 
     // Selection state: Entity Type + Entity ID
-    const [activeType, setActiveType] = useState<EntityType>('worker');
+    const [activeType, setActiveType] = useState<EntityType>('incident');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -850,10 +850,10 @@ export const ReportsModule: React.FC = () => {
                     {/* Entity Switcher */}
                     <div className="flex bg-surface-2 p-1 rounded-lg">
                         {[
-                            { id: 'worker', label: 'Trabajadores', icon: Users },
+                            { id: 'incident', label: 'Incidencias', icon: AlertCircle },
                             { id: 'machine', label: 'Equipos', icon: Wrench },
                             { id: 'inventory', label: 'Repuestos', icon: Package },
-                            { id: 'incident', label: 'Incidencias', icon: AlertCircle },
+                            { id: 'worker', label: 'Trabajadores', icon: Users },
                         ].map(type => (
                             <button
                                 key={type.id}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarClock, PlayCircle, PauseCircle, CheckSquare, CalendarPlus, AlertTriangle, CheckCircle, Search, History } from 'lucide-react';
+import { CalendarClock, PlayCircle, PauseCircle, CheckSquare, CalendarPlus, AlertTriangle, CheckCircle, Search, History, Building2 } from 'lucide-react';
 import { WorkOrder, WOStatus, User, Equipment } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -7,6 +7,7 @@ import { StoppageFormModal } from '../../Stoppages/components/StoppageFormModal'
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { CollaboratorsCell } from './CollaboratorsCell';
 import { groupByTimeframe, getDueLabel, getDueTone } from '../../../utils/maintenanceStats';
+import { formatDateRange } from '../../../utils/dateUtils';
 import { normalizeForSearch } from '../../../utils/searchUtils';
 
 interface PlannedActionsViewProps {
@@ -28,7 +29,7 @@ const GROUP_LABELS: { key: 'hoy' | 'manana' | 'estaSemana' | 'proximas'; label: 
 export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
     workOrders, users, equipment, onSelectWO, onStatusAction, onComplete
 }) => {
-    const { currentUser, addStoppage, updateStoppage, deleteStoppage } = useAppStore();
+    const { currentUser, addStoppage, addStoppageBatch, updateStoppage, deleteStoppage, equipmentGroups } = useAppStore();
     const { canCreateStoppages } = usePermissions(currentUser);
     const [stoppageWO, setStoppageWO] = useState<WorkOrder | null>(null);
     const [filterText, setFilterText] = useState('');
@@ -68,7 +69,7 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     <CalendarPlus size={16} />
                 </button>
             )}
-            {wo.status === WOStatus.PENDING && (
+            {!wo.isExternal && wo.status === WOStatus.PENDING && (
                 <button
                     onClick={() => onStatusAction(wo, WOStatus.IN_PROGRESS)}
                     className="p-1.5 text-txt-3 hover:text-ok hover:bg-ok-dim rounded-md transition-colors"
@@ -77,7 +78,7 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     <PlayCircle size={16} />
                 </button>
             )}
-            {wo.status === WOStatus.IN_PROGRESS && (
+            {!wo.isExternal && wo.status === WOStatus.IN_PROGRESS && (
                 <button
                     onClick={() => onStatusAction(wo, WOStatus.PENDING)}
                     className="p-1.5 text-txt-3 hover:text-warn hover:bg-warn-dim rounded-md transition-colors"
@@ -112,6 +113,14 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-txt text-sm truncate">{wo.title}</span>
+                        {wo.isExternal && (
+                            <span className="bdg bdg-purple shrink-0">
+                                <Building2 size={10} /> Externa{wo.contractorName ? ` · ${wo.contractorName}` : ''}
+                            </span>
+                        )}
+                        {(wo.collaboratingSections || []).map(sec => (
+                            <span key={sec} className="bdg bdg-purple shrink-0">{sec}</span>
+                        ))}
                         {due === 'Vencida' && (
                             <span className="bdg bdg-red shrink-0">
                                 <AlertTriangle size={10} /> Vencida
@@ -133,7 +142,9 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                         </div>
                     ) : (
                         <div className={`text-sm font-bold ${tone === 'ko' ? 'text-ko' : tone === 'warn' ? 'text-warn' : 'text-txt'}`}>
-                            {date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} · {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            {wo.scheduledEndDate
+                                ? formatDateRange(wo.scheduledDate || wo.createdAt, wo.scheduledEndDate)
+                                : `${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} · ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
                         </div>
                     )}
                     <div className="flex items-center justify-end gap-1.5 mt-1">
@@ -240,8 +251,10 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     initialStartAt={stoppageWO.scheduledDate || stoppageWO.createdAt}
                     linkedWorkOrderId={stoppageWO.id}
                     onCreate={addStoppage}
+                    onCreateBatch={addStoppageBatch}
                     onUpdate={updateStoppage}
                     onDelete={deleteStoppage}
+                    groups={equipmentGroups}
                 />
             )}
         </div>

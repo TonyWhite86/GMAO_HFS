@@ -22,6 +22,8 @@ export interface IncidentSlice {
         withStoppage?: boolean; stoppageTitle?: string | null;
         stoppageStartAt?: string | null;
         stoppageDescription?: string | null;
+        /** Fecha/hora de la incidencia elegida por el usuario (sin valor = ahora). */
+        createdAt?: string | null;
     }) => Promise<{ incidentId: string; stoppageId: string | null }>;
     updateIncident: (id: string, updates: Partial<Incident>) => Promise<void>;
     transitionIncidentStatus: (id: string, status: IncidentStatus, reason?: string, solution?: string) => Promise<void>;
