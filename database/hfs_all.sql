@@ -3356,6 +3356,15 @@ CREATE INDEX IF NOT EXISTS idx_stoppages_incident
   ON public.equipment_stoppages (incident_id)
   WHERE incident_id IS NOT NULL;
 
+-- Paradas de lote (corte de suministro multi-equipo): N filas, una por equipo
+-- afectado, comparten batch_id. NULL = parada suelta (una sola maquina).
+ALTER TABLE public.equipment_stoppages
+  ADD COLUMN IF NOT EXISTS batch_id UUID;
+
+CREATE INDEX IF NOT EXISTS idx_stoppages_batch
+  ON public.equipment_stoppages (batch_id)
+  WHERE batch_id IS NOT NULL;
+
 -- 2. El equipo es obligatorio en toda incidencia --------------------------------
 -- ON DELETE RESTRICT: no se puede borrar un equipo que tenga incidencias.
 -- (Antes era SET NULL, incompatible con NOT NULL.)

@@ -374,7 +374,8 @@ export const mapEquipmentStoppage = (s: any): EquipmentStoppage => ({
     requestedByName: s.requester?.name,
     workOrderId: s.work_order_id,
     createdBy: s.created_by,
-    createdAt: s.created_at
+    createdAt: s.created_at,
+    batchId: s.batch_id ?? null
 });
 
 export const mapSubtask = (st: any): SubTask => ({

@@ -462,6 +462,8 @@ export interface EquipmentStoppage {
   workOrderId?: string | null;
   createdBy?: string | null;
   createdAt: string;
+  /** Lote multi-equipo (corte de suministro): N paradas hermanas. NULL = suelta. */
+  batchId?: string | null;
 }
 
 export interface Skill {

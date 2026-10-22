@@ -29,7 +29,7 @@ const GROUP_LABELS: { key: 'hoy' | 'manana' | 'estaSemana' | 'proximas'; label: 
 export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
     workOrders, users, equipment, onSelectWO, onStatusAction, onComplete
 }) => {
-    const { currentUser, addStoppage, updateStoppage, deleteStoppage } = useAppStore();
+    const { currentUser, addStoppage, addStoppageBatch, updateStoppage, deleteStoppage, equipmentGroups } = useAppStore();
     const { canCreateStoppages } = usePermissions(currentUser);
     const [stoppageWO, setStoppageWO] = useState<WorkOrder | null>(null);
     const [filterText, setFilterText] = useState('');
@@ -251,8 +251,10 @@ export const PlannedActionsView: React.FC<PlannedActionsViewProps> = ({
                     initialStartAt={stoppageWO.scheduledDate || stoppageWO.createdAt}
                     linkedWorkOrderId={stoppageWO.id}
                     onCreate={addStoppage}
+                    onCreateBatch={addStoppageBatch}
                     onUpdate={updateStoppage}
                     onDelete={deleteStoppage}
+                    groups={equipmentGroups}
                 />
             )}
         </div>
